@@ -42,11 +42,18 @@ npm run build    # build de producción
 
 ## Estado del proyecto Supabase
 
-⚠️ El proyecto Supabase remoto AÚN NO EXISTE (límite de proyectos free alcanzado en la org
-"MCM Developers"). Las migraciones de `supabase/migrations/` están listas para aplicarse
-cuando se cree (nombre previsto: `mcm-banco-recursos`, región `eu-west-3`). No inventes
-credenciales: pide al usuario liberar hueco o crear el proyecto, y entonces aplica las
-migraciones en orden con el MCP de Supabase.
+El Banco de Recursos vive en el **esquema Postgres `recursos`** del proyecto compartido
+`mcmvotaciones` (`sjhxhsdckvungsrbquve`, org "MCM Developers") — no hay hueco free para un
+proyecto propio (ver AD-6 en `docs/01-arquitectura.md`). Reglas:
+
+- **Todo lo del banco va en el esquema `recursos`**, nunca en `public` (que es de la app
+  de votaciones y no se toca). Los clientes JS llevan `db: { schema: 'recursos' }`.
+- El esquema está expuesto en PostgREST vía `alter role authenticator set pgrst.db_schemas`
+  (tras cada cambio DDL: `notify pgrst, 'reload schema';`).
+- La migración `00001` YA ESTÁ APLICADA en remoto. Las siguientes se aplican con el MCP
+  de Supabase (`apply_migration`) y se versionan también en `supabase/migrations/`.
+- ⚠️ Google OAuth como proveedor de Auth está PENDIENTE de configurar en el dashboard
+  (necesita client ID/secret de Google Cloud; no se puede por MCP).
 
 ## Qué no hacer
 

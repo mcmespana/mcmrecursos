@@ -1,6 +1,6 @@
 # SPEC-001 · Autenticación, perfiles y roles
 
-> **Estado:** validada (pendiente aplicar migración)
+> **Estado:** validada — migración aplicada en remoto (esquema `recursos`); falta UI y configurar Google OAuth en el dashboard
 > **Depende de:** —
 
 ## Objetivo

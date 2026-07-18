@@ -3,8 +3,10 @@
 ## Fase 0 — Fundaciones ✅ (en curso)
 - [x] Scaffold SvelteKit + Svelte 5 + Tailwind 4 + shadcn-svelte
 - [x] Documentación spec-driven
-- [ ] Proyecto Supabase creado y migración inicial aplicada (bloqueado: límite free)
-- [ ] Login con Google + perfiles y roles (SPEC-001)
+- [x] BD operativa: esquema `recursos` en el proyecto compartido mcmvotaciones, migración 00001 aplicada (AD-6)
+- [x] App conectada a Supabase (@supabase/ssr, hooks + locals, callback OAuth)
+- [ ] Google OAuth configurado en el dashboard de Supabase (client ID/secret) — acción del usuario
+- [ ] Login con Google + perfiles y roles en la UI (SPEC-001)
 
 ## Fase 1 — Catálogo y búsqueda
 - [ ] Modelo de datos de `recurso` definido con el Sheet real (SPEC-002)

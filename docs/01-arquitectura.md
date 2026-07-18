@@ -39,6 +39,18 @@ pgvector disponible para la fase 5.
 La tabla `recurso` marca columnas de visibilidad. Una **vista pública** expone solo lo
 público; los clientes autenticados con permiso consultan la tabla/vista completa vía RLS.
 
+### AD-6 · Esquema `recursos` dentro del proyecto Supabase de mcmvotaciones
+No hay hueco para un tercer proyecto free y no se va a pagar. El banco vive en un esquema
+Postgres propio (`recursos`) dentro del proyecto `mcmvotaciones` (`sjhxhsdckvungsrbquve`):
+aislamiento total de tablas/tipos/funciones respecto al `public` de votaciones, RLS propio,
+y expuesto a la API con `pgrst.db_schemas` + grants. mcmvotaciones no usa Supabase Auth,
+así que `auth.users` queda en la práctica para el banco (y un login serviría para ambas
+apps si algún día votaciones lo adopta).
+**Consecuencias:** los clientes supabase-js se crean con `db: { schema: 'recursos' }`;
+tras cada DDL hay que `notify pgrst, 'reload schema'`; comparten cuota (500 MB BD, 50k MAU)
+con votaciones — sobrada a nuestro tamaño; si algún día hay proyecto propio, migrar es
+`pg_dump --schema=recursos`.
+
 ## Estructura de la app
 
 ```
