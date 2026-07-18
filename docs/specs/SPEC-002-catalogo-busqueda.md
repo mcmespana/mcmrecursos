@@ -1,6 +1,6 @@
 # SPEC-002 · Catálogo y búsqueda facetada
 
-> **Estado:** borrador — ⚠️ bloqueada hasta definir las ~25 columnas del Sheet real
+> **Estado:** borrador — modelo de datos propuesto en `docs/02-modelo-datos.md` (pendiente de validación; CSV seed en `docs/seed/recursos_seed.csv`)
 > **Depende de:** SPEC-001
 
 ## Objetivo
@@ -14,15 +14,13 @@ rica por recurso.
 - Entra: tabla `recurso`, endpoint JSON del índice, buscador, tarjetas, ficha, contador de accesos.
 - Fuera: capa social (SPEC-003), envíos (SPEC-004), sync (SPEC-005).
 
-## Modelo de datos (borrador a validar con el Sheet real)
+## Modelo de datos
 
-Campos previsibles de `recurso`: id estable, título, descripción, tipo de recurso,
-destinatarios (niños/jóvenes/adultos), franja de edad, duración, nº participantes,
-espacio (interior/exterior), materiales, temática/valores, idioma, autor, MCM local origen,
-enlace Drive / enlace externo, miniatura, fecha, estado (publicado/pendiente/retirado),
-visibilidad (público/protegido).
-
-**Pendiente:** mapear columna a columna cuando el usuario pase el Sheet.
+Canónico en **`docs/02-modelo-datos.md`**: tabla `recurso` (solo `id` y `nombre`
+obligatorios, cajón `extra jsonb` para columnas futuras), vocabularios `tag`/`autor`,
+itinerarios formativos con bloques, `faceta` para configurar filtros sin código, y capa
+social solo-BD. Sync por nombre de cabecera (reordenar el Sheet es inocuo).
+Las vistas y el sistema de filtros se anotan en SPEC-006.
 
 ## Experiencia de usuario
 
