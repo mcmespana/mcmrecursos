@@ -34,11 +34,36 @@
 - [x] /admin/sync: última sync, historial con errores y resolución de conflictos (protección web persistente)
 - [x] /admin/usuarios: roles, MCM local y activar/desactivar (con salvaguardas)
 - [x] /admin/stats: tiles + más abiertos + mejor valorados + por estado
-- [ ] /admin/config: editar facetas, listas cerradas, MCM locales, itinerarios y acceso_previo
-- [x] 13 MCM locales reales + acceso preautorizado (2 admins, 9 delegaciones como edición local)
-- [ ] Vista tabla para usuarios en el buscador público: sin imagen, columnas configurables (SPEC-006 §2b)
-- [ ] Confirmar emails limpios de Caravaca, Onda, L'Alcora y Quintanar y preautorizarlos
+- [x] 13 MCM locales reales + acceso preautorizado (3 admins, 10 delegaciones como edición local)
+- [ ] Confirmar email limpio de Caravaca y preautorizarlo (única delegación sin editor)
 - [ ] Nuevas versiones de un recurso
+
+## 👉 SIGUIENTE (dos frentes por hacer)
+
+### 1. Vista tabla para usuarios (SPEC-006 §2b)
+Vista alternativa del buscador público, conmutable con la galería mediante un toggle
+junto a los filtros. Objetivo: comparar muchos recursos de un vistazo, estilo la tabla
+de GEG Spain pero moderna y sin depender de la imagen.
+- Filas compactas SIN miniatura (o una mini de ~32 px opcional).
+- Columnas que el usuario muestra/oculta y reordena, con su elección recordada en
+  `localStorage` (misma capa que `SocialLocal`). Candidatas: tipo, etapas, edades, nivel,
+  MCM local, idioma, soporte, año, valoración media, nº accesos.
+- Ordenable por cualquier columna; comparte índice Orama, facetas, chips y URL con la
+  galería (el modo de vista es un parámetro más de la URL, p. ej. `?vista=tabla`).
+- Reutiliza `RecursoCard`/`RecursoFicha`: al hacer clic en una fila se abre la misma ficha.
+- Diseño: densidad "herramienta" (fila ~40 px, `tabular-nums`, cabecera pegajosa), pero
+  dentro del sitio público con su tema, no el del panel admin.
+
+### 2. /admin/config (SPEC-008 §config, solo admin)
+Última sección del panel, con pestañas:
+- **Listas cerradas** (`lista_valor`): añadir/editar/desactivar valores de tipo, etapas,
+  nivel, edades, idioma, soporte, ubicación, estado, visibilidad… con grupo y orden.
+- **Facetas** (`faceta`): mostrar/ocultar, reordenar y renombrar los filtros del buscador
+  sin tocar código (incluye promocionar columnas de `extra`).
+- **MCM locales** (`mcm_local`): añadir, renombrar y activar/desactivar delegaciones.
+- **Accesos preautorizados** (`acceso_previo`): alta/baja de emails con su rol y MCM local
+  (aquí se añadiría Caravaca cuando se confirme su email).
+- Más adelante: editor visual de itinerarios formativos.
 
 ## Fase 3.5 — Descubre (el tinder de recursos) 🎴
 - [ ] Modo swipe sin IA: mazo desde filtros/presets, ❤/✕/abrir, deshacer (SPEC-007)

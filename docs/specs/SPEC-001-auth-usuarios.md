@@ -21,10 +21,11 @@ de Google, MCM local de referencia y rol. Los roles gobiernan qué se ve y qué 
 
 Tabla `acceso_previo(email, rol, mcm_local_id)`: emails que al primer login nacen ya con
 su rol y MCM local (el trigger `handle_new_user` la consulta). Gestionable solo por admin.
-Sembrada con los 2 administradores (ajmcm@, admin@) y las 9 cuentas de delegación limpias
-de MCM Bank como `edicion_local` de su MCM. Los 13 MCM locales reales provienen de las
-delegaciones de MCM Bank. Pendientes de confirmar email: Caravaca, Onda, L'Alcora y
-Quintanar (en MCM Bank solo constan con typo o sin cuenta).
+Sembrada con los 3 administradores (ajmcm@, admin@, ece@) y 10 cuentas de delegación como
+`edicion_local` de su MCM (email `slug@movimientoconsolacion.com`). Los 13 MCM locales
+reales provienen de las delegaciones de MCM Bank. Único pendiente: **Caravaca** (su email
+limpio no está confirmado; en MCM Bank solo constaba con typo). Se añadirá desde
+`/admin/config` cuando se implemente esa sección.
 
 ## Modelo de datos
 
