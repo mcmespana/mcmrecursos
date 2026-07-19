@@ -1,0 +1,83 @@
+lista,valor,grupo,orden
+tipo,Sesión de grupo,Sesiones y formación,1
+tipo,Itinerario de sesiones,Sesiones y formación,2
+tipo,Formación de monitores,Sesiones y formación,3
+tipo,Taller,Sesiones y formación,4
+tipo,Guía,Sesiones y formación,5
+tipo,Campamento,Actividades,6
+tipo,Acampada,Actividades,7
+tipo,Actividad de voluntariado,Actividades,8
+tipo,Conclusiones de actividad,Actividades,9
+tipo,Oración,Celebración y oración,10
+tipo,Canción,Celebración y oración,11
+tipo,Vídeo,Audiovisual y gráfico,12
+tipo,Película,Audiovisual y gráfico,13
+tipo,Imagen,Audiovisual y gráfico,14
+tipo,Dibujo,Audiovisual y gráfico,15
+tipo,Diseño,Audiovisual y gráfico,16
+tipo,Presentación,Audiovisual y gráfico,17
+tipo,Libro,Documentos,18
+tipo,Documento MCM,Documentos,19
+tipo,Web,Documentos,20
+tipo,Recurso general,Documentos,21
+etapas,MIC,,1
+etapas,COM,,2
+etapas,LC,,3
+etapas,Monitores,,4
+nivel,MIC,,1
+nivel,Conocimiento,,2
+nivel,Incorporación,,3
+nivel,Crecimiento,,4
+nivel,Opción responsable,,5
+nivel,Laicos,,6
+edades,3º EP,Primaria,1
+edades,4º EP,Primaria,2
+edades,5º EP,Primaria,3
+edades,6º EP,Primaria,4
+edades,1º ESO,Secundaria,5
+edades,2º ESO,Secundaria,6
+edades,3º ESO,Secundaria,7
+edades,4º ESO,Secundaria,8
+edades,Bachillerato,Jóvenes,9
+edades,Universitarios,Jóvenes,10
+edades,Jóvenes adultos (<30),Jóvenes,11
+edades,Adultos jóvenes (+30),Adultos,12
+edades,Adultos,Adultos,13
+edades,Personas mayores,Adultos,14
+idioma,Castellano,,1
+idioma,Catalán,,2
+idioma,Portugués,,3
+idioma,Inglés,,4
+idioma,Otros,,5
+idioma,N/A,,6
+soporte,PDF,,1
+soporte,Word,,2
+soporte,Docs,,3
+soporte,Formulario,,4
+soporte,Genially,,5
+soporte,Canva,,6
+soporte,PPT,,7
+soporte,Hoja de cálculo,,8
+soporte,YouTube,,9
+soporte,Archivo,,10
+ubicacion,Drive,,1
+ubicacion,Servidor propio,,2
+ubicacion,Servidor externo,,3
+ubicacion,YouTube,,4
+estado,borrador,,1
+estado,subido_usuario,,2
+estado,pendiente_revision,,3
+estado,revisar_ia,,4
+estado,publicado,,5
+estado,retirado,,6
+visibilidad,publico,,1
+visibilidad,privado,,2
+datos_personales,Sí,,1
+datos_personales,No,,2
+creado_con_ia,Sí,,1
+creado_con_ia,No,,2
+tipo,Programación anual,Sesiones y formación,22
+fuera_del_banco,Sí,,1
+fuera_del_banco,No,,2
+pendiente_clasificar,Sí,,1
+pendiente_clasificar,No,,2
