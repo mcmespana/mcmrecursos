@@ -1,8 +1,11 @@
 # SPEC-003 · Capa social: valoraciones, favoritos, listas, comentarios
 
-> **Estado:** IMPLEMENTADA (migraciones 00004 y 00006). Valoraciones, favoritos, usos,
-> accesos, listas (con compartir por enlace público) y comentarios/sugerencias con
-> moderación por editores. Pendiente solo: moderación avanzada si algún día hace falta.
+> **Estado:** IMPLEMENTADA (migraciones 00004, 00006 y 00008).
+> **Sin login también funciona**: las estrellas se guardan en BD como anónimas (una por
+> dispositivo, `anon_id` en localStorage) y cuentan en la media; corazones, usos y listas
+> viven en localStorage con un aviso claro. Al iniciar sesión, TODO migra a la cuenta
+> automáticamente (`reclamar_valoraciones` + upserts) y el dispositivo queda limpio.
+> Los accesos se registran siempre, con o sin login, al abrir el recurso.
 > **Depende de:** SPEC-001, SPEC-002
 
 ## Objetivo

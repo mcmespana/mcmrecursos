@@ -13,7 +13,7 @@
 	} from '$lib/catalogo/tipos';
 	import { Badge } from '$lib/components/ui/badge';
 	import Estrellas from '$lib/components/Estrellas.svelte';
-	import { FolderSymlink, Heart, PackageOpen } from '@lucide/svelte';
+	import { FolderSymlink, Heart, Lock, PackageOpen } from '@lucide/svelte';
 
 	let {
 		recurso,
@@ -48,7 +48,7 @@
 		<span class="sr-only">Ver ficha de {nombre}</span>
 	</button>
 
-	<div class="relative aspect-[16/10] w-full overflow-hidden">
+	<div class="relative aspect-[2/1] w-full overflow-hidden">
 		{#if srcMiniatura}
 			<img
 				src={srcMiniatura}
@@ -66,9 +66,17 @@
 			</div>
 		{/if}
 
-		<div class="absolute top-2 left-2 flex gap-1.5">
+		<div class="absolute top-2 left-2 flex items-center gap-1.5">
 			{#if recurso.tipo}
 				<Badge class={`border-transparent shadow-sm ${badgeClase}`}>{recurso.tipo}</Badge>
+			{/if}
+			{#if recurso.visibilidad === 'privado'}
+				<span
+					class="flex size-5 items-center justify-center rounded-full bg-background/85 shadow-sm backdrop-blur"
+					title="Recurso privado: requiere iniciar sesión"
+				>
+					<Lock class="size-3 text-muted-foreground" />
+				</span>
 			{/if}
 		</div>
 		{#if esEjemplo(recurso.nombre)}
@@ -99,8 +107,8 @@
 		</button>
 	</div>
 
-	<div class="flex flex-1 flex-col gap-1.5 p-4">
-		<h3 class="line-clamp-2 leading-snug font-semibold text-balance">{nombre}</h3>
+	<div class="flex flex-1 flex-col gap-1 p-3">
+		<h3 class="line-clamp-2 text-[15px] leading-snug font-semibold text-balance">{nombre}</h3>
 
 		{#if recurso.etapas.length || recurso.edades.length}
 			<p class="line-clamp-1 text-xs text-muted-foreground">
@@ -110,7 +118,7 @@
 			</p>
 		{/if}
 
-		<div class="mt-auto flex items-center justify-between gap-2 pt-2">
+		<div class="mt-auto flex items-center justify-between gap-2 pt-1.5">
 			<Estrellas media={recurso.valoracion_media} num={recurso.num_valoraciones} />
 			<div class="flex items-center gap-2 text-[11px] text-muted-foreground">
 				{#if recurso.pendiente_clasificar}

@@ -11,7 +11,8 @@
 	import { BookOpen, Inbox, ListChecks, LogOut, Moon, Send, Shield, Sun } from '@lucide/svelte';
 	import OnboardingMcm from '$lib/components/OnboardingMcm.svelte';
 	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { socialLocal } from '$lib/social/local.svelte';
 
 	let { data, children } = $props();
 
@@ -41,6 +42,60 @@
 
 	async function salir() {
 		await data.supabase.auth.signOut();
+	}
+
+	// Al llegar con sesión, lo guardado en este dispositivo se funde con la cuenta.
+	let migrando = false;
+	$effect(() => {
+		if (!browser || !data.session || migrando) return;
+		socialLocal.cargar();
+		if (!socialLocal.hayDatos()) return;
+		migrando = true;
+		migrarLocal(data.session.user.id).finally(() => (migrando = false));
+	});
+
+	async function migrarLocal(uid: string) {
+		const sb = data.supabase;
+		try {
+			if (socialLocal.favoritos.size) {
+				await sb.from('favorito').upsert(
+					[...socialLocal.favoritos].map((recurso_id) => ({ recurso_id, perfil_id: uid })),
+					{ onConflict: 'recurso_id,perfil_id', ignoreDuplicates: true }
+				);
+			}
+			if (socialLocal.usos.size) {
+				await sb.from('uso').upsert(
+					[...socialLocal.usos].map((recurso_id) => ({ recurso_id, perfil_id: uid })),
+					{ onConflict: 'recurso_id,perfil_id', ignoreDuplicates: true }
+				);
+			}
+			for (const [recurso_id, estrellas] of socialLocal.valoraciones) {
+				await sb
+					.from('valoracion')
+					.upsert({ recurso_id, perfil_id: uid, estrellas }, { onConflict: 'recurso_id,perfil_id' });
+			}
+			if (socialLocal.dispositivo) {
+				await sb.rpc('reclamar_valoraciones', { dispositivo: socialLocal.dispositivo });
+			}
+			for (const lista of socialLocal.listas) {
+				if (!lista.nombre) continue;
+				const { data: creada } = await sb
+					.from('lista')
+					.insert({ perfil_id: uid, nombre: lista.nombre })
+					.select('id')
+					.single();
+				if (creada && lista.recursos.length) {
+					await sb.from('lista_recurso').insert(
+						lista.recursos.map((recurso_id) => ({ lista_id: creada.id, recurso_id }))
+					);
+				}
+			}
+			socialLocal.limpiar();
+			toast.success('Lo guardado en este dispositivo ya está en tu cuenta ✨');
+			invalidateAll();
+		} catch {
+			toast.error('No se pudo migrar todo lo guardado en el dispositivo');
+		}
 	}
 </script>
 

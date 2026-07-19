@@ -5,6 +5,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { toast } from 'svelte-sonner';
 	import { Check, ListPlus, Plus } from '@lucide/svelte';
+	import { socialLocal } from '$lib/social/local.svelte';
 
 	let {
 		supabase,
@@ -25,7 +26,15 @@
 	let creando = $state(false);
 
 	async function cargar() {
-		if (!session) return;
+		if (!session) {
+			socialLocal.cargar();
+			listas = socialLocal.listas.map((l) => ({
+				id: l.id,
+				nombre: l.nombre,
+				contiene: l.recursos.includes(recursoId)
+			}));
+			return;
+		}
 		cargando = true;
 		const [{ data: mias }, { data: membresia }] = await Promise.all([
 			supabase.from('lista').select('id, nombre').eq('perfil_id', session.user.id).order('nombre'),
@@ -37,15 +46,15 @@
 	}
 
 	function onOpenChange(o: boolean) {
-		if (o && !session) {
-			onrequierelogin();
-			return;
-		}
 		abierto = o;
 		if (o) cargar();
 	}
 
 	async function alternar(lista: { id: string; nombre: string; contiene: boolean }) {
+		if (!session) {
+			lista.contiene = socialLocal.alternarEnLista(lista.id, recursoId);
+			return;
+		}
 		lista.contiene = !lista.contiene;
 		const { error } = lista.contiene
 			? await supabase.from('lista_recurso').insert({ lista_id: lista.id, recurso_id: recursoId })
@@ -62,7 +71,15 @@
 
 	async function crear() {
 		const nombre = nombreNueva.trim();
-		if (!nombre || !session) return;
+		if (!nombre) return;
+		if (!session) {
+			const lista = socialLocal.crearLista(nombre);
+			socialLocal.alternarEnLista(lista.id, recursoId);
+			listas = [...listas, { id: lista.id, nombre, contiene: true }];
+			nombreNueva = '';
+			toast.success(`Guardado en «${nombre}» (en este dispositivo)`);
+			return;
+		}
 		creando = true;
 		const { data, error } = await supabase
 			.from('lista')
