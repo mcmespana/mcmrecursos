@@ -8,8 +8,9 @@
 	import { create, insertMultiple, search, type Orama } from '@orama/orama';
 	import { toast } from 'svelte-sonner';
 	import type { RecursoCatalogo } from '$lib/catalogo/tipos';
-	import { FACETAS, filtrar, contar, textoIndexable, type Seleccion } from '$lib/catalogo/filtros';
+	import { construirFacetas, filtrar, contar, textoIndexable, type Seleccion } from '$lib/catalogo/filtros';
 	import RecursoCard from '$lib/components/RecursoCard.svelte';
+	import RecursoTabla from '$lib/components/RecursoTabla.svelte';
 	import FacetaFiltro from '$lib/components/FacetaFiltro.svelte';
 	import RecursoFicha from '$lib/components/RecursoFicha.svelte';
 	import LoginDialog from '$lib/components/LoginDialog.svelte';
@@ -17,9 +18,12 @@
 	import { socialLocal } from '$lib/social/local.svelte';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
-	import { Search, X } from '@lucide/svelte';
+	import { LayoutGrid, Rows3, Search, X } from '@lucide/svelte';
 
 	let { data } = $props();
+
+	// facetas del buscador: configuración en BD (tabla `faceta`, editable en /admin/config)
+	const facetas = $derived(construirFacetas(data.facetas, !!data.session));
 
 	// --- índice de texto (Orama), reconstruido si cambia el catálogo ---
 	const db: Orama<{ id: 'string'; texto: 'string' }> = $derived.by(() => {
@@ -34,9 +38,16 @@
 	// --- estado de búsqueda (inicializado desde la URL) ---
 	const paramsIniciales = page.url.searchParams;
 	let q = $state(paramsIniciales.get('q') ?? '');
+	let vista = $state<'galeria' | 'tabla'>(
+		paramsIniciales.get('vista') === 'tabla' ? 'tabla' : 'galeria'
+	);
+	// svelte-ignore state_referenced_locally -- solo interesa el valor inicial (deep link)
 	let seleccion = $state<Seleccion>(
 		Object.fromEntries(
-			FACETAS.map((f) => [f.campo, paramsIniciales.get(f.campo)?.split('|').filter(Boolean) ?? []])
+			construirFacetas(data.facetas, true).map((f) => [
+				f.campo,
+				paramsIniciales.get(f.campo)?.split('|').filter(Boolean) ?? []
+			])
 		)
 	);
 	// svelte-ignore state_referenced_locally -- solo interesa el valor inicial (deep link)
@@ -176,16 +187,16 @@
 	}
 
 	// --- derivados de catálogo ---
-	const resultados = $derived(filtrar(data.recursos, seleccion, idsTexto));
+	const resultados = $derived(filtrar(data.recursos, facetas, seleccion, idsTexto));
 	const filtrosActivos = $derived(
-		FACETAS.flatMap((f) => seleccion[f.campo].map((valor) => ({ campo: f.campo, valor })))
+		facetas.flatMap((f) => (seleccion[f.campo] ?? []).map((valor) => ({ campo: f.campo, valor })))
 	);
 	const tipoFamilia = $derived(
 		new Map(data.listas.filter((l) => l.lista === 'tipo').map((l) => [l.valor, l.grupo]))
 	);
 	const opcionesPorFaceta = $derived.by(() => {
 		const map = new Map<string, { valor: string; grupo: string | null }[]>();
-		for (const f of FACETAS) {
+		for (const f of facetas) {
 			const deLista = data.listas.filter((l) => l.lista === f.campo);
 			if (deLista.length) {
 				map.set(
@@ -207,7 +218,10 @@
 	});
 	const countsPorFaceta = $derived(
 		new Map(
-			FACETAS.map((f) => [f.campo, contar(filtrar(data.recursos, seleccion, idsTexto, f.campo), f)])
+			facetas.map((f) => [
+				f.campo,
+				contar(filtrar(data.recursos, facetas, seleccion, idsTexto, f.campo), f)
+			])
 		)
 	);
 	const relacionadosAbierto = $derived(
@@ -228,8 +242,9 @@
 		if (!browser) return;
 		const params = new URLSearchParams();
 		if (q.trim()) params.set('q', q.trim());
-		for (const f of FACETAS) {
-			if (seleccion[f.campo].length) params.set(f.campo, seleccion[f.campo].join('|'));
+		if (vista === 'tabla') params.set('vista', 'tabla');
+		for (const f of facetas) {
+			if (seleccion[f.campo]?.length) params.set(f.campo, seleccion[f.campo].join('|'));
 		}
 		if (abierto) params.set('r', abierto.id);
 		const cadena = params.toString();
@@ -241,7 +256,7 @@
 
 	function limpiarTodo() {
 		q = '';
-		seleccion = Object.fromEntries(FACETAS.map((f) => [f.campo, []]));
+		seleccion = Object.fromEntries(facetas.map((f) => [f.campo, []]));
 	}
 
 	function navegarFicha(direccion: 1 | -1) {
@@ -286,13 +301,13 @@
 	<div
 		class="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
 	>
-		{#each FACETAS as faceta (faceta.campo)}
+		{#each facetas as faceta (faceta.campo)}
 			<div class="shrink-0">
 				<FacetaFiltro
 					etiqueta={faceta.etiqueta}
 					opciones={opcionesPorFaceta.get(faceta.campo) ?? []}
 					counts={countsPorFaceta.get(faceta.campo) ?? new Map()}
-					seleccion={seleccion[faceta.campo]}
+					seleccion={seleccion[faceta.campo] ?? []}
 					onchange={(valores) => (seleccion = { ...seleccion, [faceta.campo]: valores })}
 				/>
 			</div>
@@ -325,23 +340,61 @@
 				Limpiar todo
 			</Button>
 		{/if}
+
+		<!-- toggle galería / tabla (SPEC-006 §2b) -->
+		<div class="ml-auto flex items-center rounded-lg border p-0.5" role="group" aria-label="Modo de vista">
+			<button
+				type="button"
+				aria-pressed={vista === 'galeria'}
+				title="Vista galería"
+				class={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+					vista === 'galeria' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'
+				}`}
+				onclick={() => (vista = 'galeria')}
+			>
+				<LayoutGrid class="size-3.5" />
+				<span class="hidden sm:inline">Galería</span>
+			</button>
+			<button
+				type="button"
+				aria-pressed={vista === 'tabla'}
+				title="Vista tabla"
+				class={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+					vista === 'tabla' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'
+				}`}
+				onclick={() => (vista = 'tabla')}
+			>
+				<Rows3 class="size-3.5" />
+				<span class="hidden sm:inline">Tabla</span>
+			</button>
+		</div>
 	</div>
 
 	<!-- resultados -->
 	{#if resultados.length}
-		<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-			{#each resultados as recurso (recurso.id)}
-				<div animate:flip={{ duration: 220 }}>
-					<RecursoCard
-						{recurso}
-						familia={recurso.tipo ? (tipoFamilia.get(recurso.tipo) ?? null) : null}
-						favorito={esFavorito(recurso.id)}
-						onopen={(r) => (abierto = r)}
-						onfavorito={toggleFavorito}
-					/>
-				</div>
-			{/each}
-		</div>
+		{#if vista === 'tabla'}
+			<RecursoTabla
+				recursos={resultados}
+				{tipoFamilia}
+				{esFavorito}
+				onopen={(r) => (abierto = r)}
+				onfavorito={toggleFavorito}
+			/>
+		{:else}
+			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+				{#each resultados as recurso (recurso.id)}
+					<div animate:flip={{ duration: 220 }}>
+						<RecursoCard
+							{recurso}
+							familia={recurso.tipo ? (tipoFamilia.get(recurso.tipo) ?? null) : null}
+							favorito={esFavorito(recurso.id)}
+							onopen={(r) => (abierto = r)}
+							onfavorito={toggleFavorito}
+						/>
+					</div>
+				{/each}
+			</div>
+		{/if}
 	{:else}
 		<div class="flex flex-col items-center gap-3 py-20 text-center">
 			<p class="font-display text-xl font-semibold">Sin resultados</p>

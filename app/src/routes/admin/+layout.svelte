@@ -14,7 +14,7 @@
 			...(data.rolPanel === 'administrador'
 				? [
 						{ href: '/admin/usuarios', etiqueta: 'Usuarios', icono: Users, activa: true },
-						{ href: '/admin/config', etiqueta: 'Configuración', icono: Settings2, activa: false }
+						{ href: '/admin/config', etiqueta: 'Configuración', icono: Settings2, activa: true }
 					]
 				: []),
 			...(data.rolPanel !== 'edicion_local'
