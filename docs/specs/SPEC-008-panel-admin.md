@@ -1,10 +1,11 @@
 # SPEC-008 · Panel de administración
 
-> **Estado:** en implementación. HECHO: §1 revisión (cola + publicar/devolver/descartar),
-> §5 emails, §6 modelo (migración 00007: envio, editado_web_at con trigger también en
-> insert, perfil.activo, sync_filas con conflictos y retirada segura — probado), §7 mis
-> envíos, shell /admin con guard por rol. PENDIENTE: §2 tabla/formulario de recursos,
-> §3 pantalla de sync y resolución visual de conflictos, §4 usuarios, config y stats.
+> **Estado:** IMPLEMENTADA salvo §config. §1 revisión, §2 tabla densa + formulario completo
+> de recursos (con cambio de estado inline), §3 sync (última sync, historial con errores,
+> conflictos con «Aplicar versión del Sheet» — la protección web ahora es PERSISTENTE
+> hasta resolverse, migración 00009), §4 usuarios (rol/MCM/activo con anti-auto-degradación;
+> `perfil.activo=false` anula privilegios vía `rol_actual()`), §5 emails, §7 mis envíos,
+> §stats (tiles + tops). PENDIENTE: /admin/config (facetas, listas, MCM locales, itinerarios).
 > **Depende de:** SPEC-001 (roles), SPEC-002 (catálogo), SPEC-004 (envíos), SPEC-005 (sync)
 > **Decide y cierra:** las preguntas abiertas de SPEC-004 y SPEC-005
 
