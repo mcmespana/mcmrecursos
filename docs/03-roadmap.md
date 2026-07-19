@@ -12,7 +12,7 @@
 - [x] Modelo de datos validado y aplicado (migración 00002: recurso, tags, autores, itinerarios, facetas, lista_valor)
 - [x] Seeds para el Sheet: `docs/seed/recursos_seed.csv` + `docs/seed/listas_seed.csv`
 - [x] Sistema de diseño definido (`docs/04-diseno.md`) y tokens aplicados (fuentes, paleta, modo oscuro)
-- [ ] Sync Google Sheet → BD con ID estable (SPEC-005)
+- [x] Sync Google Sheet → BD con ID estable (SPEC-005): función `sync_filas` probada; falta crear el Sheet y pegar el Apps Script documentado
 - [ ] Buscador facetado con Orama + vista tarjetas + ficha de recurso
 - [ ] Contador de accesos por recurso
 
