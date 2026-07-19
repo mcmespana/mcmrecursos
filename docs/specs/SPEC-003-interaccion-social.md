@@ -1,9 +1,8 @@
 # SPEC-003 · Capa social: valoraciones, favoritos, listas, comentarios
 
-> **Estado:** implementada en su núcleo (migración 00004: valoracion, favorito, uso,
-> acceso, vista recurso_stats, RPC registrar_acceso; UI optimista en tarjeta y ficha).
-> Pendiente: listas, comentarios, y probar el flujo con sesión real cuando Google OAuth
-> esté configurado en el dashboard.
+> **Estado:** IMPLEMENTADA (migraciones 00004 y 00006). Valoraciones, favoritos, usos,
+> accesos, listas (con compartir por enlace público) y comentarios/sugerencias con
+> moderación por editores. Pendiente solo: moderación avanzada si algún día hace falta.
 > **Depende de:** SPEC-001, SPEC-002
 
 ## Objetivo

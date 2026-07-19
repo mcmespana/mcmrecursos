@@ -331,6 +331,10 @@
 </main>
 
 <RecursoFicha
+	supabase={data.supabase}
+	session={data.session}
+	puedeModerar={data.perfil?.rol === 'editor' || data.perfil?.rol === 'administrador'}
+	onrequierelogin={() => (loginAbierto = true)}
 	recurso={abierto}
 	familia={abierto?.tipo ? (tipoFamilia.get(abierto.tipo) ?? null) : null}
 	relacionados={relacionadosAbierto}

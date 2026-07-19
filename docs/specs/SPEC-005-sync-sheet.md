@@ -142,9 +142,16 @@ function ejecutarSync(retirarAusentes) {
 - [x] Clave incorrecta → rechazo con error claro.
 - [x] Log de sync escrito en `recursos.sync_log`.
 
+## Relación con la edición web — RESUELTO (2026-07-19, ver SPEC-008 §3)
+
+**La BD manda; el Sheet importa.** Cuando exista la edición web (`/admin/recursos`),
+`recurso.editado_web_at` marcará lo editado en web; `sync_filas` no pisará esos recursos:
+los devolverá como `conflictos` y el panel `/admin/sync` ofrecerá resolución lado a lado.
+Hasta que se implemente SPEC-008, el sync pisa todo (comportamiento actual, aceptable
+porque aún no hay edición web).
+
 ## Pendiente / futuro
 
 - Crear el Sheet real y pegar el script (arriba).
-- Escritura inversa BD → Sheet cuando se edite desde la web (fase 3).
-- Botón "Sincronizar" también en `/admin` (leyendo el Sheet con cuenta de servicio) si
-  algún día se quiere disparar desde la web además de desde la hoja.
+- Lógica de conflictos `editado_web_at` (migración 00006, SPEC-008 §6).
+- Escritura inversa BD → Sheet automática (fase posterior, opcional).

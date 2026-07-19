@@ -8,7 +8,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { BookOpen, LogOut, Moon, Sun } from '@lucide/svelte';
+	import { BookOpen, ListChecks, LogOut, Moon, Sun } from '@lucide/svelte';
+	import OnboardingMcm from '$lib/components/OnboardingMcm.svelte';
+	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
 
 	let { data, children } = $props();
 
@@ -45,6 +48,14 @@
 
 <ModeWatcher />
 <Toaster richColors position="bottom-center" />
+
+{#if browser && data.perfil && !data.perfil.mcm_local_id && data.mcmLocales.length}
+	<OnboardingMcm
+		supabase={data.supabase}
+		perfilId={data.perfil.id}
+		mcmLocales={data.mcmLocales}
+	/>
+{/if}
 
 <div class="flex min-h-svh flex-col">
 	<header class="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
@@ -84,6 +95,10 @@
 									{usuario.email}
 								</span>
 							</DropdownMenu.Label>
+							<DropdownMenu.Separator />
+							<DropdownMenu.Item onclick={() => goto('/listas')}>
+								<ListChecks class="size-4" /> Mis listas
+							</DropdownMenu.Item>
 							<DropdownMenu.Separator />
 							<DropdownMenu.Item onclick={salir}>
 								<LogOut class="size-4" /> Salir
