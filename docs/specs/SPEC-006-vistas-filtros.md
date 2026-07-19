@@ -9,7 +9,14 @@
    por grupo), nombre, etapas, estrellas + nº votos, corazón. Animación `flip` al filtrar.
 2. **Tabla densa** — estilo GEG pero moderna: una fila por recurso, columnas configurables,
    ordenable por cualquier columna (nombre, año, valoración, usos…). Para editores es la
-   vista de trabajo.
+   vista de trabajo (implementada en /admin/recursos).
+2b. **Tabla para usuarios normales** (anotado 2026-07-19) — vista alternativa del buscador
+   público, conmutable con la galería: filas compactas SIN imagen (o miniatura muy pequeña
+   ~32px), columnas configurables por el usuario (mostrar/ocultar: tipo, etapas, edades,
+   año, idioma, soporte, valoración, MCM local…) con su elección recordada en
+   localStorage, ordenable por columna, y los mismos filtros/facetas/URL del buscador.
+   Referencia conceptual: la tabla de GEG Spain, pero moderna. Pensada para quien quiere
+   comparar muchos recursos de un vistazo.
 3. **Itinerario** — navegación estructural: eliges etapa (MIC/COM/LC) → itinerario → bloques
    en orden con sus recursos colgando. La vista "programática" para preparar el curso.
 4. **Top / Descubrir** — estanterías horizontales: mejor valorados, más usados, novedades,

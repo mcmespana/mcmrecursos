@@ -34,7 +34,10 @@
 - [x] /admin/sync: última sync, historial con errores y resolución de conflictos (protección web persistente)
 - [x] /admin/usuarios: roles, MCM local y activar/desactivar (con salvaguardas)
 - [x] /admin/stats: tiles + más abiertos + mejor valorados + por estado
-- [ ] /admin/config: editar facetas, listas cerradas, MCM locales e itinerarios
+- [ ] /admin/config: editar facetas, listas cerradas, MCM locales, itinerarios y acceso_previo
+- [x] 13 MCM locales reales + acceso preautorizado (2 admins, 9 delegaciones como edición local)
+- [ ] Vista tabla para usuarios en el buscador público: sin imagen, columnas configurables (SPEC-006 §2b)
+- [ ] Confirmar emails limpios de Caravaca, Onda, L'Alcora y Quintanar y preautorizarlos
 - [ ] Nuevas versiones de un recurso
 
 ## Fase 3.5 — Descubre (el tinder de recursos) 🎴
