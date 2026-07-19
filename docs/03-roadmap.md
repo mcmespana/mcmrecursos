@@ -17,7 +17,8 @@
 - [ ] Contador de accesos por recurso
 
 ## Fase 2 — Capa social
-- [ ] Valoraciones (estrellas), corazones/favoritos, "lo he usado" (SPEC-003)
+- [x] Valoraciones (estrellas), corazones/favoritos, "lo he usado" y accesos (SPEC-003, BD + UI optimista)
+- [ ] Probar flujo social con sesión real (bloqueado por Google OAuth en dashboard)
 - [ ] Listas personales de recursos
 - [ ] Comentarios y sugerencias de mejora
 

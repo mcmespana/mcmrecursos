@@ -1,15 +1,18 @@
 <script lang="ts">
 	import { flip } from 'svelte/animate';
 	import { fade } from 'svelte/transition';
+	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { browser } from '$app/environment';
-	import { replaceState } from '$app/navigation';
+	import { invalidateAll, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { create, insertMultiple, search, type Orama } from '@orama/orama';
+	import { toast } from 'svelte-sonner';
 	import type { RecursoCatalogo } from '$lib/catalogo/tipos';
 	import { FACETAS, filtrar, contar, textoIndexable, type Seleccion } from '$lib/catalogo/filtros';
 	import RecursoCard from '$lib/components/RecursoCard.svelte';
 	import FacetaFiltro from '$lib/components/FacetaFiltro.svelte';
 	import RecursoFicha from '$lib/components/RecursoFicha.svelte';
+	import LoginDialog from '$lib/components/LoginDialog.svelte';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
 	import { Search, X } from '@lucide/svelte';
@@ -57,7 +60,98 @@
 		};
 	});
 
-	// --- derivados ---
+	// --- lo mío (optimista, resincronizado con el servidor) ---
+	const favoritos = new SvelteSet<string>();
+	const usos = new SvelteSet<string>();
+	const valoraciones = new SvelteMap<string, number>();
+	$effect(() => {
+		favoritos.clear();
+		usos.clear();
+		valoraciones.clear();
+		for (const id of data.social.favoritos) favoritos.add(id);
+		for (const id of data.social.usos) usos.add(id);
+		for (const [id, n] of data.social.valoraciones) valoraciones.set(id, n);
+	});
+
+	let loginAbierto = $state(false);
+
+	function conSesion(): boolean {
+		if (!data.session) {
+			loginAbierto = true;
+			return false;
+		}
+		return true;
+	}
+
+	async function entrarConGoogle() {
+		const { error } = await data.supabase.auth.signInWithOAuth({
+			provider: 'google',
+			options: { redirectTo: `${location.origin}/auth/callback` }
+		});
+		if (error) toast.error('No se pudo iniciar sesión', { description: error.message });
+	}
+
+	async function toggleFavorito(r: RecursoCatalogo) {
+		if (!conSesion()) return;
+		const tenia = favoritos.has(r.id);
+		if (tenia) favoritos.delete(r.id);
+		else favoritos.add(r.id);
+		const { error } = tenia
+			? await data.supabase.from('favorito').delete().eq('recurso_id', r.id)
+			: await data.supabase
+					.from('favorito')
+					.insert({ recurso_id: r.id, perfil_id: data.session!.user.id });
+		if (error) {
+			if (tenia) favoritos.add(r.id);
+			else favoritos.delete(r.id);
+			toast.error('No se pudo guardar el favorito');
+		} else {
+			invalidateAll();
+		}
+	}
+
+	async function toggleUsado(r: RecursoCatalogo) {
+		if (!conSesion()) return;
+		const tenia = usos.has(r.id);
+		if (tenia) usos.delete(r.id);
+		else usos.add(r.id);
+		const { error } = tenia
+			? await data.supabase.from('uso').delete().eq('recurso_id', r.id)
+			: await data.supabase.from('uso').insert({ recurso_id: r.id, perfil_id: data.session!.user.id });
+		if (error) {
+			if (tenia) usos.add(r.id);
+			else usos.delete(r.id);
+			toast.error('No se pudo registrar el uso');
+		} else {
+			invalidateAll();
+		}
+	}
+
+	async function valorar(r: RecursoCatalogo, estrellas: number) {
+		if (!conSesion()) return;
+		const anterior = valoraciones.get(r.id) ?? null;
+		valoraciones.set(r.id, estrellas);
+		const { error } = await data.supabase
+			.from('valoracion')
+			.upsert({ recurso_id: r.id, perfil_id: data.session!.user.id, estrellas });
+		if (error) {
+			if (anterior) valoraciones.set(r.id, anterior);
+			else valoraciones.delete(r.id);
+			toast.error('No se pudo guardar la valoración');
+		} else {
+			toast.success(`Valorado con ${estrellas} ${estrellas === 1 ? 'estrella' : 'estrellas'}`);
+			invalidateAll();
+		}
+	}
+
+	function abrirRecurso(r: RecursoCatalogo) {
+		if (!r.enlace) return;
+		// registro en segundo plano; la navegación no espera
+		data.supabase.rpc('registrar_acceso', { rid: r.id }).then(() => invalidateAll());
+		window.open(r.enlace, '_blank', 'noopener,noreferrer');
+	}
+
+	// --- derivados de catálogo ---
 	const resultados = $derived(filtrar(data.recursos, seleccion, idsTexto));
 	const filtrosActivos = $derived(
 		FACETAS.flatMap((f) => seleccion[f.campo].map((valor) => ({ campo: f.campo, valor })))
@@ -75,12 +169,13 @@
 					deLista.map((l) => ({ valor: l.valor, grupo: l.grupo }))
 				);
 			} else {
-				// facetas sin lista cerrada (tags, mcm_local): valores presentes en el catálogo
 				const valores = new Set<string>();
 				for (const r of data.recursos) for (const v of f.valores(r)) valores.add(v);
 				map.set(
 					f.campo,
-					[...valores].sort((a, b) => a.localeCompare(b, 'es')).map((valor) => ({ valor, grupo: null }))
+					[...valores]
+						.sort((a, b) => a.localeCompare(b, 'es'))
+						.map((valor) => ({ valor, grupo: null }))
 				);
 			}
 		}
@@ -98,6 +193,11 @@
 					.filter(Boolean) as RecursoCatalogo[])
 			: []
 	);
+	const stats = $derived({
+		recursos: data.recursos.length,
+		autores: new Set(data.recursos.flatMap((r) => r.autores)).size,
+		accesos: data.recursos.reduce((acc, r) => acc + r.num_accesos, 0)
+	});
 
 	// --- URL compartible ---
 	$effect(() => {
@@ -136,28 +236,42 @@
 	/>
 </svelte:head>
 
-<main class="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 py-6 sm:px-6">
-	<!-- búsqueda -->
-	<div class="relative mx-auto w-full max-w-2xl">
-		<Search class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-		<Input
-			bind:value={q}
-			placeholder="Busca por nombre, tema, autor… (p. ej. «Adviento»)"
-			class="h-11 pl-9 text-base"
-			type="search"
-		/>
-	</div>
-
-	<!-- facetas -->
-	<div class="flex flex-wrap items-center gap-2">
-		{#each FACETAS as faceta (faceta.campo)}
-			<FacetaFiltro
-				etiqueta={faceta.etiqueta}
-				opciones={opcionesPorFaceta.get(faceta.campo) ?? []}
-				counts={countsPorFaceta.get(faceta.campo) ?? new Map()}
-				seleccion={seleccion[faceta.campo]}
-				onchange={(valores) => (seleccion = { ...seleccion, [faceta.campo]: valores })}
+<main class="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 pb-10 sm:px-6">
+	<!-- héroe compacto -->
+	<section class="flex flex-col items-center gap-4 pt-10 pb-2 text-center">
+		<h1 class="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+			Encuentra tu próximo <span class="text-primary">recurso</span>
+		</h1>
+		<p class="text-sm text-muted-foreground tabular-nums">
+			{stats.recursos}
+			{stats.recursos === 1 ? 'recurso' : 'recursos'} · {stats.autores}
+			{stats.autores === 1 ? 'autor' : 'autores'} · {stats.accesos} aperturas
+		</p>
+		<div class="relative w-full max-w-2xl">
+			<Search class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+			<Input
+				bind:value={q}
+				placeholder="Busca por nombre, tema, autor… (p. ej. «Adviento»)"
+				class="h-12 rounded-xl pl-9 text-base shadow-sm"
+				type="search"
 			/>
+		</div>
+	</section>
+
+	<!-- facetas: envueltas en escritorio, carrusel en móvil -->
+	<div
+		class="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
+	>
+		{#each FACETAS as faceta (faceta.campo)}
+			<div class="shrink-0">
+				<FacetaFiltro
+					etiqueta={faceta.etiqueta}
+					opciones={opcionesPorFaceta.get(faceta.campo) ?? []}
+					counts={countsPorFaceta.get(faceta.campo) ?? new Map()}
+					seleccion={seleccion[faceta.campo]}
+					onchange={(valores) => (seleccion = { ...seleccion, [faceta.campo]: valores })}
+				/>
+			</div>
 		{/each}
 	</div>
 
@@ -197,7 +311,9 @@
 					<RecursoCard
 						{recurso}
 						familia={recurso.tipo ? (tipoFamilia.get(recurso.tipo) ?? null) : null}
+						favorito={favoritos.has(recurso.id)}
 						onopen={(r) => (abierto = r)}
+						onfavorito={toggleFavorito}
 					/>
 				</div>
 			{/each}
@@ -218,7 +334,16 @@
 	recurso={abierto}
 	familia={abierto?.tipo ? (tipoFamilia.get(abierto.tipo) ?? null) : null}
 	relacionados={relacionadosAbierto}
+	favorito={abierto ? favoritos.has(abierto.id) : false}
+	usado={abierto ? usos.has(abierto.id) : false}
+	miValoracion={abierto ? (valoraciones.get(abierto.id) ?? null) : null}
 	onclose={() => (abierto = null)}
 	onnavegar={navegarFicha}
 	onabrirrelacionado={(r) => (abierto = r)}
+	onfavorito={toggleFavorito}
+	onusado={toggleUsado}
+	onvalorar={valorar}
+	onabrir={abrirRecurso}
 />
+
+<LoginDialog bind:open={loginAbierto} onentrar={entrarConGoogle} />
