@@ -1,6 +1,9 @@
 # SPEC-004 · Envío rápido de recursos y revisión
 
-> **Estado:** borrador
+> **Estado:** IMPLEMENTADA (migración 00007): /enviar multi-recurso, /envios con
+> corregir-y-reenviar, cola /admin/revision con catalogación al publicar, devolución
+> con motivo, descarte y emails (Resend, degradando a log sin API key).
+> Pendiente: subida de archivos a Storage (hoy solo enlaces).
 > **Depende de:** SPEC-001, SPEC-002
 
 ## Objetivo
