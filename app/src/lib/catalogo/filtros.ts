@@ -7,29 +7,80 @@ export interface FacetaDef {
 	valores: (r: RecursoCatalogo) => string[];
 }
 
+/** Fila de `recursos.faceta`: los filtros del buscador se configuran desde /admin/config. */
+export interface FacetaConfig {
+	campo: string;
+	etiqueta: string;
+	tipo: string;
+	origen: string;
+	orden: number;
+	visible: boolean;
+	protegida: boolean;
+}
+
+const EXTRACTORES: Record<string, (r: RecursoCatalogo) => string[]> = {
+	tipo: (r) => (r.tipo ? [r.tipo] : []),
+	etapas: (r) => r.etapas,
+	edades: (r) => r.edades,
+	tags: (r) => r.tags,
+	nivel: (r) => (r.nivel ? [r.nivel] : []),
+	mcm_local: (r) => (r.mcm_local ? [r.mcm_local] : []),
+	idioma: (r) => (r.idioma ? [r.idioma] : []),
+	soporte: (r) => (r.soporte ? [r.soporte] : []),
+	autores: (r) => r.autores,
+	anyo_publicacion: (r) => (r.anyo_publicacion != null ? [String(r.anyo_publicacion)] : [])
+};
+
+/** Respaldo si la tabla `faceta` no devuelve nada (p. ej. sin conexión en build). */
 export const FACETAS: FacetaDef[] = [
-	{ campo: 'tipo', etiqueta: 'Tipo', valores: (r) => (r.tipo ? [r.tipo] : []) },
-	{ campo: 'etapas', etiqueta: 'Etapa', valores: (r) => r.etapas },
-	{ campo: 'edades', etiqueta: 'Edades', valores: (r) => r.edades },
-	{ campo: 'tags', etiqueta: 'Temática', valores: (r) => r.tags },
-	{ campo: 'nivel', etiqueta: 'Nivel', valores: (r) => (r.nivel ? [r.nivel] : []) },
-	{ campo: 'mcm_local', etiqueta: 'MCM Local', valores: (r) => (r.mcm_local ? [r.mcm_local] : []) },
-	{ campo: 'idioma', etiqueta: 'Idioma', valores: (r) => (r.idioma ? [r.idioma] : []) },
-	{ campo: 'soporte', etiqueta: 'Soporte', valores: (r) => (r.soporte ? [r.soporte] : []) }
+	{ campo: 'tipo', etiqueta: 'Tipo', valores: EXTRACTORES.tipo },
+	{ campo: 'etapas', etiqueta: 'Etapa', valores: EXTRACTORES.etapas },
+	{ campo: 'edades', etiqueta: 'Edades', valores: EXTRACTORES.edades },
+	{ campo: 'tags', etiqueta: 'Temática', valores: EXTRACTORES.tags },
+	{ campo: 'nivel', etiqueta: 'Nivel', valores: EXTRACTORES.nivel },
+	{ campo: 'mcm_local', etiqueta: 'MCM Local', valores: EXTRACTORES.mcm_local },
+	{ campo: 'idioma', etiqueta: 'Idioma', valores: EXTRACTORES.idioma },
+	{ campo: 'soporte', etiqueta: 'Soporte', valores: EXTRACTORES.soporte }
 ];
+
+/**
+ * Facetas efectivas del buscador a partir de la configuración en BD.
+ * Solo select/multiselect (los rangos llegarán con su propia UI); `protegida`
+ * se oculta sin sesión. Campos sin extractor dedicado leen la propiedad homónima
+ * del recurso (promoción de columnas sin tocar código).
+ */
+export function construirFacetas(config: FacetaConfig[], conSesion: boolean): FacetaDef[] {
+	const visibles = config
+		.filter((f) => f.visible && (conSesion || !f.protegida))
+		.filter((f) => f.tipo === 'multiselect' || f.tipo === 'select')
+		.sort((a, b) => a.orden - b.orden || a.etiqueta.localeCompare(b.etiqueta, 'es'));
+	if (!visibles.length) return FACETAS;
+	return visibles.map((f) => ({
+		campo: f.campo,
+		etiqueta: f.etiqueta,
+		valores:
+			EXTRACTORES[f.campo] ??
+			((r) => {
+				const v = (r as unknown as Record<string, unknown>)[f.campo];
+				if (v == null || v === '') return [];
+				return Array.isArray(v) ? v.map(String) : [String(v)];
+			})
+	}));
+}
 
 export type Seleccion = Record<string, string[]>;
 
 /** OR dentro de una faceta, AND entre facetas. */
 export function filtrar(
 	recursos: RecursoCatalogo[],
+	facetas: FacetaDef[],
 	seleccion: Seleccion,
 	idsTexto: Set<string> | null,
 	excepto?: string
 ): RecursoCatalogo[] {
 	return recursos.filter((r) => {
 		if (idsTexto && !idsTexto.has(r.id)) return false;
-		for (const f of FACETAS) {
+		for (const f of facetas) {
 			if (f.campo === excepto) continue;
 			const sel = seleccion[f.campo];
 			if (!sel?.length) continue;

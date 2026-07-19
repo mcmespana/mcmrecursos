@@ -1,11 +1,12 @@
 import type { PageLoad } from './$types';
 import type { ListaValor, RecursoCatalogo, SocialPropio } from '$lib/catalogo/tipos';
 import { socialVacio } from '$lib/catalogo/tipos';
+import type { FacetaConfig } from '$lib/catalogo/filtros';
 
 export const load: PageLoad = async ({ parent }) => {
 	const { supabase, session } = await parent();
 
-	const [recursosRes, listasRes, statsRes] = await Promise.all([
+	const [recursosRes, listasRes, statsRes, facetasRes] = await Promise.all([
 		supabase
 			.from('recurso')
 			.select(
@@ -19,7 +20,11 @@ export const load: PageLoad = async ({ parent }) => {
 			)
 			.order('nombre'),
 		supabase.from('lista_valor').select('lista, valor, grupo, orden').eq('activo', true).order('orden'),
-		supabase.from('recurso_stats').select('*')
+		supabase.from('recurso_stats').select('*'),
+		supabase
+			.from('faceta')
+			.select('campo, etiqueta, tipo, origen, orden, visible, protegida')
+			.order('orden')
 	]);
 
 	const stats = new Map((statsRes.data ?? []).map((s: any) => [s.recurso_id, s]));
@@ -73,6 +78,7 @@ export const load: PageLoad = async ({ parent }) => {
 	}
 
 	const listas: ListaValor[] = listasRes.data ?? [];
+	const facetas: FacetaConfig[] = facetasRes.data ?? [];
 
-	return { recursos, listas, social };
+	return { recursos, listas, social, facetas };
 };

@@ -35,35 +35,25 @@
 - [x] /admin/usuarios: roles, MCM local y activar/desactivar (con salvaguardas)
 - [x] /admin/stats: tiles + más abiertos + mejor valorados + por estado
 - [x] 13 MCM locales reales + acceso preautorizado (3 admins, 10 delegaciones como edición local)
-- [ ] Confirmar email limpio de Caravaca y preautorizarlo (única delegación sin editor)
+- [x] Vista tabla para usuarios (SPEC-006 §2b): toggle galería/tabla (`?vista=tabla`),
+      filas ~40 px sin imagen (miniatura de 32 px opcional), columnas configurables y
+      reordenables recordadas en `localStorage`, ordenable por columna, misma ficha,
+      facetas y URL que la galería
+- [x] Facetas del buscador dirigidas por BD: el buscador público lee `recursos.faceta`
+      (etiqueta, orden, visible, protegida) — añadir/renombrar filtros ya no toca código
+- [x] /admin/config (SPEC-008 §config, solo admin) con pestañas: listas cerradas
+      (`lista_valor`), facetas (`faceta`, incluye promocionar campos nuevos), MCM locales
+      (`mcm_local`) y accesos preautorizados (`acceso_previo`, aplica al perfil si ya existe)
+- [ ] Confirmar email limpio de Caravaca y preautorizarlo (única delegación sin editor;
+      ya se puede dar de alta desde /admin/config → Accesos preautorizados)
 - [ ] Nuevas versiones de un recurso
 
-## 👉 SIGUIENTE (dos frentes por hacer)
+## 👉 SIGUIENTE
 
-### 1. Vista tabla para usuarios (SPEC-006 §2b)
-Vista alternativa del buscador público, conmutable con la galería mediante un toggle
-junto a los filtros. Objetivo: comparar muchos recursos de un vistazo, estilo la tabla
-de GEG Spain pero moderna y sin depender de la imagen.
-- Filas compactas SIN miniatura (o una mini de ~32 px opcional).
-- Columnas que el usuario muestra/oculta y reordena, con su elección recordada en
-  `localStorage` (misma capa que `SocialLocal`). Candidatas: tipo, etapas, edades, nivel,
-  MCM local, idioma, soporte, año, valoración media, nº accesos.
-- Ordenable por cualquier columna; comparte índice Orama, facetas, chips y URL con la
-  galería (el modo de vista es un parámetro más de la URL, p. ej. `?vista=tabla`).
-- Reutiliza `RecursoCard`/`RecursoFicha`: al hacer clic en una fila se abre la misma ficha.
-- Diseño: densidad "herramienta" (fila ~40 px, `tabular-nums`, cabecera pegajosa), pero
-  dentro del sitio público con su tema, no el del panel admin.
-
-### 2. /admin/config (SPEC-008 §config, solo admin)
-Última sección del panel, con pestañas:
-- **Listas cerradas** (`lista_valor`): añadir/editar/desactivar valores de tipo, etapas,
-  nivel, edades, idioma, soporte, ubicación, estado, visibilidad… con grupo y orden.
-- **Facetas** (`faceta`): mostrar/ocultar, reordenar y renombrar los filtros del buscador
-  sin tocar código (incluye promocionar columnas de `extra`).
-- **MCM locales** (`mcm_local`): añadir, renombrar y activar/desactivar delegaciones.
-- **Accesos preautorizados** (`acceso_previo`): alta/baja de emails con su rol y MCM local
-  (aquí se añadiría Caravaca cuando se confirme su email).
-- Más adelante: editor visual de itinerarios formativos.
+1. **Descubre, el tinder de recursos** (Fase 3.5, SPEC-007): modo swipe sin IA con mazo
+   desde filtros/presets, ❤/✕/abrir y deshacer.
+2. **Nuevas versiones de un recurso** (Fase 3, pendiente de spec).
+3. Más adelante en /admin/config: editor visual de itinerarios formativos.
 
 ## Fase 3.5 — Descubre (el tinder de recursos) 🎴
 - [ ] Modo swipe sin IA: mazo desde filtros/presets, ❤/✕/abrir, deshacer (SPEC-007)

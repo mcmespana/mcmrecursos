@@ -1,6 +1,10 @@
 # SPEC-006 · Vistas del catálogo y sistema de filtros
 
-> **Estado:** borrador (anotado para desarrollar tras cerrar el modelo de datos)
+> **Estado:** PARCIALMENTE IMPLEMENTADA — §1 galería, §2 tabla admin (/admin/recursos),
+> §2b tabla pública (toggle `?vista=tabla`, columnas configurables en localStorage,
+> componente `RecursoTabla`), filtros por facetas dirigidos por la tabla `faceta`
+> (editable en /admin/config), chips activos y URL sincronizada. PENDIENTE: §3 itinerario,
+> §4 top/descubrir, presets rápidos y faceta de rango (año).
 > **Depende de:** SPEC-002
 
 ## Vistas (conmutables, misma búsqueda debajo)
@@ -10,7 +14,7 @@
 2. **Tabla densa** — estilo GEG pero moderna: una fila por recurso, columnas configurables,
    ordenable por cualquier columna (nombre, año, valoración, usos…). Para editores es la
    vista de trabajo (implementada en /admin/recursos).
-2b. **Tabla para usuarios normales** (anotado 2026-07-19) — vista alternativa del buscador
+2b. **Tabla para usuarios normales** (anotado e implementado 2026-07-19) — vista alternativa del buscador
    público, conmutable con la galería: filas compactas SIN imagen (o miniatura muy pequeña
    ~32px), columnas configurables por el usuario (mostrar/ocultar: tipo, etapas, edades,
    año, idioma, soporte, valoración, MCM local…) con su elección recordada en
@@ -48,6 +52,7 @@
 
 ## Criterios de aceptación (borrador)
 
-- [ ] Cambiar de vista conserva búsqueda, filtros y scroll razonable.
-- [ ] Cualquier estado de búsqueda es una URL compartible.
-- [ ] Añadir una faceta nueva desde admin no requiere despliegue.
+- [x] Cambiar de vista conserva búsqueda, filtros y scroll razonable.
+- [x] Cualquier estado de búsqueda es una URL compartible (incluye `vista` y `r`).
+- [x] Añadir una faceta nueva desde admin no requiere despliegue (facetas select/multiselect;
+      las de rango tendrán su UI más adelante).
