@@ -1,6 +1,7 @@
 # Modelo de datos — borrador para validar
 
-> **Estado:** propuesta, NO aplicada en BD. Se aplicará como migración 00002 al validarse.
+> **Estado:** validado y APLICADO en remoto (migración `00002_catalogo.sql`).
+> Pendiente: contenido real de itinerarios (estructura de tablas ya creada).
 
 ## Principio rector: columnas nuevas sin dolor
 
@@ -10,8 +11,15 @@ columna del Sheet que el sync no reconozca cae ahí automáticamente, y puede pr
 faceta de filtro solo con configuración (tabla `faceta`), sin migración. Añadir un filtro
 nuevo = añadir columna al Sheet + una fila en `faceta`. Ya está.
 
-Casi **nada es obligatorio**: solo `id` y `nombre`. Todo lo demás admite vacío y la UI
-muestra "sin catalogar" donde toque.
+Casi **nada es obligatorio**: solo `id`, `nombre` y `estado` (con default `borrador`, así
+una fila a medias nunca se publica sola). Todo lo demás admite vacío y la UI muestra
+"sin catalogar" donde toque.
+
+Las listas cerradas (tipo, nivel, idioma, ubicación, soporte, etapas, edades, estado…)
+viven en la tabla **`lista_valor`** (lista, valor, grupo, orden): el front pinta selects
+desde ahí, el sync valida contra ella, y `docs/seed/listas_seed.csv` la replica para
+configurar los desplegables de validación del Google Sheet. Añadir un valor = una fila
+(desde admin), sin migración.
 
 ## Tabla central: `recurso`
 
@@ -22,19 +30,19 @@ muestra "sin catalogar" donde toque.
 | `descripcion` | text | libre, alimenta la búsqueda de texto |
 | `tipo` | text | lista sugerida (ver abajo), no enum rígido: valores nuevos no rompen el sync |
 | `etapas` | text[] | multiselect: MIC, COM, LC, Monitores |
-| `nivel` | text | Conocimiento, Incorporación… (lista abierta, por cerrar) |
+| `nivel` | text | MIC, Conocimiento, Incorporación, Crecimiento, Opción responsable, Laicos |
 | `edades` | text[] | multiselect: 3º-6º EP, 1º-4º ESO, Bachillerato, Universitarios, Jóvenes <30, Adultos jóvenes +30, Adultos, Mayores |
 | `mcm_local_id` | uuid FK → mcm_local | quién lo aporta |
-| `idioma` | text | Castellano, Valencià, English… |
+| `idioma` | text | lista: Castellano, Catalán, Portugués, Inglés, Otros, N/A |
 | `soporte` | text | PDF, Word, Docs, Formulario, Genially, Canva, PPT, Hoja de cálculo, YouTube, Archivo |
-| `ubicacion` | text | drive, servidor propio, servidor externo, youtube |
+| `ubicacion` | text | lista: Drive, Servidor propio, Servidor externo, YouTube |
 | `enlace` | text | el link principal (Drive o externo) |
 | `imagen` | text | URL de miniatura |
 | `enlace_imagenes` | text | link a carpeta/álbum con más imágenes |
 | `anyo_publicacion` | int | año de creación del recurso |
 | `curso_usado` | text | curso académico, formato `2024-2025` |
 | `visibilidad` | text | `publico` / `privado` (privado = solo usuarios con login/permiso) |
-| `estado` | text | `publicado` / `pendiente_revision` / `subido_usuario` / `revisar_ia` / `borrador` / `retirado` |
+| `estado` | text **not null** | `publicado` / `pendiente_revision` / `subido_usuario` / `revisar_ia` / `borrador` / `retirado` — obligatorio, default `borrador` |
 | `datos_personales` | boolean | true = pendiente de limpiar datos personales |
 | `creado_con_ia` | boolean | |
 | `notas_internas` | text | solo visible a editores/admin |

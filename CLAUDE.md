@@ -31,8 +31,11 @@ npm run build    # build de producción
 - **Componentes UI**: shadcn-svelte en `app/src/lib/components/ui/` (generados, se pueden
   retocar). Componentes propios en `app/src/lib/components/`. Añadir más primitivas con
   `npx shadcn-svelte@latest add <componente> -y`.
-- **Tema**: variables en `app/src/app.css`. El acento de marca es `--primary` (teal).
-  Soporte claro/oscuro vía clase `.dark` (mode-watcher).
+- **Tema**: variables en `app/src/app.css`. El acento de marca es `--primary` (teal) y
+  `--warm` (ámbar) para la capa social. Soporte claro/oscuro vía clase `.dark`
+  (mode-watcher). El sistema de diseño completo está en `docs/04-diseno.md` — síguelo.
+- **Tipografías**: Bricolage Grotesque Variable (display, h1/h2) y Figtree Variable
+  (resto), autoalojadas vía Fontsource e importadas en `app.css`.
 - **Idioma**: interfaz y contenido en español. Código (variables, funciones) en inglés;
   tablas y columnas de BD en español (coherente con otros proyectos MCM).
 - **Supabase**: cliente vía `@supabase/ssr` (patrón hooks + locals de SvelteKit).
