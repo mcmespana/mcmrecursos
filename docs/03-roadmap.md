@@ -26,6 +26,10 @@
 - [ ] Panel admin: cola de revisión, gestión de usuarios, sync manual
 - [ ] Nuevas versiones de un recurso
 
+## Fase 3.5 — Descubre (el tinder de recursos) 🎴
+- [ ] Modo swipe sin IA: mazo desde filtros/presets, ❤/✕/abrir, deshacer (SPEC-007)
+- [ ] Con IA (tras fase 5): mazo por texto libre con embeddings y explicación por tarjeta
+
 ## Fase 4 — Estadísticas
 - [ ] Dashboard con LayerChart: top recursos, accesos, valoraciones, autores
 

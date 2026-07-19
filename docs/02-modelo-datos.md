@@ -44,6 +44,8 @@ configurar los desplegables de validación del Google Sheet. Añadir un valor = 
 | `visibilidad` | text | `publico` / `privado` (privado = solo usuarios con login/permiso) |
 | `estado` | text **not null** | `publicado` / `pendiente_revision` / `subido_usuario` / `revisar_ia` / `borrador` / `retirado` — obligatorio, default `borrador` |
 | `datos_personales` | boolean | true = pendiente de limpiar datos personales |
+| `fuera_del_banco` | boolean | **default true**: el archivo vive en una carpeta que NO es del banco (p. ej. la de trabajo de un MCM local). Un script futuro migrará el material a la estructura propia y lo pondrá a false |
+| `pendiente_clasificar` | boolean | true = contenedor localizado sin trocear (p. ej. una **Programación anual** enlazada como carpeta entera, a dividir en sesiones con tags) |
 | `creado_con_ia` | boolean | |
 | `notas_internas` | text | solo visible a editores/admin |
 | `extra` | jsonb | columnas del Sheet no mapeadas (futuros filtros) |
@@ -54,7 +56,7 @@ valoración media, nº votos, veces usado, veces en favoritos, accesos. El sync 
 
 ### `tipo` — lista sugerida, agrupada
 
-- **Sesiones y formación**: Sesión de grupo *(el más habitual)*, Itinerario de sesiones, Formación de monitores, Taller, Guía
+- **Sesiones y formación**: Sesión de grupo *(el más habitual)*, Itinerario de sesiones, Formación de monitores, Taller, Guía, Programación anual *(carpeta de curso completa, suele ir con `pendiente_clasificar`)*
 - **Actividades**: Campamento, Acampada, Actividad de voluntariado, Conclusiones de actividad
 - **Celebración y oración**: Oración, Canción
 - **Audiovisual y gráfico**: Vídeo, Película, Imagen, Dibujo, Diseño, Presentación
