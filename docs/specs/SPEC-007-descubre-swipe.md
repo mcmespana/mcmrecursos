@@ -1,6 +1,11 @@
 # SPEC-007 · "Descubre" — el tinder de recursos
 
-> **Estado:** idea anotada (fase divertida, tras el buscador y la capa social)
+> **Estado:** v1 (sin IA) IMPLEMENTADA en `/descubre` — mazo desde los filtros del buscador
+> (misma sintaxis de URL), sesgo a mejor valorados con favoritos/usados al final, gestos
+> táctiles con física (pointer events, solo `transform`), botones ✕/❤/ver, atajos ←/→/↑ y
+> Z para deshacer, descartes por sesión (`sessionStorage`), «volver a barajar», misma ficha
+> del buscador; sin login el ❤ cae en la capa local (SPEC-003) y el aviso invita a entrar.
+> PENDIENTE: variante con IA (fase 5) y presets de mazo.
 > **Depende de:** SPEC-002, SPEC-003 (favoritos); fase IA para la variante conversacional
 
 ## Objetivo
@@ -29,6 +34,10 @@ no búsqueda.
 
 ## Criterios de aceptación (borrador)
 
-- [ ] Un mazo nunca repite recurso descartado en la misma sesión.
-- [ ] Swipe fluido a 60 fps en móvil de gama media; deshacer funciona.
-- [ ] Lo guardado aparece en favoritos/lista al instante.
+- [x] Un mazo nunca repite recurso descartado en la misma sesión (sessionStorage, por pestaña).
+- [x] Deshacer funciona (restaura la tarjeta y revierte el ❤ si lo hubo). El swipe anima
+      solo con `transform` y sin transición durante el arrastre; pendiente de validar
+      60 fps en un móvil de gama media real.
+- [x] Lo guardado aparece en favoritos al instante (optimista; en local sin sesión). El
+      guardado directo a una lista elegida queda para una iteración posterior (la ficha
+      ya permite «Guardar en lista»).
