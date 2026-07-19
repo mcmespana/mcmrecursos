@@ -16,6 +16,10 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
 	import Estrellas from '$lib/components/Estrellas.svelte';
+	import ComentariosRecurso from '$lib/components/ComentariosRecurso.svelte';
+	import GuardarEnLista from '$lib/components/GuardarEnLista.svelte';
+	import { miniatura } from '$lib/catalogo/tipos';
+	import type { SupabaseClient, Session } from '@supabase/supabase-js';
 	import {
 		Check,
 		ChevronLeft,
@@ -28,6 +32,10 @@
 	} from '@lucide/svelte';
 
 	let {
+		supabase,
+		session,
+		puedeModerar = false,
+		onrequierelogin,
 		recurso,
 		familia,
 		relacionados,
@@ -42,6 +50,10 @@
 		onvalorar,
 		onabrir
 	}: {
+		supabase: SupabaseClient<any, 'recursos'>;
+		session: Session | null;
+		puedeModerar?: boolean;
+		onrequierelogin: () => void;
 		recurso: RecursoCatalogo | null;
 		familia: string | null;
 		relacionados: RecursoCatalogo[];
@@ -61,6 +73,13 @@
 	const fondoClase = $derived((familia && FAMILIA_FONDO[familia]) || FONDO_NEUTRO);
 	const Icono = $derived((familia && FAMILIA_ICON[familia]) || ICONO_NEUTRO);
 	const nombre = $derived(recurso ? limpiarNombre(recurso.nombre) : '');
+
+	let imgFallo = $state(false);
+	$effect(() => {
+		void recurso?.id;
+		imgFallo = false;
+	});
+	const srcMiniatura = $derived(recurso && !imgFallo ? miniatura(recurso) : null);
 
 	const metadatos = $derived(
 		recurso
@@ -92,11 +111,12 @@
 		{#if recurso}
 			<!-- héroe -->
 			<div class="relative aspect-[16/9] w-full shrink-0 overflow-hidden">
-				{#if recurso.imagen}
+				{#if srcMiniatura}
 					<img
-						src={recurso.imagen}
+						src={srcMiniatura}
 						alt={`${nombre} (${recurso.tipo ?? 'recurso'})`}
 						class="size-full object-cover"
+						onerror={() => (imgFallo = true)}
 					/>
 				{:else}
 					<div class={`flex size-full items-center justify-center bg-gradient-to-br ${fondoClase}`}>
@@ -196,6 +216,7 @@
 							<Tooltip.Content>{usado ? 'Lo has usado' : 'Marcar «lo he usado»'}</Tooltip.Content>
 						</Tooltip.Root>
 					</Tooltip.Provider>
+					<GuardarEnLista {supabase} {session} recursoId={recurso.id} {onrequierelogin} />
 				</div>
 
 				<!-- tu valoración -->
@@ -277,6 +298,16 @@
 						{/each}
 					</div>
 				{/if}
+
+				<Separator />
+
+				<ComentariosRecurso
+					{supabase}
+					{session}
+					recursoId={recurso.id}
+					{puedeModerar}
+					{onrequierelogin}
+				/>
 
 				<div class="flex items-center justify-between pt-1">
 					<Button variant="ghost" size="sm" onclick={() => onnavegar(-1)}>

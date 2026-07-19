@@ -1,6 +1,8 @@
 # SPEC-001 · Autenticación, perfiles y roles
 
-> **Estado:** validada — migración aplicada en remoto (esquema `recursos`); falta UI y configurar Google OAuth en el dashboard
+> **Estado:** IMPLEMENTADA — Google OAuth configurado, login/logout, perfil automático,
+> onboarding de MCM local al primer login (omitible), menú de usuario. La gestión de
+> roles llega con el panel admin (SPEC-008).
 > **Depende de:** —
 
 ## Objetivo

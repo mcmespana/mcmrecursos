@@ -8,7 +8,8 @@
 		FONDO_NEUTRO,
 		ICONO_NEUTRO,
 		limpiarNombre,
-		esEjemplo
+		esEjemplo,
+		miniatura
 	} from '$lib/catalogo/tipos';
 	import { Badge } from '$lib/components/ui/badge';
 	import Estrellas from '$lib/components/Estrellas.svelte';
@@ -32,6 +33,8 @@
 	const fondoClase = $derived((familia && FAMILIA_FONDO[familia]) || FONDO_NEUTRO);
 	const Icono = $derived((familia && FAMILIA_ICON[familia]) || ICONO_NEUTRO);
 	const nombre = $derived(limpiarNombre(recurso.nombre));
+	let imgFallo = $state(false);
+	const srcMiniatura = $derived(!imgFallo ? miniatura(recurso) : null);
 </script>
 
 <article
@@ -46,12 +49,13 @@
 	</button>
 
 	<div class="relative aspect-[16/10] w-full overflow-hidden">
-		{#if recurso.imagen}
+		{#if srcMiniatura}
 			<img
-				src={recurso.imagen}
+				src={srcMiniatura}
 				alt={`${nombre} (${recurso.tipo ?? 'recurso'})`}
 				class="size-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
 				loading="lazy"
+				onerror={() => (imgFallo = true)}
 			/>
 		{:else}
 			<div class={`flex size-full items-center justify-center bg-gradient-to-br ${fondoClase}`}>

@@ -38,7 +38,10 @@ Las vistas y el sistema de filtros se anotan en SPEC-006.
 - [ ] Cada apertura de enlace incrementa `acceso` (sin bloquear la navegación).
 - [ ] Campos protegidos invisibles para anon (verificado a nivel de API, no de UI).
 
-## Preguntas abiertas
+## Preguntas abiertas — RESUELTAS
 
-- Lista definitiva de columnas y cuáles son facetas vs. solo ficha vs. protegidas.
-- ¿Miniaturas desde Drive (thumbnail API) o subidas a Storage?
+- Columnas y facetas: cerradas en `docs/02-modelo-datos.md` + tabla `faceta`.
+- Miniaturas: columna `imagen` manda; si falta, se deriva automáticamente del enlace
+  (thumbnail de Drive para archivos `/file/d/…`, portada de YouTube). Las carpetas de
+  Drive no tienen miniatura → respaldo con icono de familia. Con error de carga
+  (permisos), mismo respaldo.

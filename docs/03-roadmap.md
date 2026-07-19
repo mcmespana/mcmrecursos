@@ -5,8 +5,8 @@
 - [x] Documentación spec-driven
 - [x] BD operativa: esquema `recursos` en el proyecto compartido mcmvotaciones, migración 00001 aplicada (AD-6)
 - [x] App conectada a Supabase (@supabase/ssr, hooks + locals, callback OAuth)
-- [ ] Google OAuth configurado en el dashboard de Supabase (client ID/secret) — acción del usuario
-- [ ] Login con Google + perfiles y roles en la UI (SPEC-001)
+- [x] Google OAuth configurado en el dashboard de Supabase
+- [x] Login con Google + perfiles, onboarding de MCM local (SPEC-001)
 
 ## Fase 1 — Catálogo y búsqueda
 - [x] Modelo de datos validado y aplicado (migración 00002: recurso, tags, autores, itinerarios, facetas, lista_valor)
@@ -18,9 +18,9 @@
 
 ## Fase 2 — Capa social
 - [x] Valoraciones (estrellas), corazones/favoritos, "lo he usado" y accesos (SPEC-003, BD + UI optimista)
-- [ ] Probar flujo social con sesión real (bloqueado por Google OAuth en dashboard)
-- [ ] Listas personales de recursos
-- [ ] Comentarios y sugerencias de mejora
+- [x] Listas personales (crear desde la ficha, compartir por enlace público, /listas)
+- [x] Comentarios y sugerencias de mejora (borrado por autor/editor)
+- [x] Miniaturas automáticas desde Drive/YouTube con respaldo por familia
 
 ## Fase 3 — El banco vivo
 - [x] SPEC-008 del panel de administración validada (revisión, edición con conflictos Sheet/web, usuarios, emails Resend)

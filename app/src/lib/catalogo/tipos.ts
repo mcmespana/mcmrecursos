@@ -91,3 +91,33 @@ export const FONDO_NEUTRO = 'from-primary/15 via-accent to-warm/20';
 
 export const limpiarNombre = (nombre: string) => nombre.replace(/^\[EJEMPLO\]\s*/, '');
 export const esEjemplo = (nombre: string) => nombre.startsWith('[EJEMPLO]');
+
+/**
+ * Miniatura efectiva: la imagen explícita o, si falta, una derivada del enlace
+ * (thumbnail de Drive para archivos, portada de YouTube). Carpetas de Drive no tienen.
+ */
+export function miniatura(r: Pick<RecursoCatalogo, 'imagen' | 'enlace'>): string | null {
+	if (r.imagen) return r.imagen;
+	const e = r.enlace ?? '';
+	const drive = e.match(/\/file\/d\/([\w-]{20,})/) ?? e.match(/[?&]id=([\w-]{20,})/);
+	if (drive) return `https://drive.google.com/thumbnail?id=${drive[1]}&sz=w640`;
+	const yt = e.match(/youtu\.be\/([\w-]{6,})/) ?? e.match(/[?&]v=([\w-]{6,})/);
+	if (yt) return `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg`;
+	return null;
+}
+
+export interface Comentario {
+	id: string;
+	texto: string;
+	tipo: string;
+	created_at: string;
+	autor: { nombre: string; avatar_url: string | null } | null;
+	perfil_id: string;
+}
+
+export interface ListaResumen {
+	id: string;
+	nombre: string;
+	publica: boolean;
+	num_recursos: number;
+}
