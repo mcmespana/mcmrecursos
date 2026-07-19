@@ -27,7 +27,9 @@ metadatos mínimos) y que editores/admins los revisen, completen y publiquen.
 - [ ] Archivos suben a Supabase Storage; el revisor decide su destino final en Drive.
 - [ ] Solo editor/admin ve la cola; el remitente solo sus envíos.
 
-## Preguntas abiertas
+## Preguntas abiertas — RESUELTAS en SPEC-008 (2026-07-19)
 
-- ¿Notificaciones (email) al remitente al aprobar/rechazar?
-- ¿`edicion_local` revisa los envíos de su MCM local?
+- Notificaciones: **email con Resend desde el principio** (degradando a log sin API key)
+  + sección "Mis envíos". Ver SPEC-008 §5 y §7.
+- Revisión: **editor/admin todo + `edicion_local` los envíos de su MCM local**.
+- El modelo de datos concreto de `envio` y el flujo de aprobación viven en SPEC-008 §1 y §6.
