@@ -18,6 +18,27 @@
 	let enviando = $state(false);
 	let loginAbierto = $state(false);
 
+	// Sin sesión, el borrador se conserva en este dispositivo y se recupera al volver.
+	const CLAVE_BORRADOR = 'mcm-envios-borrador';
+	$effect(() => {
+		try {
+			const guardado = JSON.parse(localStorage.getItem(CLAVE_BORRADOR) ?? 'null');
+			if (Array.isArray(guardado) && guardado.length) {
+				filas = guardado;
+				if (data.session) {
+					toast.info('Hemos recuperado los recursos que dejaste preparados en este dispositivo.');
+				}
+			}
+		} catch {
+			// borrador corrupto: se ignora
+		}
+	});
+	$effect(() => {
+		if (!data.session && filas.some((f) => f.titulo || f.enlace || f.notas)) {
+			localStorage.setItem(CLAVE_BORRADOR, JSON.stringify(filas));
+		}
+	});
+
 	const validas = $derived(filas.filter((f) => f.titulo.trim() && f.enlace.trim()));
 
 	async function entrarConGoogle() {
@@ -29,6 +50,9 @@
 
 	async function enviar() {
 		if (!data.session) {
+			toast.info('Tu borrador está guardado en este dispositivo', {
+				description: 'Entra con Google y lo enviamos sin perder nada.'
+			});
 			loginAbierto = true;
 			return;
 		}
@@ -48,6 +72,7 @@
 			toast.error('No se pudieron enviar los recursos');
 			return;
 		}
+		localStorage.removeItem(CLAVE_BORRADOR);
 		toast.success(
 			validas.length === 1
 				? 'Recurso enviado. ¡Gracias por aportar!'

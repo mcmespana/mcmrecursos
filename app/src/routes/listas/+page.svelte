@@ -3,9 +3,14 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { toast } from 'svelte-sonner';
-	import { Globe, ListChecks, Lock, Trash2 } from '@lucide/svelte';
+	import { Globe, HardDrive, ListChecks, Lock, Trash2 } from '@lucide/svelte';
+	import { browser } from '$app/environment';
+	import { socialLocal } from '$lib/social/local.svelte';
 
 	let { data } = $props();
+	$effect(() => {
+		if (browser) socialLocal.cargar();
+	});
 
 	async function alternarPublica(lista: { id: string; publica: boolean; nombre: string }) {
 		const { error } = await data.supabase
@@ -41,7 +46,41 @@
 	<h1 class="font-display text-3xl font-bold">Mis listas</h1>
 
 	{#if !data.session}
-		<p class="text-muted-foreground">Entra con tu cuenta para crear y ver tus listas.</p>
+		{#if browser && socialLocal.listas.length}
+			<div class="flex items-start gap-2 rounded-xl border border-warm/40 bg-warm/10 p-3 text-sm">
+				<HardDrive class="mt-0.5 size-4 shrink-0" />
+				<p class="text-pretty">
+					Estas listas viven <strong>solo en este dispositivo</strong>. Entra con Google y se
+					guardarán en tu cuenta automáticamente.
+				</p>
+			</div>
+			<ul class="flex flex-col gap-3">
+				{#each socialLocal.listas as lista (lista.id)}
+					<li class="flex items-center gap-3 rounded-xl border bg-card p-4">
+						<div class="flex min-w-0 flex-1 flex-col gap-0.5">
+							<span class="font-semibold">{lista.nombre}</span>
+							<span class="text-xs text-muted-foreground tabular-nums">
+								{lista.recursos.length}
+								{lista.recursos.length === 1 ? 'recurso' : 'recursos'}
+							</span>
+						</div>
+						<Button
+							variant="ghost"
+							size="icon"
+							class="text-muted-foreground hover:text-destructive"
+							aria-label="Borrar lista"
+							onclick={() => socialLocal.borrarLista(lista.id)}
+						>
+							<Trash2 class="size-4" />
+						</Button>
+					</li>
+				{/each}
+			</ul>
+		{:else}
+			<p class="text-muted-foreground">
+				Guarda cualquier recurso en una lista desde su ficha — sin necesidad de cuenta.
+			</p>
+		{/if}
 	{:else if !data.listas.length}
 		<div class="flex flex-col items-start gap-3 rounded-xl border border-dashed p-8">
 			<ListChecks class="size-6 text-muted-foreground" />

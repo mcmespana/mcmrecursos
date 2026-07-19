@@ -13,6 +13,8 @@
 	import FacetaFiltro from '$lib/components/FacetaFiltro.svelte';
 	import RecursoFicha from '$lib/components/RecursoFicha.svelte';
 	import LoginDialog from '$lib/components/LoginDialog.svelte';
+	import AvisoLocal from '$lib/components/AvisoLocal.svelte';
+	import { socialLocal } from '$lib/social/local.svelte';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
 	import { Search, X } from '@lucide/svelte';
@@ -74,14 +76,16 @@
 	});
 
 	let loginAbierto = $state(false);
+	$effect(() => {
+		if (browser) socialLocal.cargar();
+	});
 
-	function conSesion(): boolean {
-		if (!data.session) {
-			loginAbierto = true;
-			return false;
-		}
-		return true;
-	}
+	// sin sesión, la capa social es local (localStorage) — el AvisoLocal lo explica
+	const esFavorito = (id: string) =>
+		data.session ? favoritos.has(id) : socialLocal.favoritos.has(id);
+	const esUsado = (id: string) => (data.session ? usos.has(id) : socialLocal.usos.has(id));
+	const miValoracionDe = (id: string) =>
+		(data.session ? valoraciones.get(id) : socialLocal.valoraciones.get(id)) ?? null;
 
 	async function entrarConGoogle() {
 		const { error } = await data.supabase.auth.signInWithOAuth({
@@ -92,7 +96,10 @@
 	}
 
 	async function toggleFavorito(r: RecursoCatalogo) {
-		if (!conSesion()) return;
+		if (!data.session) {
+			socialLocal.toggleFavorito(r.id);
+			return;
+		}
 		const tenia = favoritos.has(r.id);
 		if (tenia) favoritos.delete(r.id);
 		else favoritos.add(r.id);
@@ -111,7 +118,10 @@
 	}
 
 	async function toggleUsado(r: RecursoCatalogo) {
-		if (!conSesion()) return;
+		if (!data.session) {
+			socialLocal.toggleUso(r.id);
+			return;
+		}
 		const tenia = usos.has(r.id);
 		if (tenia) usos.delete(r.id);
 		else usos.add(r.id);
@@ -128,7 +138,21 @@
 	}
 
 	async function valorar(r: RecursoCatalogo, estrellas: number) {
-		if (!conSesion()) return;
+		if (!data.session) {
+			socialLocal.valorar(r.id, estrellas);
+			const { error } = await data.supabase.rpc('valorar_anon', {
+				rid: r.id,
+				estrellas_in: estrellas,
+				dispositivo: socialLocal.dispositivo
+			});
+			if (error) {
+				toast.error('No se pudo guardar la valoración');
+			} else {
+				toast.success(`Valorado con ${estrellas} ${estrellas === 1 ? 'estrella' : 'estrellas'}`);
+				invalidateAll();
+			}
+			return;
+		}
 		const anterior = valoraciones.get(r.id) ?? null;
 		valoraciones.set(r.id, estrellas);
 		const { error } = await data.supabase
@@ -305,13 +329,13 @@
 
 	<!-- resultados -->
 	{#if resultados.length}
-		<div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+		<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
 			{#each resultados as recurso (recurso.id)}
 				<div animate:flip={{ duration: 220 }}>
 					<RecursoCard
 						{recurso}
 						familia={recurso.tipo ? (tipoFamilia.get(recurso.tipo) ?? null) : null}
-						favorito={favoritos.has(recurso.id)}
+						favorito={esFavorito(recurso.id)}
 						onopen={(r) => (abierto = r)}
 						onfavorito={toggleFavorito}
 					/>
@@ -338,9 +362,9 @@
 	recurso={abierto}
 	familia={abierto?.tipo ? (tipoFamilia.get(abierto.tipo) ?? null) : null}
 	relacionados={relacionadosAbierto}
-	favorito={abierto ? favoritos.has(abierto.id) : false}
-	usado={abierto ? usos.has(abierto.id) : false}
-	miValoracion={abierto ? (valoraciones.get(abierto.id) ?? null) : null}
+	favorito={abierto ? esFavorito(abierto.id) : false}
+	usado={abierto ? esUsado(abierto.id) : false}
+	miValoracion={abierto ? miValoracionDe(abierto.id) : null}
 	onclose={() => (abierto = null)}
 	onnavegar={navegarFicha}
 	onabrirrelacionado={(r) => (abierto = r)}
@@ -351,3 +375,7 @@
 />
 
 <LoginDialog bind:open={loginAbierto} onentrar={entrarConGoogle} />
+
+{#if browser && !data.session && socialLocal.hayDatos()}
+	<AvisoLocal onentrar={entrarConGoogle} />
+{/if}

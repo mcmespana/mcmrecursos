@@ -18,6 +18,8 @@
 
 ## Fase 2 — Capa social
 - [x] Valoraciones (estrellas), corazones/favoritos, "lo he usado" y accesos (SPEC-003, BD + UI optimista)
+- [x] Modo sin cuenta: valorar anónimo (BD, por dispositivo), corazones/usos/listas en localStorage con aviso, y migración automática a la cuenta al hacer login
+- [x] Candado en recursos privados (los anónimos ni los ven, vía RLS)
 - [x] Listas personales (crear desde la ficha, compartir por enlace público, /listas)
 - [x] Comentarios y sugerencias de mejora (borrado por autor/editor)
 - [x] Miniaturas automáticas desde Drive/YouTube con respaldo por familia
