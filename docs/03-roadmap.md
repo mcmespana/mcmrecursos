@@ -50,13 +50,15 @@
 
 ## 👉 SIGUIENTE
 
-1. **Descubre, el tinder de recursos** (Fase 3.5, SPEC-007): modo swipe sin IA con mazo
-   desde filtros/presets, ❤/✕/abrir y deshacer.
-2. **Nuevas versiones de un recurso** (Fase 3, pendiente de spec).
-3. Más adelante en /admin/config: editor visual de itinerarios formativos.
+1. **Nuevas versiones de un recurso** (Fase 3, pendiente de spec).
+2. **Dashboard de estadísticas** con LayerChart (Fase 4).
+3. Más adelante: presets de mazo para Descubre y editor visual de itinerarios en /admin/config.
 
 ## Fase 3.5 — Descubre (el tinder de recursos) 🎴
-- [ ] Modo swipe sin IA: mazo desde filtros/presets, ❤/✕/abrir, deshacer (SPEC-007)
+- [x] Modo swipe sin IA (SPEC-007 v1): `/descubre` con mazo desde los filtros del buscador,
+      sesgo a mejor valorados, gestos táctiles + botones + atajos de teclado, descartes por
+      sesión, deshacer, volver a barajar y enlace en cabecera
+- [ ] Presets de mazo configurables ("Adviento", "Para monitores"…)
 - [ ] Con IA (tras fase 5): mazo por texto libre con embeddings y explicación por tarjeta
 
 ## Fase 4 — Estadísticas

@@ -8,7 +8,17 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { BookOpen, Inbox, ListChecks, LogOut, Moon, Send, Shield, Sun } from '@lucide/svelte';
+	import {
+		BookOpen,
+		Inbox,
+		ListChecks,
+		LogOut,
+		Moon,
+		Send,
+		Shield,
+		Sparkles,
+		Sun
+	} from '@lucide/svelte';
 	import OnboardingMcm from '$lib/components/OnboardingMcm.svelte';
 	import { browser } from '$app/environment';
 	import { goto, invalidateAll } from '$app/navigation';
@@ -125,6 +135,9 @@
 				<span class="text-primary">MCM</span>
 			</a>
 			<div class="ml-auto flex items-center gap-2">
+				<Button variant="ghost" size="sm" href="/descubre">
+					<Sparkles class="size-4" /> <span class="hidden sm:inline">Descubre</span>
+				</Button>
 				<Button variant="ghost" size="sm" href="/enviar" class="hidden sm:inline-flex">
 					<Send class="size-4" /> Enviar recurso
 				</Button>
