@@ -24,10 +24,11 @@
 
 ## Fase 3 — El banco vivo
 - [x] SPEC-008 del panel de administración validada (revisión, edición con conflictos Sheet/web, usuarios, emails Resend)
-- [ ] Migración 00006: envio, editado_web_at, perfil.activo, conflictos en sync_filas (SPEC-008 §6)
-- [ ] Envío rápido multi-recurso + "Mis envíos" (SPEC-004/008)
-- [ ] /admin: revisión, recursos (tabla+formulario), sync con conflictos, usuarios, config
-- [ ] Emails Resend (plantillas listas; pegar RESEND_API_KEY cuando exista)
+- [x] Migración 00007: envio, editado_web_at, perfil.activo, conflictos en sync_filas (probados)
+- [x] Envío rápido multi-recurso + "Mis envíos" con corregir-y-reenviar
+- [x] /admin: shell con guard por rol + cola de revisión (publicar/devolver/descartar)
+- [x] Emails Resend (plantillas listas; pegar RESEND_API_KEY cuando exista)
+- [ ] /admin/recursos (tabla + formulario de edición), /admin/sync (conflictos visuales), /admin/usuarios, config y stats
 - [ ] Nuevas versiones de un recurso
 
 ## Fase 3.5 — Descubre (el tinder de recursos) 🎴

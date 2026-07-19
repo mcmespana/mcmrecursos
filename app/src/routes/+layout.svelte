@@ -8,7 +8,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { BookOpen, ListChecks, LogOut, Moon, Sun } from '@lucide/svelte';
+	import { BookOpen, Inbox, ListChecks, LogOut, Moon, Send, Shield, Sun } from '@lucide/svelte';
 	import OnboardingMcm from '$lib/components/OnboardingMcm.svelte';
 	import { browser } from '$app/environment';
 	import { goto } from '$app/navigation';
@@ -70,6 +70,9 @@
 				<span class="text-primary">MCM</span>
 			</a>
 			<div class="ml-auto flex items-center gap-2">
+				<Button variant="ghost" size="sm" href="/enviar" class="hidden sm:inline-flex">
+					<Send class="size-4" /> Enviar recurso
+				</Button>
 				<Button variant="ghost" size="icon" onclick={toggleMode} aria-label="Cambiar tema">
 					<Sun class="size-4 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
 					<Moon
@@ -99,6 +102,14 @@
 							<DropdownMenu.Item onclick={() => goto('/listas')}>
 								<ListChecks class="size-4" /> Mis listas
 							</DropdownMenu.Item>
+							<DropdownMenu.Item onclick={() => goto('/envios')}>
+								<Inbox class="size-4" /> Mis envíos
+							</DropdownMenu.Item>
+							{#if data.perfil && ['edicion_local', 'editor', 'administrador'].includes(data.perfil.rol)}
+								<DropdownMenu.Item onclick={() => goto('/admin')}>
+									<Shield class="size-4" /> Administración
+								</DropdownMenu.Item>
+							{/if}
 							<DropdownMenu.Separator />
 							<DropdownMenu.Item onclick={salir}>
 								<LogOut class="size-4" /> Salir

@@ -1,6 +1,10 @@
 # SPEC-008 · Panel de administración
 
-> **Estado:** validada (decisiones de 2026-07-19 con el usuario), pendiente de implementar
+> **Estado:** en implementación. HECHO: §1 revisión (cola + publicar/devolver/descartar),
+> §5 emails, §6 modelo (migración 00007: envio, editado_web_at con trigger también en
+> insert, perfil.activo, sync_filas con conflictos y retirada segura — probado), §7 mis
+> envíos, shell /admin con guard por rol. PENDIENTE: §2 tabla/formulario de recursos,
+> §3 pantalla de sync y resolución visual de conflictos, §4 usuarios, config y stats.
 > **Depende de:** SPEC-001 (roles), SPEC-002 (catálogo), SPEC-004 (envíos), SPEC-005 (sync)
 > **Decide y cierra:** las preguntas abiertas de SPEC-004 y SPEC-005
 
