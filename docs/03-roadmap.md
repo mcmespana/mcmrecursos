@@ -30,7 +30,11 @@
 - [x] Envío rápido multi-recurso + "Mis envíos" con corregir-y-reenviar
 - [x] /admin: shell con guard por rol + cola de revisión (publicar/devolver/descartar)
 - [x] Emails Resend (plantillas listas; pegar RESEND_API_KEY cuando exista)
-- [ ] /admin/recursos (tabla + formulario de edición), /admin/sync (conflictos visuales), /admin/usuarios, config y stats
+- [x] /admin/recursos: tabla densa ordenable con filtro y edición completa (estado inline)
+- [x] /admin/sync: última sync, historial con errores y resolución de conflictos (protección web persistente)
+- [x] /admin/usuarios: roles, MCM local y activar/desactivar (con salvaguardas)
+- [x] /admin/stats: tiles + más abiertos + mejor valorados + por estado
+- [ ] /admin/config: editar facetas, listas cerradas, MCM locales e itinerarios
 - [ ] Nuevas versiones de un recurso
 
 ## Fase 3.5 — Descubre (el tinder de recursos) 🎴

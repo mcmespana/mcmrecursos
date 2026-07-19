@@ -7,18 +7,18 @@
 	const secciones = $derived(
 		[
 			{ href: '/admin/revision', etiqueta: 'Revisión', icono: ClipboardCheck, activa: true },
-			{ href: '/admin/recursos', etiqueta: 'Recursos', icono: Database, activa: false },
+			{ href: '/admin/recursos', etiqueta: 'Recursos', icono: Database, activa: true },
 			...(data.rolPanel !== 'edicion_local'
-				? [{ href: '/admin/sync', etiqueta: 'Sincronización', icono: RefreshCw, activa: false }]
+				? [{ href: '/admin/sync', etiqueta: 'Sincronización', icono: RefreshCw, activa: true }]
 				: []),
 			...(data.rolPanel === 'administrador'
 				? [
-						{ href: '/admin/usuarios', etiqueta: 'Usuarios', icono: Users, activa: false },
+						{ href: '/admin/usuarios', etiqueta: 'Usuarios', icono: Users, activa: true },
 						{ href: '/admin/config', etiqueta: 'Configuración', icono: Settings2, activa: false }
 					]
 				: []),
 			...(data.rolPanel !== 'edicion_local'
-				? [{ href: '/admin/stats', etiqueta: 'Estadísticas', icono: ChartBar, activa: false }]
+				? [{ href: '/admin/stats', etiqueta: 'Estadísticas', icono: ChartBar, activa: true }]
 				: [])
 		]
 	);
