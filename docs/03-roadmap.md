@@ -54,7 +54,8 @@
 
 ## 👉 SIGUIENTE
 
-1. **Nuevas versiones de un recurso** (Fase 3, pendiente de spec).
+1. **IA: autoclasificación + búsqueda semántica** (SPEC-010, borrador pendiente de validar —
+   ojo a la parte de privacidad/datos personales de menores, es bloqueante).
 2. **Dashboard de estadísticas** con LayerChart (Fase 4).
 3. Más adelante: presets de mazo para Descubre y editor visual de itinerarios en /admin/config.
 
@@ -68,6 +69,8 @@
 ## Fase 4 — Estadísticas
 - [ ] Dashboard con LayerChart: top recursos, accesos, valoraciones, autores
 
-## Fase 5 — Búsqueda con IA
-- [ ] Embeddings (pgvector) + búsqueda híbrida con Orama
-- [ ] "Recomiéndame una actividad para…" conversacional
+## Fase 5 — IA (SPEC-010, borrador)
+- [ ] Embeddings (pgvector, Voyage) + búsqueda híbrida con Orama
+- [ ] "Recomiéndame una actividad para…" conversacional en Descubre
+- [ ] Bandeja de autoclasificación: la IA propone tipo/etapas/tags/descripción, detecta datos
+      personales y avisa de arreglos; humano valida y publica (la IA nunca publica sola)
