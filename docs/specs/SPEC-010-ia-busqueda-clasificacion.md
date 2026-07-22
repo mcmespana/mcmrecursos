@@ -1,8 +1,26 @@
 # SPEC-010 · IA: búsqueda semántica y autoclasificación de recursos
 
-> **Estado:** borrador (pendiente de validar con el usuario antes de codificar)
+> **Estado:** validada (decisiones cerradas 2026-07-20). Motor: **Google Gemini**.
+> Empezamos por **autoclasificación** (fase 2). En implementación.
 > **Depende de:** SPEC-002 (catálogo), SPEC-004/008 (envíos y revisión), SPEC-005 (sync)
 > **Habilita:** Fase 5 del roadmap (búsqueda con IA) y el gran salto de calidad del banco vivo
+
+## Decisiones cerradas (2026-07-20)
+
+1. **Privacidad:** el banco **no maneja datos personales** relevantes — como mucho algún
+   nombre suelto en un libro de campamento, que no es problema. Sin puerta bloqueante; se
+   deja un opt-out simple `no_ia` por si algún recurso concreto no debe procesarse.
+2. **Qué lee la IA:** solo **texto evidente** (título, descripción, notas, texto extraído del
+   documento). Nada de imágenes ni análisis de fotos de personas.
+3. **Motor:** **Google Gemini**, empezando por los modelos **Flash** (free tier, consumo
+   bajo). Modelo configurable por env (`GEMINI_MODELO`, por defecto `gemini-2.5-flash`) para
+   poder cambiarlo sin tocar código; migrar a Google Cloud «algo sencillito» más adelante si
+   hace falta. Embeddings también de Gemini (mismo proveedor, una sola clave).
+4. **Empezamos por autoclasificación** (fase 2), no por la búsqueda semántica.
+5. **Acceso a Drive:** con una **cuenta de servicio** de Google (exporta el documento a
+   texto). Encaja porque ya todo es Google. En la v1 la IA clasifica con el **texto que ya
+   hay** (título, notas, campos existentes); leer el documento de Drive es la rebanada
+   siguiente, pequeña.
 
 ## Objetivo
 
@@ -33,68 +51,54 @@ Meter IA donde de verdad aporta, en dos frentes:
 - Traducción automática, moderación automática de comentarios.
 - Cualquier acción que publique sin validación humana (la IA **nunca** publica sola).
 
-## Decisión previa ⚠️ — privacidad antes que nada
+## Privacidad (resuelto)
 
-El banco contiene material de tiempo libre con **menores**; hay un flag `datos_personales`
-justamente porque algunos recursos incluyen fotos, nombres o listados. Que la IA «entre en
-los documentos» significa **enviar ese contenido a un proveedor externo**. Esto **no puede
-decidirse a la ligera** y condiciona todo el diseño:
+El banco no maneja datos personales relevantes (decisión 1): material de tiempo libre, con
+como mucho algún nombre suelto en un libro de campamento. No hay puerta bloqueante ni
+detector obligatorio. Se respeta un opt-out simple **`no_ia`** a nivel de recurso/envío por
+si algún caso concreto no debe procesarse, y la IA lee **solo texto** (decisión 2), nunca
+imágenes de personas.
 
-- **Principio:** solo se procesan con IA los recursos **sin datos personales**. El pipeline
-  primero clasifica «¿esto tiene datos personales?» con señales baratas (nombre de archivo,
-  metadatos, primeras páginas) y, si hay sospecha, **se detiene y lo marca para revisión
-  humana sin haber mandado el documento entero**.
-- **Proveedor y retención:** usar la API de Anthropic (Claude) con **retención de datos
-  configurada y sin entrenamiento** sobre nuestros datos; documentar el DPA. Para embeddings,
-  Voyage AI (recomendado por Anthropic) con las mismas garantías. Nada de proveedores que
-  entrenen con lo enviado.
-- **Minimización:** enviar el **texto extraído** necesario, no el binario con metadatos EXIF;
-  recortar/anonimizar cuando se pueda; no enviar imágenes de personas.
-- **Consentimiento y transparencia:** dejar claro en la ficha y en el envío que el material
-  puede analizarse con IA para clasificarlo, y permitir marcar «no procesar con IA»
-  (`no_ia` a nivel de recurso/envío).
+## Decisiones técnicas
 
-> Esta sección es la **primera pregunta abierta**: hay que validar el enfoque legal antes de
-> escribir una línea del pipeline (ver «Preguntas abiertas»).
-
-## Decisiones técnicas (propuesta)
-
-- **Modelos (enero 2026):**
-  - Clasificación/extracción y detección de datos personales → **Claude Haiku 4.5**
-    (`claude-haiku-4-5`, 1$/5$ por millón tok) para el grueso barato; **Claude Sonnet 5**
-    (`claude-sonnet-5`, 3$/15$) para casos dudosos o documentos complejos. Opus 4.8 solo si
-    hiciera falta razonamiento profundo (no debería).
-  - «Recomiéndame…» conversacional → **Sonnet 5**.
-  - **Embeddings** → **Voyage AI** (Anthropic no ofrece embeddings propios); se guardan en
-    **pgvector** (extensión ya disponible en Supabase, AD-4).
-- **Dónde corre:** en **servidor** (acciones de SvelteKit o una Edge Function de Supabase),
-  nunca en el cliente. La clave `ANTHROPIC_API_KEY` (y `VOYAGE_API_KEY`) viven en env del
-  servidor; **sin clave, la funcionalidad se degrada a “no disponible”** y el resto de la app
-  sigue igual (mismo patrón que `RESEND_API_KEY`).
+- **Motor: Google Gemini.**
+  - Clasificación/extracción → **Gemini Flash** (`gemini-2.5-flash` por defecto, free tier).
+    Modelo **configurable por env** (`GEMINI_MODELO`) para subir a uno mayor o migrar a
+    Google Cloud sin tocar código.
+  - Embeddings (búsqueda semántica, fase posterior) → **Voyage AI** como opción preferida:
+    200M tokens gratis (indexar los ~1.500 recursos son ~1-2M tokens *una vez*; no se agota),
+    calidad top y `voyage-4-lite` a $0.02/millón si algún día se supera. Alternativa: los
+    embeddings del propio Gemini (una sola clave). Se decide al llegar a esa fase. En ambos
+    casos, guardados en **pgvector** (Supabase, AD-4). **Nota:** Voyage solo hace embeddings;
+    la clasificación seguirá siendo Gemini (generativo).
+  - **REST directo** (`generateContent` con `responseSchema` para salida JSON estable): sin
+    SDK, solo `fetch`, endpoint canónico y duradero. La clave va en la cabecera
+    `x-goog-api-key`.
+- **Dónde corre:** en **servidor** (acciones de SvelteKit), nunca en el cliente. La clave
+  `GEMINI_API_KEY` vive en env; **sin clave, la funcionalidad se degrada a “no disponible”**
+  y el resto de la app sigue igual (mismo patrón que `RESEND_API_KEY`). Se lee de
+  `$env/dynamic/private` para poder añadirla en Vercel sin recompilar.
 - **Coste bajo control:**
-  - **Batch API** (–50%) para reindexar embeddings y para clasificar lotes de envíos que no
-    corren prisa; llamada síncrona solo cuando el editor pulsa «analizar ahora».
-  - **Prompt caching** del bloque de instrucciones + vocabularios (`lista_valor`, tags) que se
-    repite en cada clasificación → ~90% menos en la parte cacheada.
-  - **Salidas estructuradas** (`output_config.format` con JSON Schema) para que la propuesta
-    venga siempre válida y parseable, sin post-proceso frágil.
-  - **Entrada de documentos** vía base64/Files API (PDF, texto); para Google Docs/Drive,
-    exportar a PDF/txt antes de enviar.
+  - Free tier de Flash para el grueso; llamada **síncrona** cuando el editor pulsa «Analizar
+    con IA», y lote bajo demanda para «analizar todo lo pendiente».
+  - **Salida estructurada** (`responseMimeType: application/json` + `responseSchema`) para que
+    la propuesta venga siempre válida y parseable, sin post-proceso frágil.
+  - Se le pasan los **vocabularios cerrados** (`lista_valor`, tags existentes) en el prompt
+    para que elija de valores válidos y no invente etiquetas.
+  - **Texto de entrada** = título + descripción + notas + campos existentes (v1); + texto
+    exportado de Drive vía cuenta de servicio (rebanada siguiente).
 - **A ~1.500 recursos** el índice semántico es minúsculo y baratísimo de mantener.
 
-## Modelo de datos (migración futura 00013 — propuesta)
+## Modelo de datos
+
+**Migración 00013 (autoclasificación — aplicada):** `recurso.no_ia` + tabla
+`clasificacion_ia`. **Embeddings (pgvector) → migración posterior** con la fase de búsqueda
+semántica (columna `recurso.embedding vector(768)`, `embedding_at`, índice HNSW), para no
+añadir esquema que aún no se usa.
 
 ```sql
--- Embeddings para búsqueda semántica (pgvector). Un embedding por recurso vigente.
-create extension if not exists vector with schema extensions;
-
 alter table recursos.recurso
-  add column if not exists embedding extensions.vector(1024),  -- dim de Voyage (voyage-3)
-  add column if not exists embedding_at timestamptz,           -- cuándo se calculó
   add column if not exists no_ia boolean not null default false; -- excluir de todo lo IA
-
-create index if not exists recurso_embedding_idx
-  on recursos.recurso using hnsw (embedding extensions.vector_cosine_ops);
 
 -- Propuesta de clasificación de la IA sobre un envío o recurso (editable, no publica sola).
 create table recursos.clasificacion_ia (
@@ -150,12 +154,15 @@ create policy "clasificacion ve/gestiona revisor" on recursos.clasificacion_ia f
 
 ## Fases de entrega (incremental, cada una aporta valor sola)
 
-1. **Fundaciones IA sin tocar UX**: env + módulo servidor `lib/server/ia.ts` (cliente Claude,
-   caching, salidas estructuradas), migración 00013, y el detector de datos personales como
-   función pura probada. Sin esto, nada.
-2. **Autoclasificación bajo demanda** en la bandeja (el mayor ahorro de trabajo humano). Batch
-   para lotes; síncrono para «analizar ahora».
-3. **Embeddings + búsqueda semántica** en el buscador y relacionados de verdad.
+1. **Fundaciones IA** (hecho): env `GEMINI_API_KEY`/`GEMINI_MODELO`, módulo servidor
+   `lib/server/ia.ts` (cliente Gemini vía fetch, salida estructurada, degradación sin clave),
+   migración 00013 (`no_ia` + `clasificacion_ia`).
+2. **Autoclasificación bajo demanda** (en curso): botón «Analizar con IA» en `/admin/recursos`
+   que clasifica desde el texto existente y propone tipo/etapas/edades/nivel/tags/descripción
+   editable; el editor aplica y publica. Después: leer el documento de Drive (cuenta de
+   servicio) y «analizar todo lo pendiente» en lote.
+3. **Embeddings + búsqueda semántica** en el buscador y relacionados de verdad (migración con
+   pgvector; backfill de embeddings).
 4. **«Recomiéndame…» conversacional** en Descubre.
 
 ## Criterios de aceptación (borrador)
@@ -170,19 +177,21 @@ create policy "clasificacion ve/gestiona revisor" on recursos.clasificacion_ia f
 - [ ] Coste por clasificación registrado (`coste_tokens`) y acotado con caching + Batch.
 - [ ] Toda propuesta llega como JSON válido contra el esquema (salidas estructuradas).
 
-## Preguntas abiertas (a validar antes de implementar)
+## Preguntas abiertas — RESUELTAS (2026-07-20)
 
-1. **Privacidad/legal (bloqueante):** ¿damos por bueno el enfoque «no procesar con IA los
-   recursos con datos personales, detectar y frenar antes de enviar el documento entero,
-   proveedor con DPA y sin entrenamiento»? ¿Hay que consultar con protección de datos de MCM
-   (material con menores)?
-2. **Alcance de lo que lee la IA:** ¿solo texto extraído (recomendado) o también imágenes?
-   Las imágenes de personas quedarían excluidas por defecto — ¿de acuerdo?
-3. **Proveedor de embeddings:** ¿Voyage AI (recomendado por Anthropic) o prefieres otro?
-   Implica una segunda API key y su propio DPA.
-4. **Coste y llaves:** ¿quién pone y paga las API keys? ¿Presupuesto mensual objetivo para
-   acotar Batch vs. síncrono?
-5. **¿Empezamos por (B) autoclasificación** —el mayor ahorro de trabajo— **o por (A)
-   búsqueda semántica** —lo más vistoso—? Mi recomendación: (B), fase 2.
-6. **Acceso a Drive:** para leer el contenido hay que exportar de Drive (PDF/txt). ¿Con qué
-   credencial (cuenta de servicio, OAuth del editor)? Esto es un pequeño proyecto en sí.
+1. **Privacidad:** sin datos personales relevantes; sin puerta bloqueante, solo opt-out
+   `no_ia`. ✅
+2. **Qué lee la IA:** solo texto evidente, nada de imágenes. ✅
+3. **Motor y embeddings:** Google Gemini (Flash, free tier), embeddings del mismo Gemini. ✅
+4. **Llaves/coste:** free tier de Flash para empezar; `GEMINI_API_KEY` en env (Vercel). ✅
+5. **Orden:** primero autoclasificación (fase 2). ✅
+6. **Drive:** cuenta de servicio de Google (exporta a texto). Rebanada posterior; la v1
+   clasifica con el texto que ya hay. ✅
+
+## Pendiente de configuración (para encender la IA)
+
+- Crear una **API key de Gemini** (Google AI Studio, free tier) y ponerla como
+  `GEMINI_API_KEY` en las variables de entorno de Vercel (y en `app/.env` para local).
+- (Opcional) `GEMINI_MODELO` si se quiere otro modelo que el `gemini-2.5-flash` por defecto.
+- Para leer documentos de Drive (rebanada siguiente): cuenta de servicio con acceso de
+  lectura a las carpetas del banco.

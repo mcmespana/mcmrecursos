@@ -69,8 +69,11 @@
 ## Fase 4 — Estadísticas
 - [ ] Dashboard con LayerChart: top recursos, accesos, valoraciones, autores
 
-## Fase 5 — IA (SPEC-010, borrador)
-- [ ] Embeddings (pgvector, Voyage) + búsqueda híbrida con Orama
+## Fase 5 — IA (SPEC-010; motor Google Gemini)
+- [x] Autoclasificación v1: botón «Analizar con IA» en /admin/recursos (Gemini Flash) que
+      propone tipo/etapas/edades/nivel/idioma/soporte/tags/descripción + avisos; el editor
+      aplica y publica (la IA nunca publica sola). Migración 00013 (`no_ia`, `clasificacion_ia`)
+- [ ] Leer el documento de Drive (cuenta de servicio) para clasificar con más contexto
+- [ ] «Analizar todo lo pendiente» en lote y en la cola de revisión
+- [ ] Embeddings (pgvector, Voyage 200M gratis) + búsqueda híbrida con Orama
 - [ ] "Recomiéndame una actividad para…" conversacional en Descubre
-- [ ] Bandeja de autoclasificación: la IA propone tipo/etapas/tags/descripción, detecta datos
-      personales y avisa de arreglos; humano valida y publica (la IA nunca publica sola)
