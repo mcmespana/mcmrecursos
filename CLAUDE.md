@@ -55,8 +55,13 @@ proyecto propio (ver AD-6 en `docs/01-arquitectura.md`). Reglas:
   (tras cada cambio DDL: `notify pgrst, 'reload schema';`).
 - La migración `00001` YA ESTÁ APLICADA en remoto. Las siguientes se aplican con el MCP
   de Supabase (`apply_migration`) y se versionan también en `supabase/migrations/`.
-- ⚠️ Google OAuth como proveedor de Auth está PENDIENTE de configurar en el dashboard
-  (necesita client ID/secret de Google Cloud; no se puede por MCP).
+- ✅ Google OAuth como proveedor de Auth ya está configurado y funcionando en producción
+  (`mcmrecursos.vercel.app`). Al compartir proyecto Supabase con `mcmvotaciones`, las URLs
+  del Banco de Recursos (`/auth/callback`, localhost) deben estar en Authentication →
+  URL Configuration → **Redirect URLs** (lista blanca), sin tocar el **Site URL** del
+  proyecto (que sigue siendo el de votaciones). Si el login redirige a
+  `mcmvotaciones.vercel.app` en vez de a este dominio, revisa esa lista de Redirect URLs
+  antes de sospechar de la config de Google Cloud.
 
 ## Qué no hacer
 
