@@ -28,6 +28,7 @@
 		Eye,
 		FolderSymlink,
 		Heart,
+		History,
 		PackageOpen
 	} from '@lucide/svelte';
 
@@ -42,6 +43,10 @@
 		favorito,
 		usado,
 		miValoracion,
+		indice = -1,
+		total = 0,
+		versionActual = null,
+		versionesAnteriores = [],
 		onclose,
 		onnavegar,
 		onabrirrelacionado,
@@ -60,6 +65,14 @@
 		favorito: boolean;
 		usado: boolean;
 		miValoracion: number | null;
+		/** posición 0-based del recurso en la lista que estás viendo (-1 si no aplica). */
+		indice?: number;
+		/** tamaño de esa lista, para «i / total» y el estado disabled. */
+		total?: number;
+		/** versión vigente del linaje, si este recurso es una anterior (SPEC-009). */
+		versionActual?: RecursoCatalogo | null;
+		/** versiones anteriores del linaje (si este es el vigente). */
+		versionesAnteriores?: RecursoCatalogo[];
 		onclose: () => void;
 		onnavegar: (direccion: 1 | -1) => void;
 		onabrirrelacionado: (r: RecursoCatalogo) => void;
@@ -68,6 +81,9 @@
 		onvalorar: (r: RecursoCatalogo, estrellas: number) => void;
 		onabrir: (r: RecursoCatalogo) => void;
 	} = $props();
+
+	const puedeAnterior = $derived(indice > 0);
+	const puedeSiguiente = $derived(indice >= 0 && indice < total - 1);
 
 	const badgeClase = $derived((familia && FAMILIA_BADGE[familia]) || BADGE_NEUTRO);
 	const fondoClase = $derived((familia && FAMILIA_FONDO[familia]) || FONDO_NEUTRO);
@@ -99,9 +115,14 @@
 	);
 
 	function teclas(e: KeyboardEvent) {
-		if (e.key === 'ArrowRight') onnavegar(1);
-		if (e.key === 'ArrowLeft') onnavegar(-1);
+		const objetivo = e.target as HTMLElement;
+		if (objetivo?.closest('input, textarea, select, [contenteditable]')) return;
+		if (e.key === 'ArrowRight' && puedeSiguiente) onnavegar(1);
+		if (e.key === 'ArrowLeft' && puedeAnterior) onnavegar(-1);
 	}
+
+	const fmtVersion = (r: RecursoCatalogo) =>
+		r.curso_usado || r.anyo_publicacion?.toString() || 'sin fecha';
 </script>
 
 <svelte:window onkeydown={recurso ? teclas : undefined} />
@@ -164,6 +185,20 @@
 						{/if}
 					</div>
 				</Sheet.Header>
+
+				{#if versionActual}
+					<button
+						type="button"
+						class="flex items-center gap-2 rounded-xl border border-warm/40 bg-warm/10 px-3 py-2 text-left text-sm text-warm-foreground transition-colors hover:bg-warm/20 dark:text-warm"
+						onclick={() => onabrirrelacionado(versionActual!)}
+					>
+						<History class="size-4 shrink-0" />
+						<span>
+							Versión anterior ({fmtVersion(recurso)}). Ver la actual ({fmtVersion(versionActual)})
+							<ChevronRight class="inline size-3.5" />
+						</span>
+					</button>
+				{/if}
 
 				{#if recurso.descripcion}
 					<p class="text-sm leading-relaxed text-pretty text-muted-foreground">
@@ -265,6 +300,33 @@
 					{/each}
 				</dl>
 
+				{#if versionesAnteriores.length}
+					<Separator />
+					<div class="flex flex-col gap-2">
+						<h4 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+							Versiones anteriores
+						</h4>
+						{#each versionesAnteriores as ver (ver.id)}
+							<button
+								type="button"
+								class="flex items-center gap-3 rounded-xl border p-2 text-left text-sm transition-colors hover:bg-accent"
+								onclick={() => onabrirrelacionado(ver)}
+							>
+								<span class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
+									<History class="size-4 text-muted-foreground" />
+								</span>
+								<span class="flex min-w-0 flex-1 flex-col">
+									<span class="truncate font-medium">{fmtVersion(ver)}</span>
+									<span class="text-xs text-muted-foreground">
+										{ver.num_valoraciones ? `⭐ ${ver.valoracion_media} · ` : ''}{ver.num_accesos} aperturas
+									</span>
+								</span>
+								<ChevronRight class="size-4 shrink-0 text-muted-foreground" />
+							</button>
+						{/each}
+					</div>
+				{/if}
+
 				{#if relacionados.length}
 					<Separator />
 					<div class="flex flex-col gap-2">
@@ -309,14 +371,29 @@
 					{onrequierelogin}
 				/>
 
-				<div class="flex items-center justify-between pt-1">
-					<Button variant="ghost" size="sm" onclick={() => onnavegar(-1)}>
-						<ChevronLeft class="size-4" /> Anterior
-					</Button>
-					<Button variant="ghost" size="sm" onclick={() => onnavegar(1)}>
-						Siguiente <ChevronRight class="size-4" />
-					</Button>
-				</div>
+				{#if indice >= 0 && total > 1}
+					<div class="flex items-center justify-between pt-1">
+						<Button
+							variant="ghost"
+							size="sm"
+							disabled={!puedeAnterior}
+							onclick={() => onnavegar(-1)}
+						>
+							<ChevronLeft class="size-4" /> Anterior
+						</Button>
+						<span class="text-xs text-muted-foreground tabular-nums">
+							{indice + 1} / {total}
+						</span>
+						<Button
+							variant="ghost"
+							size="sm"
+							disabled={!puedeSiguiente}
+							onclick={() => onnavegar(1)}
+						>
+							Siguiente <ChevronRight class="size-4" />
+						</Button>
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</Sheet.Content>

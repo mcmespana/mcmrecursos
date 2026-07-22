@@ -117,3 +117,33 @@ export function textoIndexable(r: RecursoCatalogo): string {
 export function normalizarConsulta(q: string): string {
 	return sinAcentos(q.trim());
 }
+
+/**
+ * Recursos relacionados por afinidad (SPEC-009 anexo A): solapamiento de tags (peso alto),
+ * mismo tipo (medio) y etapas comunes (bajo). Excluye el propio recurso y su mismo linaje de
+ * versiones. Se usa como respaldo cuando no hay relaciones manuales; nunca es aleatorio.
+ */
+export function relacionar(
+	recurso: RecursoCatalogo,
+	candidatos: RecursoCatalogo[],
+	limite = 6
+): RecursoCatalogo[] {
+	const tags = new Set(recurso.tags);
+	const etapas = new Set(recurso.etapas);
+	const mismoLinaje = new Set([recurso.id, ...recurso.versiones_anteriores]);
+	if (recurso.reemplazado_por) mismoLinaje.add(recurso.reemplazado_por);
+
+	return candidatos
+		.filter((c) => !mismoLinaje.has(c.id) && c.id !== recurso.id)
+		.map((c) => {
+			let score = 0;
+			for (const t of c.tags) if (tags.has(t)) score += 3;
+			if (recurso.tipo && c.tipo === recurso.tipo) score += 2;
+			for (const e of c.etapas) if (etapas.has(e)) score += 1;
+			return { c, score };
+		})
+		.filter((x) => x.score > 0)
+		.sort((a, b) => b.score - a.score || (b.c.valoracion_media ?? 0) - (a.c.valoracion_media ?? 0))
+		.slice(0, limite)
+		.map((x) => x.c);
+}

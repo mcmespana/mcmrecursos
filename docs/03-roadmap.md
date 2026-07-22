@@ -46,7 +46,11 @@
       (`mcm_local`) y accesos preautorizados (`acceso_previo`, aplica al perfil si ya existe)
 - [ ] Confirmar email limpio de Caravaca y preautorizarlo (única delegación sin editor;
       ya se puede dar de alta desde /admin/config → Accesos preautorizados)
-- [ ] Nuevas versiones de un recurso
+- [x] Nuevas versiones de un recurso (SPEC-009, migración 00012): linaje `version_de`,
+      la vigente oculta a las anteriores y hereda su valoración/uso/accesos; ficha con
+      «versiones anteriores» y banner en las viejas; «Crear nueva versión» en /admin/recursos
+- [x] Relacionados de verdad (afinidad por tags/tipo/etapas) y navegación ←/→ de la ficha
+      dentro del filtro/mazo con posición y estado disabled
 
 ## 👉 SIGUIENTE
 

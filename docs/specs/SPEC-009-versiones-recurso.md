@@ -1,7 +1,25 @@
 # SPEC-009 · Nuevas versiones de un recurso
 
-> **Estado:** borrador (pendiente de validar con el usuario antes de codificar)
+> **Estado:** validada (decisiones cerradas 2026-07-20) — en implementación.
 > **Depende de:** SPEC-002 (catálogo), SPEC-004 (envíos), SPEC-005 (sync), SPEC-008 (panel)
+
+## Decisiones cerradas (2026-07-20)
+
+1. **Grid:** las versiones anteriores se **ocultan del grid/buscador**; desde la ficha de la
+   vigente se ven y se abren.
+2. **Valoraciones/favoritos:** se **heredan** del recurso antiguo a la nueva versión.
+3. **Accesos y stats:** también se **heredan** (la vigente acumula la historia del linaje).
+4. **Umbral versión vs. edición:** arreglos menores = editar en el sitio (`editado_web_at`);
+   versión nueva = entrada nueva que preserva la anterior. Criterio editorial, no forzado.
+5. **Aviso de novedad:** descartado.
+6. **`retirar_ausentes`:** no retira recursos con `editado_web_at` que nunca estuvieron en el
+   Sheet (creados en web), incluidas las versiones.
+
+> **Cómo se implementa la herencia (2 y 3):** de forma **no destructiva, por agregación de
+> linaje**. La vigente muestra las valoraciones/favoritos/usos/accesos **sumados de todas sus
+> versiones** (media ponderada de estrellas), y «lo mío» del usuario en cualquier versión se
+> refleja en la vigente. No se mueven filas: cada valoración sigue atada a la versión que se
+> valoró, pero la cabeza del linaje presenta el acumulado.
 
 ## Objetivo
 
@@ -144,19 +162,31 @@ create index recurso_version_de_idx on recursos.recurso (version_de);
 - [ ] Enlazar versiones desde el Sheet (`version_de`) funciona y no retira las creadas en web.
 - [ ] Un recurso no puede ser su propia versión ni formar un ciclo directo.
 
-## Preguntas abiertas (a validar antes de implementar)
+## Anexo · Dos mejoras pedidas de paso (2026-07-20)
 
-1. **Grid por defecto:** ¿ocultar las versiones anteriores (propuesto) o mostrarlas todas
-   con un badge «versión anterior»?
-2. **Valoraciones/favoritos:** ¿por versión (propuesto, cada versión es un recurso propio) o
-   arrastrarlas/heredarlas a la nueva al publicar?
-3. **Accesos y stats:** el contador de aperturas y los rankings de `/admin/stats`, ¿por
-   versión o **sumados por linaje** (para no partir la popularidad histórica)?
-4. **Umbral versión vs. edición:** confirmar la regla — arreglos menores = editar en el
-   sitio; versión nueva = entrada nueva que preserva la anterior. Es criterio editorial, no
-   se fuerza. ¿De acuerdo?
-5. **Aviso de novedad:** ¿queremos (más adelante) avisar a quien guardó/usó una versión de
-   que hay una nueva? Requeriría una capa de notificaciones que aún no existe.
-6. **`retirar_ausentes` + recursos creados en web:** ¿cómo protegerlos definitivamente? Opción
-   A: excluir del retiro los que tengan `editado_web_at` y no hayan aparecido nunca en el
-   Sheet; Opción B: adelantar la escritura inversa BD→Sheet para las altas web.
+### A. «Recursos relacionados» que lo estén de verdad
+Hoy `recurso_relacion` es **manual** (se rellena a mano o desde la columna `relacionados`
+del Sheet), así que casi siempre está vacío y lo que se muestra parece aleatorio. Mejora en
+dos capas:
+- **Ahora (heurística, sin IA):** si un recurso no tiene relaciones manuales, se calculan por
+  **afinidad**: solapamiento de tags (peso alto), mismo tipo (medio) y etapas comunes (bajo);
+  se excluye el propio recurso y su mismo linaje de versiones; se muestran los N mejores. Las
+  relaciones manuales, si existen, mandan; la heurística solo rellena.
+- **Futuro (IA, SPEC-010):** relacionados por **similitud semántica** (embeddings pgvector)
+  sobre nombre + descripción + contenido del documento.
+
+### B. Navegación Anterior/Siguiente con sentido
+Los botones ←/→ de la ficha (y las flechas del teclado) navegan **dentro de la lista que
+estás viendo** —resultados del filtro/búsqueda, mazo de Descubre, tu lista de favoritos…—,
+en su orden actual, actualizando la URL (`?r=`). En los extremos, los botones quedan
+**deshabilitados** (no hacen scroll infinito silencioso) y se muestra la posición «i / total».
+
+## Notas de implementación
+
+- **Herencia por agregación**: se calcula en la carga del catálogo (`$lib/catalogo/cargar.ts`),
+  que ya trae todos los recursos al cliente (AD-3). La vigente recibe stats sumadas del linaje
+  y «lo mío» se mapea a la cabeza. Nada destructivo en BD.
+- **Sheet (`version_de`)**: se añade la columna a `docs/seed/recursos_seed.csv`. El cableado en
+  `sync_filas` (segunda pasada, como `relacionados`) y la salvaguarda de `retirar_ausentes`
+  quedan como **follow-up** (el Sheet real aún no existe; SPEC-005). La creación de versiones
+  desde la web ya funciona sin depender del Sheet.

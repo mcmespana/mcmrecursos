@@ -31,12 +31,20 @@ export interface RecursoCatalogo {
 	tags: string[];
 	autores: string[];
 	relacionados: string[];
-	// agregados sociales (vista recurso_stats)
+	// agregados sociales (vista recurso_stats; en la vigente, sumados del linaje — SPEC-009)
 	valoracion_media: number | null;
 	num_valoraciones: number;
 	num_favoritos: number;
 	num_usos: number;
 	num_accesos: number;
+	// versiones (SPEC-009)
+	version_de: string | null;
+	/** id de la versión que reemplaza a esta (publicada), si la hay. */
+	reemplazado_por: string | null;
+	/** false si otra versión publicada la sucede (se oculta del grid). */
+	es_vigente: boolean;
+	/** ids de versiones anteriores del linaje, de más nueva a más antigua. */
+	versiones_anteriores: string[];
 }
 
 export interface ListaValor {
