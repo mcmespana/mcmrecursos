@@ -20,7 +20,7 @@ export async function cargarDatosCatalogo(
 			.from('recurso')
 			.select(
 				`id, nombre, descripcion, tipo, etapas, nivel, edades, idioma, soporte, ubicacion,
-				 enlace, imagen, anyo_publicacion, curso_usado, visibilidad, estado,
+				 enlace, imagen, anyo_publicacion, curso_usado, visibilidad, estado, version_de,
 				 fuera_del_banco, pendiente_clasificar,
 				 mcm_local:mcm_local_id (nombre),
 				 recurso_tag (tag (nombre)),
@@ -69,11 +69,18 @@ export async function cargarDatosCatalogo(
 			num_valoraciones: s?.num_valoraciones ?? 0,
 			num_favoritos: s?.num_favoritos ?? 0,
 			num_usos: s?.num_usos ?? 0,
-			num_accesos: s?.num_accesos ?? 0
+			num_accesos: s?.num_accesos ?? 0,
+			version_de: r.version_de ?? null,
+			reemplazado_por: null,
+			es_vigente: true,
+			versiones_anteriores: []
 		};
 	});
 
-	// lo mío (favoritos, usos, valoraciones) — solo con sesión
+	resolverVersiones(recursos);
+
+	// lo mío (favoritos, usos, valoraciones) — solo con sesión.
+	// Se mapea al recurso vigente del linaje (herencia SPEC-009 §2).
 	const social: SocialPropio = socialVacio();
 	if (session) {
 		const [favRes, usoRes, valRes] = await Promise.all([
@@ -81,9 +88,16 @@ export async function cargarDatosCatalogo(
 			supabase.from('uso').select('recurso_id'),
 			supabase.from('valoracion').select('recurso_id, estrellas')
 		]);
-		for (const f of favRes.data ?? []) social.favoritos.add(f.recurso_id);
-		for (const u of usoRes.data ?? []) social.usos.add(u.recurso_id);
-		for (const v of valRes.data ?? []) social.valoraciones.set(v.recurso_id, v.estrellas);
+		const alVigente = mapaAVigente(recursos);
+		for (const f of favRes.data ?? []) social.favoritos.add(alVigente(f.recurso_id));
+		for (const u of usoRes.data ?? []) social.usos.add(alVigente(u.recurso_id));
+		for (const v of valRes.data ?? []) {
+			const id = alVigente(v.recurso_id);
+			// si el usuario valoró varias versiones, gana la de la versión vigente si existe
+			if (!social.valoraciones.has(id) || id === v.recurso_id) {
+				social.valoraciones.set(id, v.estrellas);
+			}
+		}
 	}
 
 	return {
@@ -91,5 +105,108 @@ export async function cargarDatosCatalogo(
 		listas: listasRes.data ?? [],
 		social,
 		facetas: facetasRes.data ?? []
+	};
+}
+
+/**
+ * Resuelve el linaje de versiones (SPEC-009): marca `es_vigente`, `reemplazado_por` y
+ * `versiones_anteriores`, y agrega la capa social del linaje sobre la versión vigente
+ * (herencia no destructiva de valoraciones/favoritos/usos/accesos §2/§3).
+ */
+function resolverVersiones(recursos: RecursoCatalogo[]) {
+	const porId = new Map(recursos.map((r) => [r.id, r]));
+	// hijo publicado por predecesor: quién sucede a quién
+	const sucesorDe = new Map<string, RecursoCatalogo>();
+	for (const r of recursos) {
+		if (r.version_de && r.estado === 'publicado' && porId.has(r.version_de)) {
+			sucesorDe.set(r.version_de, r);
+		}
+	}
+	for (const r of recursos) {
+		const sucesor = sucesorDe.get(r.id);
+		if (sucesor) {
+			r.es_vigente = false;
+			r.reemplazado_por = sucesor.id;
+		}
+	}
+	// para cada cabeza (vigente que sucede a alguien), reunir el linaje y agregar stats
+	for (const cabeza of recursos) {
+		if (cabeza.version_de == null && !esSucesora(cabeza, porId)) continue;
+		if (!cabeza.es_vigente) continue;
+		const linaje = linajeDe(cabeza, porId, sucesorDe);
+		if (linaje.length <= 1) continue;
+		cabeza.versiones_anteriores = linaje
+			.filter((r) => r.id !== cabeza.id)
+			.map((r) => r.id);
+		agregarStats(cabeza, linaje);
+	}
+}
+
+/** ¿este recurso es una versión (tiene predecesor en el mapa)? */
+function esSucesora(r: RecursoCatalogo, porId: Map<string, RecursoCatalogo>): boolean {
+	return !!(r.version_de && porId.has(r.version_de));
+}
+
+/** Linaje completo (de la más nueva a la más antigua) que contiene a `r`. */
+function linajeDe(
+	r: RecursoCatalogo,
+	porId: Map<string, RecursoCatalogo>,
+	sucesorDe: Map<string, RecursoCatalogo>
+): RecursoCatalogo[] {
+	// subir a la cabeza (siguiendo sucesores publicados)
+	let cabeza = r;
+	const vistos = new Set<string>([r.id]);
+	let sig = sucesorDe.get(cabeza.id);
+	while (sig && !vistos.has(sig.id)) {
+		cabeza = sig;
+		vistos.add(sig.id);
+		sig = sucesorDe.get(cabeza.id);
+	}
+	// bajar por version_de acumulando toda la cadena
+	const cadena: RecursoCatalogo[] = [];
+	let actual: RecursoCatalogo | undefined = cabeza;
+	const bajados = new Set<string>();
+	while (actual && !bajados.has(actual.id)) {
+		cadena.push(actual);
+		bajados.add(actual.id);
+		actual = actual.version_de ? porId.get(actual.version_de) : undefined;
+	}
+	return cadena;
+}
+
+/** Suma los agregados sociales del linaje sobre la cabeza (media ponderada de estrellas). */
+function agregarStats(cabeza: RecursoCatalogo, linaje: RecursoCatalogo[]) {
+	let sumaEstrellas = 0;
+	let numVal = 0;
+	let favoritos = 0;
+	let usos = 0;
+	let accesos = 0;
+	for (const r of linaje) {
+		if (r.valoracion_media != null && r.num_valoraciones) {
+			sumaEstrellas += r.valoracion_media * r.num_valoraciones;
+			numVal += r.num_valoraciones;
+		}
+		favoritos += r.num_favoritos;
+		usos += r.num_usos;
+		accesos += r.num_accesos;
+	}
+	cabeza.valoracion_media = numVal ? Math.round((sumaEstrellas / numVal) * 10) / 10 : null;
+	cabeza.num_valoraciones = numVal;
+	cabeza.num_favoritos = favoritos;
+	cabeza.num_usos = usos;
+	cabeza.num_accesos = accesos;
+}
+
+/** Devuelve una función id→id_vigente (sube por la cadena de sucesores publicados). */
+function mapaAVigente(recursos: RecursoCatalogo[]): (id: string) => string {
+	const porId = new Map(recursos.map((r) => [r.id, r]));
+	return (id: string) => {
+		let actual = porId.get(id);
+		const vistos = new Set<string>();
+		while (actual && actual.reemplazado_por && !vistos.has(actual.id)) {
+			vistos.add(actual.id);
+			actual = porId.get(actual.reemplazado_por);
+		}
+		return actual?.id ?? id;
 	};
 }

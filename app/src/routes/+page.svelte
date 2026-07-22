@@ -8,7 +8,14 @@
 	import { create, insertMultiple, search, type Orama } from '@orama/orama';
 	import { toast } from 'svelte-sonner';
 	import type { RecursoCatalogo } from '$lib/catalogo/tipos';
-	import { construirFacetas, filtrar, contar, textoIndexable, type Seleccion } from '$lib/catalogo/filtros';
+	import {
+		construirFacetas,
+		filtrar,
+		contar,
+		relacionar,
+		textoIndexable,
+		type Seleccion
+	} from '$lib/catalogo/filtros';
 	import RecursoCard from '$lib/components/RecursoCard.svelte';
 	import RecursoTabla from '$lib/components/RecursoTabla.svelte';
 	import FacetaFiltro from '$lib/components/FacetaFiltro.svelte';
@@ -25,12 +32,16 @@
 	// facetas del buscador: configuración en BD (tabla `faceta`, editable en /admin/config)
 	const facetas = $derived(construirFacetas(data.facetas, !!data.session));
 
+	// grid, índice y facetas trabajan solo con versiones vigentes (SPEC-009); las anteriores
+	// siguen accesibles por enlace directo, listas y desde la ficha de la vigente.
+	const recursosVigentes = $derived(data.recursos.filter((r) => r.es_vigente));
+
 	// --- índice de texto (Orama), reconstruido si cambia el catálogo ---
 	const db: Orama<{ id: 'string'; texto: 'string' }> = $derived.by(() => {
 		const indice = create({ schema: { id: 'string', texto: 'string' } as const });
 		insertMultiple(
 			indice,
-			data.recursos.map((r) => ({ id: r.id, texto: textoIndexable(r) }))
+			recursosVigentes.map((r) => ({ id: r.id, texto: textoIndexable(r) }))
 		);
 		return indice;
 	});
@@ -187,7 +198,7 @@
 	}
 
 	// --- derivados de catálogo ---
-	const resultados = $derived(filtrar(data.recursos, facetas, seleccion, idsTexto));
+	const resultados = $derived(filtrar(recursosVigentes, facetas, seleccion, idsTexto));
 	const filtrosActivos = $derived(
 		facetas.flatMap((f) => (seleccion[f.campo] ?? []).map((valor) => ({ campo: f.campo, valor })))
 	);
@@ -205,7 +216,7 @@
 				);
 			} else {
 				const valores = new Set<string>();
-				for (const r of data.recursos) for (const v of f.valores(r)) valores.add(v);
+				for (const r of recursosVigentes) for (const v of f.valores(r)) valores.add(v);
 				map.set(
 					f.campo,
 					[...valores]
@@ -220,21 +231,39 @@
 		new Map(
 			facetas.map((f) => [
 				f.campo,
-				contar(filtrar(data.recursos, facetas, seleccion, idsTexto, f.campo), f)
+				contar(filtrar(recursosVigentes, facetas, seleccion, idsTexto, f.campo), f)
 			])
 		)
 	);
-	const relacionadosAbierto = $derived(
+	// relacionados: los manuales mandan; si no hay, afinidad real (SPEC-009 anexo A)
+	const relacionadosAbierto = $derived.by(() => {
+		if (!abierto) return [];
+		const manuales = abierto.relacionados
+			.map((id) => data.recursos.find((r) => r.id === id))
+			.filter(Boolean) as RecursoCatalogo[];
+		return manuales.length ? manuales : relacionar(abierto, recursosVigentes);
+	});
+	// versiones del recurso abierto (SPEC-009)
+	const versionActualAbierto = $derived(
+		abierto && !abierto.es_vigente && abierto.reemplazado_por
+			? (data.recursos.find((r) => r.id === abierto!.reemplazado_por) ?? null)
+			: null
+	);
+	const versionesAnterioresAbierto = $derived(
 		abierto
-			? (abierto.relacionados
+			? (abierto.versiones_anteriores
 					.map((id) => data.recursos.find((r) => r.id === id))
 					.filter(Boolean) as RecursoCatalogo[])
 			: []
 	);
+	// posición del recurso abierto dentro de la lista visible (para nav ←/→ y «i / total»)
+	const indiceAbierto = $derived(
+		abierto ? resultados.findIndex((r) => r.id === abierto!.id) : -1
+	);
 	const stats = $derived({
-		recursos: data.recursos.length,
-		autores: new Set(data.recursos.flatMap((r) => r.autores)).size,
-		accesos: data.recursos.reduce((acc, r) => acc + r.num_accesos, 0)
+		recursos: recursosVigentes.length,
+		autores: new Set(recursosVigentes.flatMap((r) => r.autores)).size,
+		accesos: recursosVigentes.reduce((acc, r) => acc + r.num_accesos, 0)
 	});
 
 	// --- URL compartible ---
@@ -418,6 +447,10 @@
 	favorito={abierto ? esFavorito(abierto.id) : false}
 	usado={abierto ? esUsado(abierto.id) : false}
 	miValoracion={abierto ? miValoracionDe(abierto.id) : null}
+	indice={indiceAbierto}
+	total={resultados.length}
+	versionActual={versionActualAbierto}
+	versionesAnteriores={versionesAnterioresAbierto}
 	onclose={() => (abierto = null)}
 	onnavegar={navegarFicha}
 	onabrirrelacionado={(r) => (abierto = r)}

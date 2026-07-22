@@ -7,9 +7,11 @@
 	import * as Sheet from '$lib/components/ui/sheet';
 	import { toast } from 'svelte-sonner';
 	import { normalizarConsulta } from '$lib/catalogo/filtros';
-	import { ArrowDownUp, CloudAlert, Pencil } from '@lucide/svelte';
+	import { ArrowDownUp, CloudAlert, GitBranch, Pencil } from '@lucide/svelte';
 
 	let { data } = $props();
+
+	const nombrePorId = $derived(new Map(data.recursos.map((r: any) => [r.id, r.nombre])));
 
 	let filtroTexto = $state('');
 	let filtroEstado = $state('');
@@ -63,6 +65,25 @@
 			};
 	}
 
+	// Crear nueva versión: al volver, abre el borrador nuevo para completarlo (SPEC-009)
+	function resultadoNuevaVersion() {
+		return () =>
+			async ({ result }: any) => {
+				if (result.type === 'success') {
+					await invalidateAll();
+					const nuevo = data.recursos.find((r: any) => r.id === result.data?.nuevoId);
+					if (nuevo) {
+						editando = nuevo;
+						toast.success('Nueva versión creada: completa el enlace y publícala');
+					} else {
+						toast.success('Nueva versión creada');
+					}
+				} else {
+					toast.error('No se pudo crear la versión', { description: result.data?.error });
+				}
+			};
+	}
+
 	const fecha = (iso: string | null) =>
 		iso ? new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '—';
 </script>
@@ -108,6 +129,14 @@
 						<td class="max-w-72 px-3">
 							<span class="flex items-center gap-1.5">
 								<span class="truncate font-medium">{r.nombre.replace(/^\[EJEMPLO\]\s*/, '')}</span>
+								{#if r.version_de}
+									<span
+										class="inline-flex shrink-0 items-center gap-0.5 rounded bg-muted px-1 text-[10px] font-medium text-muted-foreground"
+										title={`Nueva versión de ${r.version_de} · ${nombrePorId.get(r.version_de) ?? ''}`}
+									>
+										<GitBranch class="size-3" /> versión
+									</span>
+								{/if}
 								{#if r.editado_web_at}
 									<span title="Editado en web: protegido del Sheet hasta resolver">
 										<CloudAlert class="size-3.5 shrink-0 text-warm-foreground dark:text-warm" />
@@ -134,7 +163,23 @@
 						</td>
 						<td class="px-3 text-muted-foreground tabular-nums">{r.anyo_publicacion ?? '—'}</td>
 						<td class="px-3 text-muted-foreground tabular-nums">{fecha(r.updated_at)}</td>
-						<td class="px-3 text-right">
+						<td class="px-3 text-right whitespace-nowrap">
+							<form
+								method="POST"
+								action="?/crearVersion"
+								use:enhance={resultadoNuevaVersion()}
+								class="inline"
+							>
+								<input type="hidden" name="id" value={r.id} />
+								<Button
+									type="submit"
+									variant="ghost"
+									size="sm"
+									title="Crear nueva versión (duplica y enlaza)"
+								>
+									<GitBranch class="size-3.5" /> Versión
+								</Button>
+							</form>
 							<Button variant="ghost" size="sm" onclick={() => (editando = r)}>
 								<Pencil class="size-3.5" /> Editar
 							</Button>
@@ -208,6 +253,24 @@
 					<div class="flex flex-col gap-1.5">
 						<label class="text-sm font-medium" for="e-curso">Curso usado</label>
 						<Input id="e-curso" name="curso_usado" placeholder="2024-2025" value={editando.curso_usado ?? ''} />
+					</div>
+					<div class="flex flex-col gap-1.5 sm:col-span-2">
+						<label class="text-sm font-medium" for="e-version">Es nueva versión de…</label>
+						<select
+							id="e-version"
+							name="version_de"
+							value={editando.version_de ?? ''}
+							class="h-9 rounded-md border bg-background px-2 text-sm"
+						>
+							<option value="">— No es una versión —</option>
+							{#each data.recursos.filter((r: any) => r.id !== editando.id) as r (r.id)}
+								<option value={r.id}>{r.id} · {r.nombre.replace(/^\[EJEMPLO\]\s*/, '')}</option>
+							{/each}
+						</select>
+						<p class="text-xs text-muted-foreground">
+							Al publicarse, la versión anterior se ocultará del catálogo y su valoración/uso se
+							heredan a esta.
+						</p>
 					</div>
 				</div>
 

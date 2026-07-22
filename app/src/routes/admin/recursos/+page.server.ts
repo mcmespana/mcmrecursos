@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 				`id, nombre, descripcion, tipo, etapas, nivel, edades, idioma, soporte, ubicacion,
 				 enlace, imagen, enlace_imagenes, anyo_publicacion, curso_usado, visibilidad, estado,
 				 datos_personales, creado_con_ia, fuera_del_banco, pendiente_clasificar,
-				 notas_internas, editado_web_at, updated_at, mcm_local_id,
+				 notas_internas, editado_web_at, updated_at, mcm_local_id, version_de,
 				 mcm_local:mcm_local_id (nombre),
 				 recurso_tag (tag (nombre))`
 			)
@@ -72,7 +72,9 @@ export const actions: Actions = {
 				creado_con_ia: bool('creado_con_ia'),
 				fuera_del_banco: bool('fuera_del_banco'),
 				pendiente_clasificar: bool('pendiente_clasificar'),
-				notas_internas: texto('notas_internas')
+				notas_internas: texto('notas_internas'),
+				// una versión no puede apuntarse a sí misma (SPEC-009); vacío = sin predecesor
+				version_de: texto('version_de') === id ? null : texto('version_de')
 			})
 			.eq('id', id);
 		if (error) return fail(500, { error: error.message });
@@ -104,5 +106,16 @@ export const actions: Actions = {
 		const { error } = await supabase.from('recurso').update({ estado }).eq('id', id);
 		if (error) return fail(500, { error: error.message });
 		return { ok: true };
+	},
+
+	// Crea una nueva versión (borrador) del recurso y devuelve su id (SPEC-009)
+	crearVersion: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401);
+		const f = await request.formData();
+		const id = String(f.get('id') ?? '');
+		if (!id) return fail(400);
+		const { data, error } = await supabase.rpc('crear_version', { origen_id: id });
+		if (error) return fail(500, { error: error.message });
+		return { ok: true, nuevoId: data as string };
 	}
 };

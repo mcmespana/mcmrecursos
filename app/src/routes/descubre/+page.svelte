@@ -17,7 +17,7 @@
 		limpiarNombre,
 		miniatura
 	} from '$lib/catalogo/tipos';
-	import { construirFacetas, filtrar, type Seleccion } from '$lib/catalogo/filtros';
+	import { construirFacetas, filtrar, relacionar, type Seleccion } from '$lib/catalogo/filtros';
 	import RecursoFicha from '$lib/components/RecursoFicha.svelte';
 	import LoginDialog from '$lib/components/LoginDialog.svelte';
 	import AvisoLocal from '$lib/components/AvisoLocal.svelte';
@@ -33,6 +33,8 @@
 	const tipoFamilia = $derived(
 		new Map(data.listas.filter((l) => l.lista === 'tipo').map((l) => [l.valor, l.grupo]))
 	);
+	// el mazo solo baraja versiones vigentes (SPEC-009)
+	const recursosVigentes = $derived(data.recursos.filter((r) => r.es_vigente));
 
 	// --- filtros: misma sintaxis de URL que el buscador (?etapas=MIC|COM&tipo=…) ---
 	const paramsIniciales = page.url.searchParams;
@@ -188,7 +190,7 @@
 
 	function armarMazo() {
 		cargarDescartes();
-		const candidatos = filtrar(data.recursos, facetas, seleccion, null).filter(
+		const candidatos = filtrar(recursosVigentes, facetas, seleccion, null).filter(
 			(r) => !descartados.has(r.id)
 		);
 		const peso = (r: RecursoCatalogo) => {
@@ -208,7 +210,7 @@
 		untrack(armarMazo);
 	});
 
-	const total = $derived(filtrar(data.recursos, facetas, seleccion, null).length);
+	const total = $derived(filtrar(recursosVigentes, facetas, seleccion, null).length);
 
 	// --- gesto de arrastre con física ligera ---
 	let drag = $state({ x: 0, y: 0, activo: false, saliendo: null as null | 'izq' | 'der' });
@@ -302,13 +304,32 @@
 	}
 
 	const visibles = $derived(mazo.slice(0, 3));
-	const relacionadosAbierto = $derived(
+	const relacionadosAbierto = $derived.by(() => {
+		if (!abierto) return [];
+		const manuales = abierto.relacionados
+			.map((id) => data.recursos.find((r) => r.id === id))
+			.filter(Boolean) as RecursoCatalogo[];
+		return manuales.length ? manuales : relacionar(abierto, recursosVigentes);
+	});
+	const versionActualAbierto = $derived(
+		abierto && !abierto.es_vigente && abierto.reemplazado_por
+			? (data.recursos.find((r) => r.id === abierto!.reemplazado_por) ?? null)
+			: null
+	);
+	const versionesAnterioresAbierto = $derived(
 		abierto
-			? (abierto.relacionados
+			? (abierto.versiones_anteriores
 					.map((id) => data.recursos.find((r) => r.id === id))
 					.filter(Boolean) as RecursoCatalogo[])
 			: []
 	);
+	// navegación de la ficha dentro del mazo actual
+	const indiceAbierto = $derived(abierto ? mazo.findIndex((r) => r.id === abierto!.id) : -1);
+	function navegarFicha(direccion: 1 | -1) {
+		if (indiceAbierto < 0) return;
+		const destino = mazo[indiceAbierto + direccion];
+		if (destino) abierto = destino;
+	}
 	let imgFallos = $state<Record<string, boolean>>({});
 </script>
 
@@ -519,8 +540,12 @@
 	favorito={abierto ? esFavorito(abierto.id) : false}
 	usado={abierto ? esUsado(abierto.id) : false}
 	miValoracion={abierto ? miValoracionDe(abierto.id) : null}
+	indice={indiceAbierto}
+	total={mazo.length}
+	versionActual={versionActualAbierto}
+	versionesAnteriores={versionesAnterioresAbierto}
 	onclose={() => (abierto = null)}
-	onnavegar={() => {}}
+	onnavegar={navegarFicha}
 	onabrirrelacionado={(r) => (abierto = r)}
 	onfavorito={toggleFavorito}
 	onusado={toggleUsado}
