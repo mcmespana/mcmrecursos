@@ -1,5 +1,6 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { clasificarRecurso, type VocabulariosIa } from '$lib/server/ia';
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	const [recursosRes, listasRes, mcmRes] = await Promise.all([
@@ -117,5 +118,67 @@ export const actions: Actions = {
 		const { data, error } = await supabase.rpc('crear_version', { origen_id: id });
 		if (error) return fail(500, { error: error.message });
 		return { ok: true, nuevoId: data as string };
+	},
+
+	// Autoclasificación con IA (SPEC-010): propone metadatos desde el texto; no publica nada.
+	clasificar: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401);
+		const f = await request.formData();
+		const id = String(f.get('id') ?? '');
+		if (!id) return fail(400);
+
+		const [recursoRes, listasRes, tagsRes] = await Promise.all([
+			supabase
+				.from('recurso')
+				.select('nombre, descripcion, notas_internas, tipo, enlace, no_ia, recurso_tag (tag (nombre))')
+				.eq('id', id)
+				.maybeSingle(),
+			supabase.from('lista_valor').select('lista, valor').eq('activo', true),
+			supabase.from('tag').select('nombre').order('nombre').limit(200)
+		]);
+
+		const r: any = recursoRes.data;
+		if (!r) return fail(404, { error: 'Recurso no encontrado' });
+		if (r.no_ia) return { ok: false, disponible: true, error: 'Este recurso está excluido de la IA (no_ia)' };
+
+		const deLista = (lista: string) =>
+			(listasRes.data ?? []).filter((l: any) => l.lista === lista).map((l: any) => l.valor);
+		const vocab: VocabulariosIa = {
+			tipos: deLista('tipo'),
+			etapas: deLista('etapas'),
+			edades: deLista('edades'),
+			niveles: deLista('nivel'),
+			idiomas: deLista('idioma'),
+			soportes: deLista('soporte'),
+			tags: (tagsRes.data ?? []).map((t: any) => t.nombre)
+		};
+
+		const res = await clasificarRecurso(
+			{
+				nombre: r.nombre,
+				descripcion: r.descripcion,
+				notas: r.notas_internas,
+				tipoActual: r.tipo,
+				enlace: r.enlace,
+				tagsActuales: (r.recurso_tag ?? []).map((t: any) => t.tag?.nombre).filter(Boolean)
+			},
+			vocab
+		);
+
+		if (!res.disponible) return { ok: false, disponible: false };
+		if (!res.ok) {
+			await supabase.from('clasificacion_ia').insert({ recurso_id: id, estado: 'error', error: res.error });
+			return fail(502, { error: res.error });
+		}
+
+		await supabase.from('clasificacion_ia').insert({
+			recurso_id: id,
+			estado: 'propuesta',
+			modelo: res.modelo,
+			propuesta: res.propuesta,
+			avisos: res.propuesta.avisos,
+			confianza: res.propuesta.confianza
+		});
+		return { ok: true, disponible: true, propuesta: res.propuesta };
 	}
 };

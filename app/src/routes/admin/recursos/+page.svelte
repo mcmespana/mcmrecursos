@@ -7,9 +7,56 @@
 	import * as Sheet from '$lib/components/ui/sheet';
 	import { toast } from 'svelte-sonner';
 	import { normalizarConsulta } from '$lib/catalogo/filtros';
-	import { ArrowDownUp, CloudAlert, GitBranch, Pencil } from '@lucide/svelte';
+	import { ArrowDownUp, CloudAlert, GitBranch, Pencil, Sparkles, Check } from '@lucide/svelte';
 
 	let { data } = $props();
+
+	// --- Autoclasificación con IA (SPEC-010) ---
+	let analizando = $state(false);
+	let sugerencia = $state<any>(null);
+	// al cambiar de recurso o cerrar, se descarta la sugerencia anterior
+	$effect(() => {
+		void editando?.id;
+		sugerencia = null;
+	});
+
+	function resultadoClasificar() {
+		analizando = true;
+		return () =>
+			async ({ result }: any) => {
+				analizando = false;
+				if (result.type === 'success' && result.data?.ok) {
+					sugerencia = result.data.propuesta;
+					toast.success('Sugerencia lista: revísala y aplica lo que encaje');
+				} else if (result.type === 'success' && result.data?.disponible === false) {
+					toast.info('IA no configurada', {
+						description: 'Añade GEMINI_API_KEY en el entorno para activar la autoclasificación.'
+					});
+				} else {
+					toast.error('No se pudo analizar', { description: result.data?.error });
+				}
+			};
+	}
+
+	// aplica la sugerencia sobre el formulario (el editor sigue pudiendo ajustar y guardar)
+	function aplicarSugerencia() {
+		if (!sugerencia || !editando) return;
+		const s = sugerencia;
+		editando = {
+			...editando,
+			tipo: s.tipo ?? editando.tipo,
+			nivel: s.nivel ?? editando.nivel,
+			idioma: s.idioma ?? editando.idioma,
+			soporte: s.soporte ?? editando.soporte,
+			etapas: s.etapas?.length ? s.etapas : editando.etapas,
+			edades: s.edades?.length ? s.edades : editando.edades,
+			// tags: fusiona las actuales con las sugeridas, sin duplicar
+			tags: [...new Set([...(editando.tags ?? []), ...(s.tags ?? [])])],
+			// descripción: solo rellena si estaba vacía, para no pisar lo escrito
+			descripcion: editando.descripcion?.trim() ? editando.descripcion : (s.descripcion ?? '')
+		};
+		toast.success('Sugerencia aplicada al formulario');
+	}
 
 	const nombrePorId = $derived(new Map(data.recursos.map((r: any) => [r.id, r.nombre])));
 
@@ -202,6 +249,56 @@
 					Al guardar queda protegido del Sheet hasta resolverlo en Sincronización.
 				</Sheet.Description>
 			</Sheet.Header>
+
+			<div class="px-4">
+				<form method="POST" action="?/clasificar" use:enhance={resultadoClasificar()}>
+					<input type="hidden" name="id" value={editando.id} />
+					<Button type="submit" variant="outline" size="sm" class="gap-1.5" disabled={analizando}>
+						<Sparkles class="size-3.5" />
+						{analizando ? 'Analizando…' : 'Analizar con IA'}
+					</Button>
+				</form>
+
+				{#if sugerencia}
+					<div class="mt-3 flex flex-col gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3 text-sm">
+						<div class="flex items-center gap-1.5 font-medium text-primary">
+							<Sparkles class="size-4" /> Sugerencia de la IA
+							{#if sugerencia.confianza != null}
+								<span class="ml-auto text-xs font-normal text-muted-foreground tabular-nums">
+									confianza {Math.round(sugerencia.confianza * 100)}%
+								</span>
+							{/if}
+						</div>
+						<dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs">
+							{#each [['Tipo', sugerencia.tipo], ['Nivel', sugerencia.nivel], ['Idioma', sugerencia.idioma], ['Soporte', sugerencia.soporte], ['Etapas', sugerencia.etapas?.join(', ')], ['Edades', sugerencia.edades?.join(', ')], ['Temáticas', sugerencia.tags?.join(', ')]] as [k, v] (k)}
+								{#if v}
+									<dt class="text-muted-foreground">{k}</dt>
+									<dd>{v}</dd>
+								{/if}
+							{/each}
+						</dl>
+						{#if sugerencia.descripcion}
+							<p class="text-xs text-muted-foreground italic">«{sugerencia.descripcion}»</p>
+						{/if}
+						{#if sugerencia.avisos?.length}
+							<ul class="flex flex-col gap-0.5 text-xs text-warm-foreground dark:text-warm">
+								{#each sugerencia.avisos as aviso (aviso)}<li>⚠️ {aviso}</li>{/each}
+							</ul>
+						{/if}
+						<div class="flex gap-2 pt-1">
+							<Button type="button" size="sm" class="h-7 gap-1.5 text-xs" onclick={aplicarSugerencia}>
+								<Check class="size-3.5" /> Aplicar al formulario
+							</Button>
+							<Button type="button" variant="ghost" size="sm" class="h-7 text-xs" onclick={() => (sugerencia = null)}>
+								Descartar
+							</Button>
+						</div>
+						<p class="text-[11px] text-muted-foreground">
+							La IA solo propone; revisa y pulsa «Guardar cambios» para publicar.
+						</p>
+					</div>
+				{/if}
+			</div>
 			<form
 				method="POST"
 				action="?/guardar"
