@@ -13,12 +13,33 @@
 
 	// --- Autoclasificación con IA (SPEC-010) ---
 	let analizando = $state(false);
+	let loteAnalizando = $state(false);
 	let sugerencia = $state<any>(null);
-	// al cambiar de recurso o cerrar, se descarta la sugerencia anterior
+	// al abrir un recurso, precarga su última propuesta guardada (si la hay)
 	$effect(() => {
-		void editando?.id;
-		sugerencia = null;
+		sugerencia = editando ? (data.sugerencias?.[editando.id] ?? null) : null;
 	});
+
+	function resultadoLote() {
+		loteAnalizando = true;
+		return () =>
+			async ({ result }: any) => {
+				loteAnalizando = false;
+				if (result.type === 'success' && result.data?.ok) {
+					await invalidateAll();
+					const { procesados, restantes } = result.data;
+					toast.success(`Analizados ${procesados} recurso${procesados === 1 ? '' : 's'}`, {
+						description: restantes ? `Quedan ~${restantes}. Pulsa otra vez para seguir.` : 'No quedan pendientes.'
+					});
+				} else if (result.type === 'success' && result.data?.disponible === false) {
+					toast.info('IA no configurada', {
+						description: 'Añade GEMINI_API_KEY en el entorno para activar la autoclasificación.'
+					});
+				} else {
+					toast.error('No se pudo analizar el lote', { description: result.data?.error });
+				}
+			};
+	}
 
 	function resultadoClasificar() {
 		analizando = true;
@@ -142,6 +163,19 @@
 		<h1 class="font-display text-2xl font-bold">Recursos</h1>
 		<p class="text-sm text-muted-foreground tabular-nums">{filtrados.length} de {data.recursos.length}</p>
 		<div class="ml-auto flex items-center gap-2">
+			<form method="POST" action="?/clasificarPendientes" use:enhance={resultadoLote()}>
+				<Button
+					type="submit"
+					variant="outline"
+					size="sm"
+					class="h-8 gap-1.5"
+					disabled={loteAnalizando}
+					title="Clasifica con IA los recursos pendientes sin propuesta"
+				>
+					<Sparkles class="size-3.5" />
+					{loteAnalizando ? 'Analizando…' : 'Analizar pendientes'}
+				</Button>
+			</form>
 			<Input bind:value={filtroTexto} placeholder="Buscar por id, nombre, tag…" class="h-8 w-56" />
 			<select bind:value={filtroEstado} class="h-8 rounded-md border bg-background px-2 text-sm">
 				<option value="">Todos los estados</option>
@@ -187,6 +221,11 @@
 								{#if r.editado_web_at}
 									<span title="Editado en web: protegido del Sheet hasta resolver">
 										<CloudAlert class="size-3.5 shrink-0 text-warm-foreground dark:text-warm" />
+									</span>
+								{/if}
+								{#if data.sugerencias?.[r.id]}
+									<span title="Hay una sugerencia de IA lista para revisar">
+										<Sparkles class="size-3.5 shrink-0 text-primary" />
 									</span>
 								{/if}
 							</span>

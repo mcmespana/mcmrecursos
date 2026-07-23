@@ -1,6 +1,8 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { emailEnvioDevuelto, emailEnvioPublicado } from '$lib/server/email';
+import { clasificarRecurso } from '$lib/server/ia';
+import { extraerTextoDrive } from '$lib/server/drive';
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	const [enviosRes, listasRes, mcmRes] = await Promise.all([
@@ -125,5 +127,51 @@ export const actions: Actions = {
 			.eq('id', envioId);
 		if (error) return fail(500, { error: error.message });
 		return { ok: true };
+	},
+
+	// Autoclasificación del envío antes de publicarlo (SPEC-010): propone catalogación.
+	clasificar: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401);
+		const f = await request.formData();
+		const envioId = String(f.get('envio_id') ?? '');
+		if (!envioId) return fail(400);
+
+		const [envioRes, listasRes, tagsRes] = await Promise.all([
+			supabase.from('envio').select('titulo, enlace, notas').eq('id', envioId).maybeSingle(),
+			supabase.from('lista_valor').select('lista, valor').eq('activo', true),
+			supabase.from('tag').select('nombre').order('nombre').limit(200)
+		]);
+		const e: any = envioRes.data;
+		if (!e) return fail(404, { error: 'Envío no encontrado' });
+
+		const deLista = (lista: string) =>
+			(listasRes.data ?? []).filter((l: any) => l.lista === lista).map((l: any) => l.valor);
+		const vocab = {
+			tipos: deLista('tipo'),
+			etapas: deLista('etapas'),
+			edades: deLista('edades'),
+			niveles: deLista('nivel'),
+			idiomas: deLista('idioma'),
+			soportes: deLista('soporte'),
+			tags: (tagsRes.data ?? []).map((t: any) => t.nombre)
+		};
+
+		const textoDocumento = await extraerTextoDrive(e.enlace);
+		const res = await clasificarRecurso(
+			{ nombre: e.titulo, notas: e.notas, enlace: e.enlace, textoDocumento },
+			vocab
+		);
+		if (!res.disponible) return { ok: false, disponible: false };
+		if (!res.ok) return fail(502, { error: res.error });
+
+		await supabase.from('clasificacion_ia').insert({
+			envio_id: envioId,
+			estado: 'propuesta',
+			modelo: res.modelo,
+			propuesta: res.propuesta,
+			avisos: res.propuesta.avisos,
+			confianza: res.propuesta.confianza
+		});
+		return { ok: true, disponible: true, propuesta: res.propuesta };
 	}
 };
