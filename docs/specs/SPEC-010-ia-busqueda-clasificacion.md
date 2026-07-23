@@ -157,13 +157,15 @@ create policy "clasificacion ve/gestiona revisor" on recursos.clasificacion_ia f
 1. **Fundaciones IA** (hecho): env `GEMINI_API_KEY`/`GEMINI_MODELO`, módulo servidor
    `lib/server/ia.ts` (cliente Gemini vía fetch, salida estructurada, degradación sin clave),
    migración 00013 (`no_ia` + `clasificacion_ia`).
-2. **Autoclasificación bajo demanda** (en curso): botón «Analizar con IA» en `/admin/recursos`
-   que clasifica desde el texto existente y propone tipo/etapas/edades/nivel/tags/descripción
-   editable; el editor aplica y publica. Después: leer el documento de Drive (cuenta de
-   servicio) y «analizar todo lo pendiente» en lote.
-3. **Embeddings + búsqueda semántica** en el buscador y relacionados de verdad (migración con
-   pgvector; backfill de embeddings).
-4. **«Recomiéndame…» conversacional** en Descubre.
+2. **Autoclasificación bajo demanda** (hecho): botón «Analizar con IA» en `/admin/recursos` y en
+   la cola de revisión que clasifica desde el texto (+ el documento de Drive vía cuenta de
+   servicio) y propone tipo/etapas/edades/nivel/tags/descripción editable; el editor aplica y
+   publica. Incluye «Analizar pendientes» en lote.
+3. **Embeddings + búsqueda semántica** (hecho): migración 00014 (pgvector, `recurso.embedding`,
+   RPC `buscar_semantica`); embeddings con Voyage (`lib/server/embeddings.ts`); backfill desde
+   «Reindexar búsqueda» en `/admin/recursos`; el buscador (`/api/buscar`) mezcla los resultados
+   semánticos con los léxicos de Orama y marca el aporte con «por significado».
+4. **«Recomiéndame…» conversacional** en Descubre (pendiente).
 
 ## Criterios de aceptación (borrador)
 

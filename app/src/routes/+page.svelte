@@ -25,7 +25,7 @@
 	import { socialLocal } from '$lib/social/local.svelte';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
-	import { LayoutGrid, Rows3, Search, X } from '@lucide/svelte';
+	import { LayoutGrid, Rows3, Search, Sparkles, X } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -83,6 +83,49 @@
 			vigente = false;
 		};
 	});
+
+	// --- búsqueda por significado (embeddings Voyage, SPEC-010) ---
+	// Amplía la recuperación: encuentra recursos afines aunque no compartan palabras.
+	// Se mezcla con la búsqueda léxica; solo activa si el servidor tiene Voyage.
+	let idsSemanticos = $state<Set<string> | null>(null);
+	$effect(() => {
+		const consulta = q.trim();
+		if (!browser || !data.busquedaSemantica || consulta.length < 3) {
+			idsSemanticos = null;
+			return;
+		}
+		let vigente = true;
+		const t = setTimeout(async () => {
+			try {
+				const res = await fetch('/api/buscar', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ q: consulta })
+				});
+				const json = await res.json();
+				if (vigente && json?.disponible) idsSemanticos = new Set<string>(json.ids ?? []);
+			} catch {
+				/* red caída: la búsqueda léxica sigue funcionando */
+			}
+		}, 350);
+		return () => {
+			vigente = false;
+			clearTimeout(t);
+		};
+	});
+
+	// unión léxico + semántico: null (sin consulta) = todo el catálogo
+	const idsBusqueda = $derived.by(() => {
+		if (!idsTexto && !idsSemanticos) return null;
+		const s = new Set<string>();
+		if (idsTexto) for (const id of idsTexto) s.add(id);
+		if (idsSemanticos) for (const id of idsSemanticos) s.add(id);
+		return s;
+	});
+	// ¿el motor semántico aportó recursos que el léxico no encontró?
+	const aporteSemantico = $derived(
+		!!idsSemanticos && [...idsSemanticos].some((id) => !idsTexto?.has(id))
+	);
 
 	// --- lo mío (optimista, resincronizado con el servidor) ---
 	const favoritos = new SvelteSet<string>();
@@ -198,7 +241,7 @@
 	}
 
 	// --- derivados de catálogo ---
-	const resultados = $derived(filtrar(recursosVigentes, facetas, seleccion, idsTexto));
+	const resultados = $derived(filtrar(recursosVigentes, facetas, seleccion, idsBusqueda));
 	const filtrosActivos = $derived(
 		facetas.flatMap((f) => (seleccion[f.campo] ?? []).map((valor) => ({ campo: f.campo, valor })))
 	);
@@ -231,7 +274,7 @@
 		new Map(
 			facetas.map((f) => [
 				f.campo,
-				contar(filtrar(recursosVigentes, facetas, seleccion, idsTexto, f.campo), f)
+				contar(filtrar(recursosVigentes, facetas, seleccion, idsBusqueda, f.campo), f)
 			])
 		)
 	);
@@ -349,6 +392,15 @@
 			{resultados.length}
 			{resultados.length === 1 ? 'recurso' : 'recursos'}
 		</p>
+		{#if aporteSemantico}
+			<span
+				transition:fade={{ duration: 120 }}
+				class="inline-flex items-center gap-1 rounded-full bg-warm/15 px-2.5 py-1 text-xs font-medium text-warm-foreground"
+				title="Se han incluido recursos relacionados por significado, no solo por palabras."
+			>
+				<Sparkles class="size-3.5" /> por significado
+			</span>
+		{/if}
 		{#each filtrosActivos as filtro (filtro.campo + filtro.valor)}
 			<button
 				type="button"

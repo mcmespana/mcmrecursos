@@ -2,9 +2,25 @@ import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { clasificarRecurso, type VocabulariosIa } from '$lib/server/ia';
 import { extraerTextoDrive } from '$lib/server/drive';
+import { embeddingsDisponibles, embeddingsDocumentos } from '$lib/server/embeddings';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const ESTADOS_PENDIENTES = ['borrador', 'subido_usuario', 'pendiente_revision', 'revisar_ia'];
+
+/** Texto que representa a un recurso para el embedding semántico. */
+function textoParaEmbedding(r: any): string {
+	return [
+		r.nombre,
+		r.descripcion ?? '',
+		r.tipo ?? '',
+		(r.etapas ?? []).join(' '),
+		(r.edades ?? []).join(' '),
+		((r.recurso_tag ?? []).map((t: any) => t.tag?.nombre).filter(Boolean) as string[]).join(' ')
+	]
+		.filter(Boolean)
+		.join('. ')
+		.slice(0, 8000);
+}
 
 async function cargarVocab(supabase: SupabaseClient<any, 'recursos'>): Promise<VocabulariosIa> {
 	const [listasRes, tagsRes] = await Promise.all([
@@ -153,7 +169,10 @@ export const actions: Actions = {
 				pendiente_clasificar: bool('pendiente_clasificar'),
 				notas_internas: texto('notas_internas'),
 				// una versión no puede apuntarse a sí misma (SPEC-009); vacío = sin predecesor
-				version_de: texto('version_de') === id ? null : texto('version_de')
+				version_de: texto('version_de') === id ? null : texto('version_de'),
+				// al editar, se invalida el embedding para que se reindexe en la próxima pasada
+				embedding: null,
+				embedding_at: null
 			})
 			.eq('id', id);
 		if (error) return fail(500, { error: error.message });
@@ -243,5 +262,45 @@ export const actions: Actions = {
 			(r: any) => !yaHechos.has(r.id)
 		).length;
 		return { ok: true, disponible: true, procesados, restantes: Math.max(0, totalPendientes - procesados) };
+	},
+
+	// Reindexa embeddings semánticos (Voyage) de recursos publicados sin vector (SPEC-010).
+	reindexarSemantica: async ({ locals: { supabase, user } }) => {
+		if (!user) return fail(401);
+		if (!embeddingsDisponibles()) return { ok: false, disponible: false };
+
+		const { data: pendientes } = await supabase
+			.from('recurso')
+			.select('id, nombre, descripcion, tipo, etapas, edades, recurso_tag (tag (nombre))')
+			.eq('estado', 'publicado')
+			.is('embedding', null)
+			.limit(128);
+		const filas = pendientes ?? [];
+		if (!filas.length) return { ok: true, disponible: true, procesados: 0, restantes: 0 };
+
+		let embeddings: number[][] | null;
+		try {
+			embeddings = await embeddingsDocumentos(filas.map(textoParaEmbedding));
+		} catch (e) {
+			return fail(502, { error: `Voyage: ${(e as Error).message}` });
+		}
+		if (!embeddings) return { ok: false, disponible: false };
+
+		const ahora = new Date().toISOString();
+		let procesados = 0;
+		for (let i = 0; i < filas.length; i++) {
+			const { error } = await supabase
+				.from('recurso')
+				.update({ embedding: embeddings[i], embedding_at: ahora })
+				.eq('id', (filas[i] as any).id);
+			if (!error) procesados++;
+		}
+
+		const { count } = await supabase
+			.from('recurso')
+			.select('id', { count: 'exact', head: true })
+			.eq('estado', 'publicado')
+			.is('embedding', null);
+		return { ok: true, disponible: true, procesados, restantes: count ?? 0 };
 	}
 };
