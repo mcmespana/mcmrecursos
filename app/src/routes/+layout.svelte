@@ -197,7 +197,12 @@
 
 	<footer class="border-t py-6">
 		<p class="text-center text-xs text-muted-foreground">
-			Banco de Recursos · Movimiento Consolación para el Mundo
+			Banco de Recursos <a
+				href="/entrar"
+				title="Acceso"
+				aria-label="Acceso al panel"
+				class="px-0.5 text-muted-foreground no-underline transition-colors hover:text-primary">·</a
+			> Movimiento Consolación para el Mundo
 		</p>
 	</footer>
 </div>
