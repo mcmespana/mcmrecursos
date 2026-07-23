@@ -8,7 +8,10 @@ import { env } from '$env/dynamic/private';
  * sigue igual (mismo patrón que el email con Resend). Solo texto: nunca imágenes.
  */
 
-const MODELO_DEFECTO = 'gemini-2.5-flash';
+// Gemini 3.6 Flash (jul 2026): más capaz y más barato que 3.5 para clasificar.
+// Alternativas por env: `gemini-3.5-flash-lite` (lotes de alto volumen) o
+// `gemini-flash-latest` (alias estable al Flash GA vigente).
+const MODELO_DEFECTO = 'gemini-3.6-flash';
 
 /** Texto del recurso a clasificar (lo que ya se conoce; sin leer Drive todavía). */
 export interface EntradaClasificacion {
