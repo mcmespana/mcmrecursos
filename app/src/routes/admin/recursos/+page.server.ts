@@ -1,6 +1,71 @@
 import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { clasificarRecurso, type VocabulariosIa } from '$lib/server/ia';
+import { extraerTextoDrive } from '$lib/server/drive';
+import type { SupabaseClient } from '@supabase/supabase-js';
+
+const ESTADOS_PENDIENTES = ['borrador', 'subido_usuario', 'pendiente_revision', 'revisar_ia'];
+
+async function cargarVocab(supabase: SupabaseClient<any, 'recursos'>): Promise<VocabulariosIa> {
+	const [listasRes, tagsRes] = await Promise.all([
+		supabase.from('lista_valor').select('lista, valor').eq('activo', true),
+		supabase.from('tag').select('nombre').order('nombre').limit(200)
+	]);
+	const deLista = (lista: string) =>
+		(listasRes.data ?? []).filter((l: any) => l.lista === lista).map((l: any) => l.valor);
+	return {
+		tipos: deLista('tipo'),
+		etapas: deLista('etapas'),
+		edades: deLista('edades'),
+		niveles: deLista('nivel'),
+		idiomas: deLista('idioma'),
+		soportes: deLista('soporte'),
+		tags: (tagsRes.data ?? []).map((t: any) => t.nombre)
+	};
+}
+
+/** Clasifica un recurso (leyendo Drive si se puede) y guarda la propuesta. */
+async function clasificarUno(
+	supabase: SupabaseClient<any, 'recursos'>,
+	id: string,
+	vocab: VocabulariosIa
+): Promise<{ disponible: boolean; ok: boolean; propuesta?: any; error?: string }> {
+	const { data: r } = await supabase
+		.from('recurso')
+		.select('nombre, descripcion, notas_internas, tipo, enlace, no_ia, recurso_tag (tag (nombre))')
+		.eq('id', id)
+		.maybeSingle();
+	if (!r) return { disponible: true, ok: false, error: 'Recurso no encontrado' };
+	if ((r as any).no_ia) return { disponible: true, ok: false, error: 'Excluido de la IA (no_ia)' };
+
+	const textoDocumento = await extraerTextoDrive((r as any).enlace);
+	const res = await clasificarRecurso(
+		{
+			nombre: (r as any).nombre,
+			descripcion: (r as any).descripcion,
+			notas: (r as any).notas_internas,
+			tipoActual: (r as any).tipo,
+			enlace: (r as any).enlace,
+			tagsActuales: ((r as any).recurso_tag ?? []).map((t: any) => t.tag?.nombre).filter(Boolean),
+			textoDocumento
+		},
+		vocab
+	);
+	if (!res.disponible) return { disponible: false, ok: false };
+	if (!res.ok) {
+		await supabase.from('clasificacion_ia').insert({ recurso_id: id, estado: 'error', error: res.error });
+		return { disponible: true, ok: false, error: res.error };
+	}
+	await supabase.from('clasificacion_ia').insert({
+		recurso_id: id,
+		estado: 'propuesta',
+		modelo: res.modelo,
+		propuesta: res.propuesta,
+		avisos: res.propuesta.avisos,
+		confianza: res.propuesta.confianza
+	});
+	return { disponible: true, ok: true, propuesta: res.propuesta };
+}
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	const [recursosRes, listasRes, mcmRes] = await Promise.all([
@@ -19,6 +84,18 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 		supabase.from('mcm_local').select('id, nombre').eq('activo', true).order('nombre')
 	]);
 
+	// última propuesta de IA por recurso (para badge + prellenado del formulario)
+	const { data: clasRows } = await supabase
+		.from('clasificacion_ia')
+		.select('recurso_id, propuesta, created_at')
+		.eq('estado', 'propuesta')
+		.not('recurso_id', 'is', null)
+		.order('created_at', { ascending: false });
+	const sugerencias: Record<string, any> = {};
+	for (const c of clasRows ?? []) {
+		if (c.recurso_id && !sugerencias[c.recurso_id]) sugerencias[c.recurso_id] = c.propuesta;
+	}
+
 	return {
 		recursos: (recursosRes.data ?? []).map((r: any) => ({
 			...r,
@@ -26,7 +103,8 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 			tags: (r.recurso_tag ?? []).map((t: any) => t.tag?.nombre).filter(Boolean)
 		})),
 		listas: listasRes.data ?? [],
-		mcmLocales: mcmRes.data ?? []
+		mcmLocales: mcmRes.data ?? [],
+		sugerencias
 	};
 };
 
@@ -120,65 +198,50 @@ export const actions: Actions = {
 		return { ok: true, nuevoId: data as string };
 	},
 
-	// Autoclasificación con IA (SPEC-010): propone metadatos desde el texto; no publica nada.
+	// Autoclasificación con IA (SPEC-010): propone metadatos desde el texto (+ Drive); no publica.
 	clasificar: async ({ request, locals: { supabase, user } }) => {
 		if (!user) return fail(401);
 		const f = await request.formData();
 		const id = String(f.get('id') ?? '');
 		if (!id) return fail(400);
 
-		const [recursoRes, listasRes, tagsRes] = await Promise.all([
+		const vocab = await cargarVocab(supabase);
+		const res = await clasificarUno(supabase, id, vocab);
+		if (!res.disponible) return { ok: false, disponible: false };
+		if (!res.ok) return fail(502, { error: res.error });
+		return { ok: true, disponible: true, propuesta: res.propuesta };
+	},
+
+	// Clasifica en lote los recursos pendientes que aún no tienen propuesta (SPEC-010).
+	clasificarPendientes: async ({ locals: { supabase, user } }) => {
+		if (!user) return fail(401);
+
+		const [pendientesRes, yaRes] = await Promise.all([
 			supabase
 				.from('recurso')
-				.select('nombre, descripcion, notas_internas, tipo, enlace, no_ia, recurso_tag (tag (nombre))')
-				.eq('id', id)
-				.maybeSingle(),
-			supabase.from('lista_valor').select('lista, valor').eq('activo', true),
-			supabase.from('tag').select('nombre').order('nombre').limit(200)
+				.select('id, estado, pendiente_clasificar')
+				.eq('no_ia', false)
+				.or(`estado.in.(${ESTADOS_PENDIENTES.join(',')}),pendiente_clasificar.eq.true`),
+			supabase.from('clasificacion_ia').select('recurso_id').eq('estado', 'propuesta').not('recurso_id', 'is', null)
 		]);
+		const yaHechos = new Set((yaRes.data ?? []).map((c: any) => c.recurso_id));
+		const ids = (pendientesRes.data ?? [])
+			.map((r: any) => r.id)
+			.filter((id: string) => !yaHechos.has(id))
+			.slice(0, 12); // acotado por tiempo/coste; se puede repetir para seguir
 
-		const r: any = recursoRes.data;
-		if (!r) return fail(404, { error: 'Recurso no encontrado' });
-		if (r.no_ia) return { ok: false, disponible: true, error: 'Este recurso está excluido de la IA (no_ia)' };
+		if (!ids.length) return { ok: true, disponible: true, procesados: 0, restantes: 0 };
 
-		const deLista = (lista: string) =>
-			(listasRes.data ?? []).filter((l: any) => l.lista === lista).map((l: any) => l.valor);
-		const vocab: VocabulariosIa = {
-			tipos: deLista('tipo'),
-			etapas: deLista('etapas'),
-			edades: deLista('edades'),
-			niveles: deLista('nivel'),
-			idiomas: deLista('idioma'),
-			soportes: deLista('soporte'),
-			tags: (tagsRes.data ?? []).map((t: any) => t.nombre)
-		};
-
-		const res = await clasificarRecurso(
-			{
-				nombre: r.nombre,
-				descripcion: r.descripcion,
-				notas: r.notas_internas,
-				tipoActual: r.tipo,
-				enlace: r.enlace,
-				tagsActuales: (r.recurso_tag ?? []).map((t: any) => t.tag?.nombre).filter(Boolean)
-			},
-			vocab
-		);
-
-		if (!res.disponible) return { ok: false, disponible: false };
-		if (!res.ok) {
-			await supabase.from('clasificacion_ia').insert({ recurso_id: id, estado: 'error', error: res.error });
-			return fail(502, { error: res.error });
+		const vocab = await cargarVocab(supabase);
+		let procesados = 0;
+		for (const id of ids) {
+			const res = await clasificarUno(supabase, id, vocab);
+			if (!res.disponible) return { ok: false, disponible: false };
+			if (res.ok) procesados++;
 		}
-
-		await supabase.from('clasificacion_ia').insert({
-			recurso_id: id,
-			estado: 'propuesta',
-			modelo: res.modelo,
-			propuesta: res.propuesta,
-			avisos: res.propuesta.avisos,
-			confianza: res.propuesta.confianza
-		});
-		return { ok: true, disponible: true, propuesta: res.propuesta };
+		const totalPendientes = (pendientesRes.data ?? []).filter(
+			(r: any) => !yaHechos.has(r.id)
+		).length;
+		return { ok: true, disponible: true, procesados, restantes: Math.max(0, totalPendientes - procesados) };
 	}
 };

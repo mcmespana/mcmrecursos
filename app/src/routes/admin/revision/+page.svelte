@@ -7,12 +7,37 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { toast } from 'svelte-sonner';
-	import { Bot, ExternalLink, Inbox, Undo2 } from '@lucide/svelte';
+	import { Bot, ExternalLink, Inbox, Sparkles, Undo2 } from '@lucide/svelte';
 
 	let { data } = $props();
 
 	let revisando = $state<any>(null);
 	let devolviendo = $state<any>(null);
+
+	// --- Autoclasificación del envío (SPEC-010) ---
+	let sug = $state<any>(null);
+	let analizandoEnvio = $state(false);
+	$effect(() => {
+		void revisando?.id;
+		sug = null;
+	});
+	function resultadoClasificarEnvio() {
+		analizandoEnvio = true;
+		return () =>
+			async ({ result }: any) => {
+				analizandoEnvio = false;
+				if (result.type === 'success' && result.data?.ok) {
+					sug = result.data.propuesta;
+					toast.success('Sugerencia lista: revisa y publica');
+				} else if (result.type === 'success' && result.data?.disponible === false) {
+					toast.info('IA no configurada', {
+						description: 'Añade GEMINI_API_KEY en el entorno para activar la autoclasificación.'
+					});
+				} else {
+					toast.error('No se pudo analizar', { description: result.data?.error });
+				}
+			};
+	}
 
 	const opciones = (lista: string) => data.listas.filter((l) => l.lista === lista);
 
@@ -127,6 +152,40 @@
 				</Dialog.Description>
 			</Dialog.Header>
 
+			<!-- Autoclasificación (SPEC-010): lee el enlace/Drive y prerrellena el formulario -->
+			<form method="POST" action="?/clasificar" use:enhance={resultadoClasificarEnvio()}>
+				<input type="hidden" name="envio_id" value={revisando.id} />
+				<div
+					class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed bg-primary/5 p-3"
+				>
+					<div class="flex items-center gap-2 text-sm">
+						<Sparkles class="size-4 text-primary" />
+						{#if sug}
+							<span>
+								Sugerencia lista{typeof sug.confianza === 'number'
+									? ` · confianza ${Math.round(sug.confianza * 100)}%`
+									: ''}. Revisa los campos y publica.
+							</span>
+						{:else}
+							<span class="text-muted-foreground">
+								¿Dejar que la IA proponga la catalogación leyendo el documento?
+							</span>
+						{/if}
+					</div>
+					<Button type="submit" variant="outline" size="sm" disabled={analizandoEnvio}>
+						<Sparkles class="size-3.5" />
+						{analizandoEnvio ? 'Analizando…' : sug ? 'Reanalizar' : 'Analizar con IA'}
+					</Button>
+				</div>
+				{#if sug?.avisos?.length}
+					<ul class="mt-2 flex flex-col gap-1 text-xs text-muted-foreground">
+						{#each sug.avisos as aviso}
+							<li>⚠️ {aviso}</li>
+						{/each}
+					</ul>
+				{/if}
+			</form>
+
 			<form method="POST" action="?/publicar" use:enhance={resultado('publicar')} class="flex flex-col gap-4">
 				<input type="hidden" name="envio_id" value={revisando.id} />
 				<input type="hidden" name="enlace" value={revisando.enlace ?? ''} />
@@ -138,13 +197,13 @@
 
 				<div class="flex flex-col gap-1.5">
 					<label class="text-sm font-medium" for="r-desc">Descripción</label>
-					<Textarea id="r-desc" name="descripcion" rows={2} />
+					<Textarea id="r-desc" name="descripcion" rows={2} value={sug?.descripcion ?? ''} />
 				</div>
 
 				<div class="grid gap-4 sm:grid-cols-2">
 					<div class="flex flex-col gap-1.5">
 						<label class="text-sm font-medium" for="r-tipo">Tipo</label>
-						<select id="r-tipo" name="tipo" class="h-9 rounded-md border bg-background px-2 text-sm">
+						<select id="r-tipo" name="tipo" value={sug?.tipo ?? ''} class="h-9 rounded-md border bg-background px-2 text-sm">
 							<option value="">—</option>
 							{#each opciones('tipo') as o (o.valor)}<option value={o.valor}>{o.valor}</option>{/each}
 						</select>
@@ -158,21 +217,21 @@
 					</div>
 					<div class="flex flex-col gap-1.5">
 						<label class="text-sm font-medium" for="r-idioma">Idioma</label>
-						<select id="r-idioma" name="idioma" class="h-9 rounded-md border bg-background px-2 text-sm">
+						<select id="r-idioma" name="idioma" value={sug?.idioma ?? ''} class="h-9 rounded-md border bg-background px-2 text-sm">
 							<option value="">—</option>
 							{#each opciones('idioma') as o (o.valor)}<option value={o.valor}>{o.valor}</option>{/each}
 						</select>
 					</div>
 					<div class="flex flex-col gap-1.5">
 						<label class="text-sm font-medium" for="r-soporte">Soporte</label>
-						<select id="r-soporte" name="soporte" class="h-9 rounded-md border bg-background px-2 text-sm">
+						<select id="r-soporte" name="soporte" value={sug?.soporte ?? ''} class="h-9 rounded-md border bg-background px-2 text-sm">
 							<option value="">—</option>
 							{#each opciones('soporte') as o (o.valor)}<option value={o.valor}>{o.valor}</option>{/each}
 						</select>
 					</div>
 					<div class="flex flex-col gap-1.5">
 						<label class="text-sm font-medium" for="r-nivel">Nivel</label>
-						<select id="r-nivel" name="nivel" class="h-9 rounded-md border bg-background px-2 text-sm">
+						<select id="r-nivel" name="nivel" value={sug?.nivel ?? ''} class="h-9 rounded-md border bg-background px-2 text-sm">
 							<option value="">—</option>
 							{#each opciones('nivel') as o (o.valor)}<option value={o.valor}>{o.valor}</option>{/each}
 						</select>
@@ -191,7 +250,7 @@
 					<div class="flex flex-wrap gap-3">
 						{#each opciones('etapas') as o (o.valor)}
 							<label class="inline-flex items-center gap-1.5 text-sm">
-								<input type="checkbox" name="etapas" value={o.valor} class="accent-[var(--primary)]" />
+								<input type="checkbox" name="etapas" value={o.valor} checked={sug?.etapas?.includes(o.valor)} class="accent-[var(--primary)]" />
 								{o.valor}
 							</label>
 						{/each}
@@ -203,7 +262,7 @@
 					<div class="flex flex-wrap gap-x-3 gap-y-1.5">
 						{#each opciones('edades') as o (o.valor)}
 							<label class="inline-flex items-center gap-1.5 text-sm">
-								<input type="checkbox" name="edades" value={o.valor} class="accent-[var(--primary)]" />
+								<input type="checkbox" name="edades" value={o.valor} checked={sug?.edades?.includes(o.valor)} class="accent-[var(--primary)]" />
 								{o.valor}
 							</label>
 						{/each}
@@ -214,7 +273,7 @@
 					<label class="text-sm font-medium" for="r-tags">
 						Temáticas <span class="font-normal text-muted-foreground">(separadas por comas)</span>
 					</label>
-					<Input id="r-tags" name="tags" placeholder="María, Adviento…" />
+					<Input id="r-tags" name="tags" placeholder="María, Adviento…" value={sug?.tags?.join(', ') ?? ''} />
 				</div>
 
 				<Dialog.Footer class="gap-2">

@@ -13,7 +13,7 @@ import { env } from '$env/dynamic/private';
 // `gemini-flash-latest` (alias estable al Flash GA vigente).
 const MODELO_DEFECTO = 'gemini-3.6-flash';
 
-/** Texto del recurso a clasificar (lo que ya se conoce; sin leer Drive todavía). */
+/** Texto del recurso a clasificar. `textoDocumento` = contenido leído de Drive, si lo hay. */
 export interface EntradaClasificacion {
 	nombre: string;
 	descripcion?: string | null;
@@ -21,6 +21,7 @@ export interface EntradaClasificacion {
 	tipoActual?: string | null;
 	enlace?: string | null;
 	tagsActuales?: string[];
+	textoDocumento?: string | null;
 }
 
 /** Vocabularios cerrados que la IA debe respetar (de `lista_valor` + tags existentes). */
@@ -84,7 +85,10 @@ function construirPrompt(entrada: EntradaClasificacion, vocab: VocabulariosIa): 
 		entrada.descripcion ? `Descripción: ${entrada.descripcion}` : '',
 		entrada.notas ? `Notas: ${entrada.notas}` : '',
 		entrada.tagsActuales?.length ? `Tags actuales: ${entrada.tagsActuales.join(', ')}` : '',
-		entrada.enlace ? `Enlace: ${entrada.enlace}` : ''
+		entrada.enlace ? `Enlace: ${entrada.enlace}` : '',
+		entrada.textoDocumento
+			? `\nCONTENIDO DEL DOCUMENTO (extraído de Drive, úsalo como fuente principal):\n${entrada.textoDocumento}`
+			: ''
 	]
 		.filter(Boolean)
 		.join('\n');
