@@ -65,6 +65,20 @@ y si algún día pasa, `voyage-4-lite` cuesta **$0,02/millón** (calderilla). Ca
 
 **Dónde ponerla:** `VOYAGE_API_KEY` (y opcional `VOYAGE_MODELO`, por defecto `voyage-4-lite`).
 
+**Cómo activarla del todo (una vez tengas la clave):**
+1. Aplica la migración `supabase/migrations/00014_busqueda_semantica.sql` (crea la extensión
+   `vector`, la columna `recurso.embedding` y la función `buscar_semantica`). Se aplica con el
+   MCP de Supabase (`apply_migration`) o pegándola en el SQL Editor del dashboard.
+2. Pon `VOYAGE_API_KEY` en el entorno (Vercel) y redespliega.
+3. En **/admin/recursos**, pulsa **«Reindexar búsqueda»**. Genera los embeddings de los
+   recursos publicados en tandas de ~128; si quedan más, vuelve a pulsar hasta que diga
+   «Índice semántico al día». Al editar un recurso, su embedding se invalida y se regenera en
+   la siguiente reindexación.
+
+A partir de ahí, en el buscador público aparece la etiqueta **«por significado»** cuando la
+IA añade recursos afines que la búsqueda por palabras no habría encontrado. Sin la clave, el
+buscador funciona igual (solo por palabras) y la etiqueta no aparece.
+
 > Ojo: Voyage **solo hace embeddings** (búsqueda), no clasifica. Clasificar sigue siendo Gemini.
 
 ---

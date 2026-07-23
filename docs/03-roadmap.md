@@ -73,7 +73,8 @@
 - [x] Autoclasificación v1: botón «Analizar con IA» en /admin/recursos (Gemini Flash) que
       propone tipo/etapas/edades/nivel/idioma/soporte/tags/descripción + avisos; el editor
       aplica y publica (la IA nunca publica sola). Migración 00013 (`no_ia`, `clasificacion_ia`)
-- [ ] Leer el documento de Drive (cuenta de servicio) para clasificar con más contexto
-- [ ] «Analizar todo lo pendiente» en lote y en la cola de revisión
-- [ ] Embeddings (pgvector, Voyage 200M gratis) + búsqueda híbrida con Orama
+- [x] Leer el documento de Drive (cuenta de servicio) para clasificar con más contexto
+- [x] «Analizar todo lo pendiente» en lote y en la cola de revisión
+- [x] Embeddings (pgvector, Voyage 200M gratis) + búsqueda híbrida con Orama (etiqueta «por
+      significado» en el buscador; migración 00014, «Reindexar búsqueda» en /admin/recursos)
 - [ ] "Recomiéndame una actividad para…" conversacional en Descubre

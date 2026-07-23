@@ -7,13 +7,14 @@
 	import * as Sheet from '$lib/components/ui/sheet';
 	import { toast } from 'svelte-sonner';
 	import { normalizarConsulta } from '$lib/catalogo/filtros';
-	import { ArrowDownUp, CloudAlert, GitBranch, Pencil, Sparkles, Check } from '@lucide/svelte';
+	import { ArrowDownUp, CloudAlert, GitBranch, Pencil, ScanSearch, Sparkles, Check } from '@lucide/svelte';
 
 	let { data } = $props();
 
 	// --- Autoclasificación con IA (SPEC-010) ---
 	let analizando = $state(false);
 	let loteAnalizando = $state(false);
+	let reindexando = $state(false);
 	let sugerencia = $state<any>(null);
 	// al abrir un recurso, precarga su última propuesta guardada (si la hay)
 	$effect(() => {
@@ -37,6 +38,26 @@
 					});
 				} else {
 					toast.error('No se pudo analizar el lote', { description: result.data?.error });
+				}
+			};
+	}
+
+	function resultadoReindexar() {
+		reindexando = true;
+		return () =>
+			async ({ result }: any) => {
+				reindexando = false;
+				if (result.type === 'success' && result.data?.ok) {
+					const { procesados, restantes } = result.data;
+					toast.success(`Indexados ${procesados} recurso${procesados === 1 ? '' : 's'}`, {
+						description: restantes ? `Quedan ~${restantes}. Pulsa otra vez para seguir.` : 'Índice semántico al día.'
+					});
+				} else if (result.type === 'success' && result.data?.disponible === false) {
+					toast.info('Búsqueda semántica no configurada', {
+						description: 'Añade VOYAGE_API_KEY en el entorno para activar los embeddings.'
+					});
+				} else {
+					toast.error('No se pudo reindexar', { description: result.data?.error });
 				}
 			};
 	}
@@ -174,6 +195,19 @@
 				>
 					<Sparkles class="size-3.5" />
 					{loteAnalizando ? 'Analizando…' : 'Analizar pendientes'}
+				</Button>
+			</form>
+			<form method="POST" action="?/reindexarSemantica" use:enhance={resultadoReindexar()}>
+				<Button
+					type="submit"
+					variant="outline"
+					size="sm"
+					class="h-8 gap-1.5"
+					disabled={reindexando}
+					title="Genera los embeddings (Voyage) para la búsqueda por significado"
+				>
+					<ScanSearch class="size-3.5" />
+					{reindexando ? 'Indexando…' : 'Reindexar búsqueda'}
 				</Button>
 			</form>
 			<Input bind:value={filtroTexto} placeholder="Buscar por id, nombre, tag…" class="h-8 w-56" />
