@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Star } from '@lucide/svelte';
+	import { AreaChart, BarChart } from 'layerchart';
 
 	let { data } = $props();
 
@@ -11,8 +12,6 @@
 		['Valoraciones', data.totales.valoraciones],
 		['Favoritos', data.totales.favoritos]
 	] as [string, number][]);
-
-	const maxAccesos = $derived(Math.max(1, ...data.topAccesos.map((t) => t.valor)));
 </script>
 
 <svelte:head><title>Estadísticas · Admin · Banco de Recursos MCM</title></svelte:head>
@@ -29,29 +28,42 @@
 		{/each}
 	</div>
 
+	<section class="flex flex-col gap-3 rounded-xl border bg-card p-5">
+		<h2 class="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+			Accesos, últimos 30 días
+		</h2>
+		{#if data.accesosPorDia.some((d) => d.valor > 0)}
+			<div class="h-56">
+				<AreaChart
+					data={data.accesosPorDia}
+					x="fecha"
+					y="valor"
+					series={[{ key: 'valor', color: 'var(--color-primary)' }]}
+				/>
+			</div>
+		{:else}
+			<p class="text-sm text-muted-foreground">Aún sin accesos en este periodo.</p>
+		{/if}
+	</section>
+
 	<div class="grid gap-6 lg:grid-cols-2">
 		<section class="flex flex-col gap-3 rounded-xl border bg-card p-5">
 			<h2 class="text-sm font-medium tracking-wide text-muted-foreground uppercase">
 				Más abiertos
 			</h2>
-			<ul class="flex flex-col gap-2">
-				{#each data.topAccesos as fila (fila.nombre)}
-					<li class="flex flex-col gap-1">
-						<div class="flex items-baseline justify-between gap-3 text-sm">
-							<span class="truncate">{fila.nombre}</span>
-							<span class="text-muted-foreground tabular-nums">{fila.valor}</span>
-						</div>
-						<div class="h-2 overflow-hidden rounded-full bg-muted">
-							<div
-								class="h-full rounded-full bg-primary"
-								style={`width: ${Math.max(4, (fila.valor / maxAccesos) * 100)}%`}
-							></div>
-						</div>
-					</li>
-				{:else}
-					<li class="text-sm text-muted-foreground">Aún sin datos.</li>
-				{/each}
-			</ul>
+			{#if data.topAccesos.length}
+				<div class="h-64">
+					<BarChart
+						data={data.topAccesos}
+						x="valor"
+						y="nombre"
+						orientation="horizontal"
+						series={[{ key: 'valor', color: 'var(--color-primary)' }]}
+					/>
+				</div>
+			{:else}
+				<p class="text-sm text-muted-foreground">Aún sin datos.</p>
+			{/if}
 		</section>
 
 		<section class="flex flex-col gap-3 rounded-xl border bg-card p-5">
@@ -74,6 +86,25 @@
 			</ul>
 		</section>
 	</div>
+
+	<section class="flex flex-col gap-3 rounded-xl border bg-card p-5">
+		<h2 class="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+			Autores con más aperturas
+		</h2>
+		{#if data.topAutores.length}
+			<div class="h-64">
+				<BarChart
+					data={data.topAutores}
+					x="valor"
+					y="nombre"
+					orientation="horizontal"
+					series={[{ key: 'valor', color: 'var(--color-warm)' }]}
+				/>
+			</div>
+		{:else}
+			<p class="text-sm text-muted-foreground">Aún sin autores con recursos.</p>
+		{/if}
+	</section>
 
 	<section class="flex flex-col gap-3 rounded-xl border bg-card p-5">
 		<h2 class="text-sm font-medium tracking-wide text-muted-foreground uppercase">Por estado</h2>
