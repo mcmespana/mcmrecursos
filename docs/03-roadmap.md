@@ -5,7 +5,8 @@
 - [x] Documentación spec-driven
 - [x] BD operativa: esquema `recursos` en el proyecto compartido mcmvotaciones, migración 00001 aplicada (AD-6)
 - [x] App conectada a Supabase (@supabase/ssr, hooks + locals, callback OAuth)
-- [x] Google OAuth configurado en el dashboard de Supabase
+- [ ] Google OAuth configurado en el dashboard de Supabase (pendiente: falta client ID/secret
+      de Google Cloud; mientras tanto, login alternativo por email+contraseña en `/entrar`)
 - [x] Login con Google + perfiles, onboarding de MCM local (SPEC-001)
 
 ## Fase 1 — Catálogo y búsqueda
@@ -13,8 +14,8 @@
 - [x] Seeds para el Sheet: `docs/seed/recursos_seed.csv` + `docs/seed/listas_seed.csv`
 - [x] Sistema de diseño definido (`docs/04-diseno.md`) y tokens aplicados (fuentes, paleta, modo oscuro)
 - [x] Sync Google Sheet → BD con ID estable (SPEC-005): función `sync_filas` probada; falta crear el Sheet y pegar el Apps Script documentado
-- [ ] Buscador facetado con Orama + vista tarjetas + ficha de recurso
-- [ ] Contador de accesos por recurso
+- [x] Buscador facetado con Orama + vista tarjetas + ficha de recurso
+- [x] Contador de accesos por recurso
 
 ## Fase 2 — Capa social
 - [x] Valoraciones (estrellas), corazones/favoritos, "lo he usado" y accesos (SPEC-003, BD + UI optimista)
@@ -54,10 +55,45 @@
 
 ## 👉 SIGUIENTE
 
-1. **IA: autoclasificación + búsqueda semántica** (SPEC-010, borrador pendiente de validar —
-   ojo a la parte de privacidad/datos personales de menores, es bloqueante).
-2. **Dashboard de estadísticas** con LayerChart (Fase 4).
-3. Más adelante: presets de mazo para Descubre y editor visual de itinerarios en /admin/config.
+IA (SPEC-010, autoclasificación + búsqueda semántica) y dashboard de estadísticas (Fase 4)
+ya están implementados — ver `docs/05-configuracion-servicios.md` para las claves pendientes
+de configurar (Gemini, Voyage, cuenta de servicio de Drive, OAuth de Google).
+
+### ⚠️ Estado de la rama ahora mismo (2026-07-26)
+
+Todo el trabajo de esta sesión (versiones de recurso, IA, login, Drive, búsqueda semántica
+y el dashboard de LayerChart) está **commiteado y pusheado** en la rama
+`claude/tabla-admin-config-85va91`, verificado con `npm run check` + `npm run build` (0
+errores) y, en el caso del dashboard, probado en navegador con capturas en claro/oscuro.
+**No hay ningún PR abierto ni mergeado a `main` con el dashboard de estadísticas** — el
+agente se detuvo ahí a propósito (el CLAUDE.md de este repo dice "no crear PRs sin que se
+pidan") esperando confirmación. Si retomas esto sin ese contexto: revisa primero si la
+rama ya se mergeó o sigue esperando `create_pull_request` + `merge_pull_request` (squash)
+contra `main`.
+
+La migración `supabase/migrations/00014_busqueda_semantica.sql` **ya está aplicada** en
+remoto (proyecto `sjhxhsdckvungsrbquve`, esquema `recursos`) — no reaplicar.
+
+Existe un usuario de servicio en Supabase Auth para entrar sin OAuth por `/entrar`
+(enlace discreto en el `·` del footer): `asistente@movimientoconsolacion.com`, rol
+`administrador`. La contraseña se entregó una sola vez por chat (no está en ningún
+fichero del repo, y así debe seguir) — si se ha perdido, resetéala desde el dashboard de
+Supabase (Authentication → Users).
+
+**Librería de gráficas: LayerChart** (`layerchart@2.0.2`), instalada y en uso en
+`/admin/stats`. Se evaluó **evilcharts.com** como alternativa a petición del usuario y se
+descartó (2026-07-26): es una colección de componentes exclusiva de React/Next.js
+(envuelve Recharts/ECharts), incompatible con Svelte sin reescribirla entera — detalle
+completo y motivo en `docs/04-diseno.md` §6. Seguir con LayerChart para cualquier
+gráfica nueva.
+
+### Próximos pasos
+
+1. Decidir si se abre/mergea el PR del dashboard (ver estado de la rama arriba).
+2. Configurar Google OAuth en el dashboard de Supabase (sigue pendiente, Fase 0).
+3. Confirmar email de Caravaca y preautorizarlo (Fase 3).
+4. "Recomiéndame una actividad para…" conversacional en Descubre (Fase 5, requiere Voyage).
+5. Más adelante: presets de mazo para Descubre y editor visual de itinerarios en /admin/config.
 
 ## Fase 3.5 — Descubre (el tinder de recursos) 🎴
 - [x] Modo swipe sin IA (SPEC-007 v1): `/descubre` con mazo desde los filtros del buscador,
@@ -67,7 +103,8 @@
 - [ ] Con IA (tras fase 5): mazo por texto libre con embeddings y explicación por tarjeta
 
 ## Fase 4 — Estadísticas
-- [ ] Dashboard con LayerChart: top recursos, accesos, valoraciones, autores
+- [x] Dashboard con LayerChart: serie de accesos (30 días), top recursos, mejor valorados
+      y autores con más aperturas, sobre los tiles ya existentes en /admin/stats
 
 ## Fase 5 — IA (SPEC-010; motor Google Gemini)
 - [x] Autoclasificación v1: botón «Analizar con IA» en /admin/recursos (Gemini Flash) que
