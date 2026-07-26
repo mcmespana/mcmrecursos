@@ -92,8 +92,33 @@ gráfica nueva.
 1. Decidir si se abre/mergea el PR del dashboard (ver estado de la rama arriba).
 2. Configurar Google OAuth en el dashboard de Supabase (sigue pendiente, Fase 0).
 3. Confirmar email de Caravaca y preautorizarlo (Fase 3).
-4. "Recomiéndame una actividad para…" conversacional en Descubre (Fase 5, requiere Voyage).
-5. Más adelante: presets de mazo para Descubre y editor visual de itinerarios en /admin/config.
+4. Pulsar «Detectar formatos» en /admin/recursos para rellenar el formato de lo que ya hay.
+5. "Recomiéndame una actividad para…" conversacional en Descubre (Fase 5, requiere Voyage).
+6. Más adelante: conversión a PDF desde Drive, presets de mazo para Descubre y editor visual
+   de itinerarios en /admin/config.
+
+## Fase 3.6 — Formatos, aportación abierta y pulido del panel (SPEC-011)
+- [x] Migración 00015: `recurso.formato`, tabla `recurso_archivo`, envío sin cuenta
+      (`envio.anon_id`/`clasificacion` + RPCs `crear_envio`, `mis_envios_anon`,
+      `reenviar_envio_anon`, `reclamar_envios`) y `envio.recurso_id` con `on delete set null`
+      para poder borrar recursos. Migración 00016: `fijar_formato` (detección en lote sin
+      ensuciar la sincronización con el Sheet)
+- [x] Detección automática del formato del enlace (Docs, Slides, Sheets, Forms, carpeta de
+      Drive, YouTube, Canva, Genially, PDF/Word/PPT/Excel/imagen/vídeo/audio…) con icono de
+      marca, afinada con la API de Drive cuando la URL no basta
+- [x] Un recurso puede ofrecerse en varios formatos a la vez (Doc + PDF + Word); la ficha los
+      lista con su icono bajo «También disponible en»
+- [x] Icono propio por `tipo` (Imagen ya no sale con la claqueta de Película)
+- [x] Enviar recursos sin cuenta, con clasificación opcional, y reclamarlos al iniciar sesión
+- [x] Un único formulario de recurso para crear, editar y catalogar-y-publicar, con las
+      temáticas arriba, chips con sugerencias y deduplicación, y atajos Todas/N-A en etapas
+      y edades
+- [x] Eliminar recursos desde el panel (con confirmación)
+- [x] Se acabó el doble envío: publicar un envío es idempotente y todos los botones de acción
+      muestran su estado mientras el servidor responde; el catálogo deja de recargarse entero
+      en cada corazón
+- [ ] Convertir a PDF los documentos de Drive automáticamente (necesita cuenta de servicio con
+      permiso de escritura)
 
 ## Fase 3.5 — Descubre (el tinder de recursos) 🎴
 - [x] Modo swipe sin IA (SPEC-007 v1): `/descubre` con mazo desde los filtros del buscador,

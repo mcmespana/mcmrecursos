@@ -74,9 +74,34 @@ async function accessToken(): Promise<string | null> {
 
 function idDeDrive(enlace: string): string | null {
 	const m =
-		enlace.match(/\/(?:file|document|presentation|spreadsheets)\/d\/([\w-]{20,})/) ??
+		enlace.match(/\/(?:file|document|presentation|spreadsheets|drawings)\/d\/([\w-]{20,})/) ??
+		enlace.match(/\/folders\/([\w-]{15,})/) ??
 		enlace.match(/[?&]id=([\w-]{20,})/);
 	return m ? m[1] : null;
+}
+
+/**
+ * `mimeType` del archivo de Drive al que apunta `enlace`, o null si no se puede saber
+ * (enlace que no es de Drive, cuenta de servicio sin configurar o sin permiso de lectura).
+ * Es la consulta que permite distinguir un PDF de un Word cuando la URL solo dice
+ * `drive.google.com/file/d/…`.
+ */
+export async function mimeDeDrive(enlace: string | null): Promise<string | null> {
+	if (!enlace) return null;
+	const id = idDeDrive(enlace);
+	if (!id) return null;
+	const token = await accessToken();
+	if (!token) return null;
+	try {
+		const res = await fetch(
+			`https://www.googleapis.com/drive/v3/files/${id}?fields=mimeType&supportsAllDrives=true`,
+			{ headers: { Authorization: `Bearer ${token}` } }
+		);
+		if (!res.ok) return null;
+		return (await res.json())?.mimeType ?? null;
+	} catch {
+		return null;
+	}
 }
 
 const EXPORT: Record<string, string> = {

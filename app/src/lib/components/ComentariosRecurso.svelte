@@ -5,7 +5,7 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { toast } from 'svelte-sonner';
-	import { Lightbulb, MessageCircle, Send, Trash2 } from '@lucide/svelte';
+	import { Lightbulb, LoaderCircle, MessageCircle, Send, Trash2 } from '@lucide/svelte';
 
 	let {
 		supabase,
@@ -49,6 +49,7 @@
 	});
 
 	async function publicar() {
+		if (enviando) return;
 		if (!session) {
 			onrequierelogin();
 			return;
@@ -129,7 +130,11 @@
 				Sugerencia de mejora
 			</button>
 			<Button size="sm" disabled={enviando || !texto.trim()} onclick={publicar}>
-				<Send class="size-3.5" /> Publicar
+				{#if enviando}
+					<LoaderCircle class="size-3.5 animate-spin" /> Publicando…
+				{:else}
+					<Send class="size-3.5" /> Publicar
+				{/if}
 			</Button>
 		</div>
 	</div>

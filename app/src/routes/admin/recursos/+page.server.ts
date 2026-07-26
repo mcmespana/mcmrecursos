@@ -2,6 +2,8 @@ import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { clasificarRecurso, type VocabulariosIa } from '$lib/server/ia';
 import { extraerTextoDrive } from '$lib/server/drive';
+import { resolverFormato } from '$lib/server/formatos';
+import { camposDelFormulario, guardarRelacionados } from '$lib/server/recursos';
 import { embeddingsDisponibles, embeddingsDocumentos } from '$lib/server/embeddings';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -84,20 +86,22 @@ async function clasificarUno(
 }
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
-	const [recursosRes, listasRes, mcmRes] = await Promise.all([
+	const [recursosRes, listasRes, mcmRes, tagsRes] = await Promise.all([
 		supabase
 			.from('recurso')
 			.select(
 				`id, nombre, descripcion, tipo, etapas, nivel, edades, idioma, soporte, ubicacion,
-				 enlace, imagen, enlace_imagenes, anyo_publicacion, curso_usado, visibilidad, estado,
+				 enlace, formato, imagen, enlace_imagenes, anyo_publicacion, curso_usado, visibilidad, estado,
 				 datos_personales, creado_con_ia, fuera_del_banco, pendiente_clasificar,
 				 notas_internas, editado_web_at, updated_at, mcm_local_id, version_de,
 				 mcm_local:mcm_local_id (nombre),
+				 recurso_archivo (id, enlace, etiqueta, formato, orden),
 				 recurso_tag (tag (nombre))`
 			)
 			.order('updated_at', { ascending: false }),
 		supabase.from('lista_valor').select('lista, valor, grupo, orden').eq('activo', true).order('orden'),
-		supabase.from('mcm_local').select('id, nombre').eq('activo', true).order('nombre')
+		supabase.from('mcm_local').select('id, nombre').eq('activo', true).order('nombre'),
+		supabase.from('tag').select('nombre, recurso_tag (recurso_id)').limit(500)
 	]);
 
 	// última propuesta de IA por recurso (para badge + prellenado del formulario)
@@ -112,64 +116,44 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 		if (c.recurso_id && !sugerencias[c.recurso_id]) sugerencias[c.recurso_id] = c.propuesta;
 	}
 
+	// tem\u00e1ticas ordenadas por uso: son las sugerencias del selector de chips
+	const tags = (tagsRes.data ?? [])
+		.map((t: any) => ({ nombre: t.nombre as string, usos: (t.recurso_tag ?? []).length }))
+		.sort((a, b) => b.usos - a.usos || a.nombre.localeCompare(b.nombre, 'es'))
+		.map((t) => t.nombre);
+
 	return {
 		recursos: (recursosRes.data ?? []).map((r: any) => ({
 			...r,
 			mcm_local: r.mcm_local?.nombre ?? null,
+			archivos: [...((r.recurso_archivo ?? []) as any[])].sort(
+				(a, b) => (a.orden ?? 0) - (b.orden ?? 0)
+			),
 			tags: (r.recurso_tag ?? []).map((t: any) => t.tag?.nombre).filter(Boolean)
 		})),
 		listas: listasRes.data ?? [],
 		mcmLocales: mcmRes.data ?? [],
+		tags,
 		sugerencias
 	};
 };
-
-const slugify = (s: string) =>
-	s
-		.toLowerCase()
-		.normalize('NFD')
-		.replace(/[\u0300-\u036f]/g, '')
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-+|-+$/g, '');
 
 export const actions: Actions = {
 	guardar: async ({ request, locals: { supabase, user } }) => {
 		if (!user) return fail(401);
 		const f = await request.formData();
 		const id = String(f.get('id') ?? '');
-		const nombre = String(f.get('nombre') ?? '').trim();
-		if (!id || !nombre) return fail(400, { error: 'Faltan datos' });
+		const campos = await camposDelFormulario(f);
+		if (!id || !campos.nombre) return fail(400, { error: 'Faltan datos' });
 
-		const texto = (campo: string) => String(f.get(campo) ?? '').trim() || null;
-		const bool = (campo: string) => f.get(campo) === 'on';
+		const versionDe = String(f.get('version_de') ?? '').trim() || null;
 
 		const { error } = await supabase
 			.from('recurso')
 			.update({
-				nombre,
-				descripcion: texto('descripcion'),
-				tipo: texto('tipo'),
-				etapas: f.getAll('etapas').map(String),
-				edades: f.getAll('edades').map(String),
-				nivel: texto('nivel'),
-				mcm_local_id: texto('mcm_local_id'),
-				idioma: texto('idioma'),
-				soporte: texto('soporte'),
-				ubicacion: texto('ubicacion'),
-				enlace: texto('enlace'),
-				imagen: texto('imagen'),
-				enlace_imagenes: texto('enlace_imagenes'),
-				anyo_publicacion: texto('anyo_publicacion') ? Number(texto('anyo_publicacion')) : null,
-				curso_usado: texto('curso_usado'),
-				visibilidad: String(f.get('visibilidad') ?? 'publico'),
-				estado: String(f.get('estado') ?? 'borrador'),
-				datos_personales: bool('datos_personales'),
-				creado_con_ia: bool('creado_con_ia'),
-				fuera_del_banco: bool('fuera_del_banco'),
-				pendiente_clasificar: bool('pendiente_clasificar'),
-				notas_internas: texto('notas_internas'),
+				...campos,
 				// una versión no puede apuntarse a sí misma (SPEC-009); vacío = sin predecesor
-				version_de: texto('version_de') === id ? null : texto('version_de'),
+				version_de: versionDe === id ? null : versionDe,
 				// al editar, se invalida el embedding para que se reindexe en la próxima pasada
 				embedding: null,
 				embedding_at: null
@@ -177,22 +161,74 @@ export const actions: Actions = {
 			.eq('id', id);
 		if (error) return fail(500, { error: error.message });
 
-		// tags: reemplazo completo por slug
-		const tags = String(f.get('tags') ?? '')
-			.split(',')
-			.map((t) => t.trim())
-			.filter(Boolean);
-		await supabase.from('recurso_tag').delete().eq('recurso_id', id);
-		for (const nombreTag of tags) {
-			const slug = slugify(nombreTag);
-			await supabase
-				.from('tag')
-				.upsert({ nombre: nombreTag, slug }, { onConflict: 'slug', ignoreDuplicates: true });
-			const { data: tag } = await supabase.from('tag').select('id').eq('slug', slug).single();
-			if (tag) await supabase.from('recurso_tag').insert({ recurso_id: id, tag_id: tag.id });
+		await guardarRelacionados(supabase, id, f);
+
+		return { ok: true, id };
+	},
+
+	// Alta manual de un recurso: mismo formulario y mismos campos que la edición (SPEC-008 §3).
+	crear: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401);
+		const f = await request.formData();
+		const campos = await camposDelFormulario(f);
+		if (!campos.nombre) return fail(400, { error: 'El nombre es obligatorio' });
+
+		const { data: nuevoId, error: errId } = await supabase.rpc('nuevo_id_recurso');
+		if (errId || !nuevoId) return fail(500, { error: errId?.message ?? 'No se pudo generar el id' });
+
+		const id = String(nuevoId);
+		const { error } = await supabase.from('recurso').insert({ id, ...campos });
+		if (error) return fail(500, { error: error.message });
+
+		await guardarRelacionados(supabase, id, f);
+
+		return { ok: true, id };
+	},
+
+	// Borrado definitivo. Lo social, las temáticas y los archivos caen en cascada; los envíos
+	// que apuntaban al recurso se conservan sin enlace (migración 00015).
+	eliminar: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401);
+		const f = await request.formData();
+		const id = String(f.get('id') ?? '');
+		if (!id) return fail(400, { error: 'Falta el id' });
+
+		// una versión posterior dejaría de tener predecesor: se desenlaza antes de borrar
+		await supabase.from('recurso').update({ version_de: null }).eq('version_de', id);
+
+		const { error } = await supabase.from('recurso').delete().eq('id', id);
+		if (error) return fail(500, { error: error.message });
+		return { ok: true, id };
+	},
+
+	// Rellena el formato de los recursos que aún no lo tienen (SPEC-011). Los enlaces genéricos
+	// de Drive necesitan una consulta por archivo, así que va en tandas.
+	detectarFormatos: async ({ locals: { supabase, user } }) => {
+		if (!user) return fail(401);
+
+		const { data: pendientes } = await supabase
+			.from('recurso')
+			.select('id, enlace')
+			.is('formato', null)
+			.not('enlace', 'is', null)
+			.limit(60);
+		const filas = pendientes ?? [];
+
+		let procesados = 0;
+		for (const r of filas as any[]) {
+			const formato = await resolverFormato(r.enlace);
+			if (!formato) continue;
+			// vía RPC para no marcar `editado_web_at` y llenar Sincronización de falsos conflictos
+			const { error } = await supabase.rpc('fijar_formato', { rid: r.id, formato_in: formato });
+			if (!error) procesados++;
 		}
 
-		return { ok: true };
+		const { count } = await supabase
+			.from('recurso')
+			.select('id', { count: 'exact', head: true })
+			.is('formato', null)
+			.not('enlace', 'is', null);
+		return { ok: true, procesados, restantes: count ?? 0 };
 	},
 
 	estado: async ({ request, locals: { supabase, user } }) => {

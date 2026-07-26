@@ -64,6 +64,26 @@
 		migrarLocal(data.session.user.id).finally(() => (migrando = false));
 	});
 
+	// Los envíos hechos sin cuenta desde este dispositivo también se quedan con quien entra.
+	let reclamandoEnvios = false;
+	$effect(() => {
+		if (!browser || !data.session || reclamandoEnvios) return;
+		socialLocal.cargar();
+		if (!socialLocal.dispositivo) return;
+		reclamandoEnvios = true;
+		data.supabase
+			.rpc('reclamar_envios', { dispositivo: socialLocal.dispositivo })
+			.then(({ data: cuantos }: { data: number | null }) => {
+				if (cuantos) {
+					toast.success(
+						cuantos === 1
+							? 'Tu envío de este dispositivo ya está en tu cuenta'
+							: `Tus ${cuantos} envíos de este dispositivo ya están en tu cuenta`
+					);
+				}
+			});
+	});
+
 	async function migrarLocal(uid: string) {
 		const sb = data.supabase;
 		try {

@@ -5,9 +5,13 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { toast } from 'svelte-sonner';
+	import { crearOcupado } from '$lib/acciones.svelte';
 	import { Eye, EyeOff, Lock, LockOpen, Plus, Save, Trash2 } from '@lucide/svelte';
 
 	let { data } = $props();
+
+	// mientras el servidor responde, ningún botón de la pantalla acepta otro clic
+	const ocupado = crearOcupado();
 
 	const listasNombres = $derived([...new Set(data.listas.map((l: any) => l.lista))] as string[]);
 	let listaActiva = $state('');
@@ -15,18 +19,17 @@
 	const valoresLista = $derived(data.listas.filter((l: any) => l.lista === listaSeleccionada));
 
 	function alGuardar(mensaje = 'Guardado') {
-		return () =>
-			async ({ result, update }: any) => {
-				if (result.type === 'success') {
-					toast.success(mensaje);
-					await invalidateAll();
-					// los formularios de alta se limpian; los de edición se rehidratan del load
-					await update({ reset: true });
-				} else {
-					toast.error('No se pudo guardar', { description: result.data?.error });
-					await update({ reset: false });
-				}
-			};
+		return ocupado.enhance(async ({ result, update }: any) => {
+			if (result.type === 'success') {
+				toast.success(mensaje);
+				await invalidateAll();
+				// los formularios de alta se limpian; los de edición se rehidratan del load
+				await update({ reset: true });
+			} else {
+				toast.error('No se pudo guardar', { description: result.data?.error });
+				await update({ reset: false });
+			}
+		});
 	}
 
 	const ROL_ETIQUETA: Record<string, string> = {
@@ -108,7 +111,7 @@
 									<form method="POST" action="?/listaActivo" use:enhance={alGuardar(v.activo ? 'Desactivado' : 'Activado')}>
 										<input type="hidden" name="id" value={v.id} />
 										<input type="hidden" name="activo" value={String(!v.activo)} />
-										<Button type="submit" variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
+										<Button type="submit" disabled={ocupado.activo} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
 											{#if v.activo}
 												<Eye class="size-3.5 text-primary" /> Sí
 											{:else}
@@ -118,7 +121,7 @@
 									</form>
 								</td>
 								<td class="px-3 py-1.5 text-right">
-									<Button type="submit" form={`lista-${v.id}`} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
+									<Button type="submit" disabled={ocupado.activo} form={`lista-${v.id}`} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
 										<Save class="size-3.5" /> Guardar
 									</Button>
 								</td>
@@ -149,7 +152,7 @@
 					<label class="text-xs font-medium text-muted-foreground" for="nl-orden">Orden</label>
 					<Input id="nl-orden" name="orden" type="number" value={valoresLista.length + 1} class="h-8 tabular-nums" />
 				</div>
-				<Button type="submit" size="sm" class="h-8 gap-1.5"><Plus class="size-3.5" /> Añadir</Button>
+				<Button type="submit" disabled={ocupado.activo} size="sm" class="h-8 gap-1.5"><Plus class="size-3.5" /> Añadir</Button>
 			</form>
 			<p class="text-xs text-muted-foreground">
 				Los valores no se borran para no romper recursos existentes: se desactivan y dejan de
@@ -195,7 +198,7 @@
 										<input type="hidden" name="id" value={fa.id} />
 										<input type="hidden" name="campo" value="visible" />
 										<input type="hidden" name="valor" value={String(!fa.visible)} />
-										<Button type="submit" variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
+										<Button type="submit" disabled={ocupado.activo} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
 											{#if fa.visible}
 												<Eye class="size-3.5 text-primary" /> Sí
 											{:else}
@@ -209,7 +212,7 @@
 										<input type="hidden" name="id" value={fa.id} />
 										<input type="hidden" name="campo" value="protegida" />
 										<input type="hidden" name="valor" value={String(!fa.protegida)} />
-										<Button type="submit" variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
+										<Button type="submit" disabled={ocupado.activo} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
 											{#if fa.protegida}
 												<Lock class="size-3.5 text-warm-foreground dark:text-warm" /> Sí
 											{:else}
@@ -219,7 +222,7 @@
 									</form>
 								</td>
 								<td class="px-3 py-1.5 text-right">
-									<Button type="submit" form={`faceta-${fa.id}`} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
+									<Button type="submit" disabled={ocupado.activo} form={`faceta-${fa.id}`} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
 										<Save class="size-3.5" /> Guardar
 									</Button>
 								</td>
@@ -257,7 +260,7 @@
 					<label class="text-xs font-medium text-muted-foreground" for="nf-orden">Orden</label>
 					<Input id="nf-orden" name="orden" type="number" value={data.facetas.length + 1} class="h-8 tabular-nums" />
 				</div>
-				<Button type="submit" size="sm" class="h-8 gap-1.5"><Plus class="size-3.5" /> Añadir faceta</Button>
+				<Button type="submit" disabled={ocupado.activo} size="sm" class="h-8 gap-1.5"><Plus class="size-3.5" /> Añadir faceta</Button>
 			</form>
 			<p class="text-xs text-muted-foreground">
 				El buscador público pinta las facetas visibles de tipo select/multiselect en este orden,
@@ -296,7 +299,7 @@
 									<form method="POST" action="?/mcmActivo" use:enhance={alGuardar(m.activo ? 'Desactivado' : 'Activado')}>
 										<input type="hidden" name="id" value={m.id} />
 										<input type="hidden" name="activo" value={String(!m.activo)} />
-										<Button type="submit" variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
+										<Button type="submit" disabled={ocupado.activo} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
 											{#if m.activo}
 												<Eye class="size-3.5 text-primary" /> Sí
 											{:else}
@@ -306,7 +309,7 @@
 									</form>
 								</td>
 								<td class="px-3 py-1.5 text-right">
-									<Button type="submit" form={`mcm-${m.id}`} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
+									<Button type="submit" disabled={ocupado.activo} form={`mcm-${m.id}`} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
 										<Save class="size-3.5" /> Guardar
 									</Button>
 								</td>
@@ -328,7 +331,7 @@
 					<label class="text-xs font-medium text-muted-foreground" for="nm-nombre">Nuevo MCM local</label>
 					<Input id="nm-nombre" name="nombre" required placeholder="MCM Valencia" class="h-8" />
 				</div>
-				<Button type="submit" size="sm" class="h-8 gap-1.5"><Plus class="size-3.5" /> Añadir</Button>
+				<Button type="submit" disabled={ocupado.activo} size="sm" class="h-8 gap-1.5"><Plus class="size-3.5" /> Añadir</Button>
 			</form>
 			<p class="text-xs text-muted-foreground">
 				Desactivar un MCM lo quita de los selects (alta de recursos, onboarding) sin tocar los
@@ -376,7 +379,7 @@
 								</td>
 								<td class="px-3 py-1.5">
 									<div class="flex items-center justify-end gap-1">
-										<Button type="submit" form={`acceso-${a.email}`} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
+										<Button type="submit" disabled={ocupado.activo} form={`acceso-${a.email}`} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
 											<Save class="size-3.5" /> Guardar
 										</Button>
 										<form method="POST" action="?/accesoBorrar" use:enhance={alGuardar('Acceso eliminado')}>
@@ -428,7 +431,7 @@
 						{/each}
 					</select>
 				</div>
-				<Button type="submit" size="sm" class="h-8 gap-1.5"><Plus class="size-3.5" /> Preautorizar</Button>
+				<Button type="submit" disabled={ocupado.activo} size="sm" class="h-8 gap-1.5"><Plus class="size-3.5" /> Preautorizar</Button>
 			</form>
 			<p class="text-xs text-muted-foreground">
 				Al hacer su primer login con Google, estos emails nacen ya con su rol y MCM local. Si el

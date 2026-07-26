@@ -4,13 +4,14 @@
 	import {
 		FAMILIA_BADGE,
 		FAMILIA_FONDO,
-		FAMILIA_ICON,
 		BADGE_NEUTRO,
 		FONDO_NEUTRO,
-		ICONO_NEUTRO,
+		iconoDeTipo,
 		limpiarNombre,
 		miniatura
 	} from '$lib/catalogo/tipos';
+	import { FORMATOS, formatoEfectivo } from '$lib/catalogo/formatos';
+	import IconoFormato from '$lib/components/IconoFormato.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button, buttonVariants } from '$lib/components/ui/button';
 	import * as Popover from '$lib/components/ui/popover';
@@ -52,6 +53,14 @@
 	const COLUMNAS: Columna[] = [
 		{ id: 'miniatura', etiqueta: 'Miniatura', valor: () => null },
 		{ id: 'tipo', etiqueta: 'Tipo', valor: (r) => r.tipo },
+		{
+			id: 'formato',
+			etiqueta: 'Formato',
+			valor: (r) => {
+				const clave = formatoEfectivo(r.enlace, r.formato);
+				return clave ? FORMATOS[clave].corto : null;
+			}
+		},
 		{ id: 'etapas', etiqueta: 'Etapas', valor: (r) => r.etapas.join(', ') || null },
 		{ id: 'edades', etiqueta: 'Edades', valor: (r) => r.edades.join(', ') || null },
 		{ id: 'nivel', etiqueta: 'Nivel', valor: (r) => r.nivel },
@@ -270,7 +279,7 @@
 					{#each columnasVisibles as c (c.id)}
 						{#if c.id === 'miniatura'}
 							{@const src = !imgFallos[r.id] ? miniatura(r) : null}
-							{@const Icono = (familia && FAMILIA_ICON[familia]) || ICONO_NEUTRO}
+							{@const Icono = iconoDeTipo(r.tipo, familia)}
 							<td class="w-12 px-3 py-1">
 								{#if src}
 									<img
@@ -296,6 +305,23 @@
 									</Badge>
 								{:else}
 									<span class="text-muted-foreground">—</span>
+								{/if}
+							</td>
+						{:else if c.id === 'formato'}
+							{@const etiqueta = c.valor(r)}
+							<td class="px-3 whitespace-nowrap text-muted-foreground">
+								{#if etiqueta}
+									<span class="inline-flex items-center gap-1.5">
+										<IconoFormato enlace={r.enlace} formato={r.formato} class="size-4 shrink-0" />
+										{etiqueta}
+										{#if r.archivos.length}
+											<span class="text-xs text-muted-foreground/70" title="Disponible en más formatos">
+												+{r.archivos.length}
+											</span>
+										{/if}
+									</span>
+								{:else}
+									—
 								{/if}
 							</td>
 						{:else if c.id === 'valoracion'}

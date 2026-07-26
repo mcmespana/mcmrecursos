@@ -4,7 +4,8 @@
 	import { Input } from '$lib/components/ui/input';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { toast } from 'svelte-sonner';
-	import { ExternalLink, Inbox, RefreshCw } from '@lucide/svelte';
+	import { socialLocal } from '$lib/social/local.svelte';
+	import { ExternalLink, Inbox, LoaderCircle, RefreshCw } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -20,6 +21,7 @@
 	let corrigiendo = $state<any>(null);
 	let nuevoTitulo = $state('');
 	let nuevoEnlace = $state('');
+	let reenviando = $state(false);
 
 	function abrirCorreccion(envio: any) {
 		corrigiendo = envio;
@@ -28,17 +30,28 @@
 	}
 
 	async function reenviar() {
-		const { error } = await data.supabase
-			.from('envio')
-			.update({
-				titulo: nuevoTitulo.trim(),
-				enlace: nuevoEnlace.trim(),
-				estado: 'enviado',
-				motivo_devolucion: null
-			})
-			.eq('id', corrigiendo.id);
+		if (reenviando) return;
+		reenviando = true;
+		// sin cuenta, el envío se identifica por el dispositivo (RPC); con cuenta, por RLS
+		const { error } = data.anonimos
+			? await data.supabase.rpc('reenviar_envio_anon', {
+					envio_id: corrigiendo.id,
+					dispositivo: socialLocal.dispositivo,
+					titulo_in: nuevoTitulo.trim(),
+					enlace_in: nuevoEnlace.trim()
+				})
+			: await data.supabase
+					.from('envio')
+					.update({
+						titulo: nuevoTitulo.trim(),
+						enlace: nuevoEnlace.trim(),
+						estado: 'enviado',
+						motivo_devolucion: null
+					})
+					.eq('id', corrigiendo.id);
+		reenviando = false;
 		if (error) {
-			toast.error('No se pudo reenviar');
+			toast.error('No se pudo reenviar', { description: error.message });
 			return;
 		}
 		corrigiendo = null;
@@ -58,9 +71,14 @@
 		<Button href="/enviar" size="sm">Enviar más</Button>
 	</div>
 
-	{#if !data.session}
-		<p class="text-muted-foreground">Entra con tu cuenta para ver tus envíos.</p>
-	{:else if !data.envios.length}
+	{#if data.anonimos && data.envios.length}
+		<p class="rounded-xl border border-dashed p-3 text-sm text-muted-foreground text-pretty">
+			Estos envíos están guardados en este dispositivo. Si entras con tu cuenta, se quedan
+			contigo y los verás desde cualquier sitio.
+		</p>
+	{/if}
+
+	{#if !data.envios.length}
 		<div class="flex flex-col items-start gap-3 rounded-xl border border-dashed p-8">
 			<Inbox class="size-6 text-muted-foreground" />
 			<p class="text-sm text-muted-foreground">
@@ -114,8 +132,9 @@
 			<Input bind:value={nuevoEnlace} placeholder="Enlace" type="url" />
 		</div>
 		<Dialog.Footer>
-			<Button disabled={!nuevoTitulo.trim() || !nuevoEnlace.trim()} onclick={reenviar}>
-				Reenviar
+			<Button disabled={reenviando || !nuevoTitulo.trim() || !nuevoEnlace.trim()} onclick={reenviar}>
+				{#if reenviando}<LoaderCircle class="size-4 animate-spin" />{/if}
+				{reenviando ? 'Reenviando…' : 'Reenviar'}
 			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>

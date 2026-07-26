@@ -2,12 +2,13 @@
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as Avatar from '$lib/components/ui/avatar';
+	import RecursoFormulario from '$lib/components/admin/RecursoFormulario.svelte';
+	import IconoFormato from '$lib/components/IconoFormato.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Bot, ExternalLink, Inbox, Sparkles, Undo2 } from '@lucide/svelte';
+	import { Bot, ExternalLink, Inbox, LoaderCircle, Sparkles, UserRound, Undo2 } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -21,6 +22,32 @@
 		void revisando?.id;
 		sug = null;
 	});
+
+	/**
+	 * Valores de partida del formulario: lo que escribió quien envió el recurso, encima lo que
+	 * proponga la IA. Todo revisable antes de publicar.
+	 */
+	const valoresIniciales = $derived.by(() => {
+		if (!revisando) return {};
+		const c = revisando.clasificacion ?? {};
+		return {
+			nombre: revisando.titulo,
+			enlace: revisando.enlace ?? '',
+			descripcion: sug?.descripcion ?? '',
+			tipo: sug?.tipo ?? c.tipo ?? '',
+			nivel: sug?.nivel ?? '',
+			idioma: sug?.idioma ?? c.idioma ?? '',
+			soporte: sug?.soporte ?? '',
+			etapas: sug?.etapas?.length ? sug.etapas : (c.etapas ?? []),
+			edades: sug?.edades?.length ? sug.edades : (c.edades ?? []),
+			tags: [...new Set([...(c.tags ?? []), ...(sug?.tags ?? [])])],
+			mcm_local_id: revisando.mcm_local_id ?? '',
+			estado: 'publicado',
+			visibilidad: 'publico',
+			fuera_del_banco: true
+		};
+	});
+
 	function resultadoClasificarEnvio() {
 		analizandoEnvio = true;
 		return () =>
@@ -39,30 +66,30 @@
 			};
 	}
 
-	const opciones = (lista: string) => data.listas.filter((l) => l.lista === lista);
-
 	const fecha = (iso: string) =>
 		new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 
-	function resultado(tipo: 'publicar' | 'devolver' | 'descartar') {
+	async function alPublicar(result: any) {
+		revisando = null;
+		await invalidateAll();
+		toast.success(`Publicado como ${result.data?.recurso_id}`);
+	}
+
+	// devolver / descartar: un clic, y el botón deja de aceptar más hasta que responde
+	let cerrando = $state<'devolver' | 'descartar' | null>(null);
+	function resultadoCierre(tipo: 'devolver' | 'descartar') {
+		cerrando = tipo;
 		return () =>
-			async ({ result, update }: any) => {
+			async ({ result }: any) => {
+				cerrando = null;
 				if (result.type === 'success') {
-					toast.success(
-						tipo === 'publicar'
-							? `Publicado como ${result.data?.recurso_id}`
-							: tipo === 'devolver'
-								? 'Devuelto al remitente'
-								: 'Envío descartado'
-					);
-					revisando = null;
 					devolviendo = null;
 					await invalidateAll();
+					toast.success(tipo === 'devolver' ? 'Devuelto al remitente' : 'Envío descartado');
 				} else {
 					toast.error('No se pudo completar', {
 						description: result.data?.error ?? 'Inténtalo de nuevo'
 					});
-					await update();
 				}
 			};
 	}
@@ -87,21 +114,45 @@
 	{:else}
 		<ul class="flex flex-col gap-2">
 			{#each data.envios as envio (envio.id)}
+				{@const clasif = envio.clasificacion ?? {}}
 				<li class="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4">
 					<Avatar.Root class="size-8">
 						<Avatar.Image src={envio.remitente?.avatar_url ?? undefined} alt="" />
 						<Avatar.Fallback class="bg-primary/15 text-xs text-primary">
-							{(envio.remitente?.nombre ?? '?').charAt(0)}
+							{#if envio.anonimo && !envio.remitente}
+								<UserRound class="size-4" />
+							{:else}
+								{(envio.remitente?.nombre ?? '?').charAt(0)}
+							{/if}
 						</Avatar.Fallback>
 					</Avatar.Root>
 					<div class="flex min-w-0 flex-1 flex-col">
-						<span class="truncate font-semibold">{envio.titulo}</span>
+						<span class="flex items-center gap-1.5 truncate font-semibold">
+							{#if envio.enlace}
+								<IconoFormato enlace={envio.enlace} class="size-4 shrink-0" />
+							{/if}
+							{envio.titulo}
+						</span>
 						<span class="truncate text-xs text-muted-foreground">
-							{envio.remitente?.nombre ?? 'Alguien'} · {fecha(envio.created_at)}
+							{envio.remitente?.nombre ?? 'Alguien sin cuenta'} · {fecha(envio.created_at)}
+							{#if envio.anonimo}· sin cuenta{/if}
 							{#if envio.notas}
 								· «{envio.notas}»
 							{/if}
 						</span>
+						{#if clasif.tipo || clasif.tags?.length || clasif.etapas?.length || clasif.edades?.length}
+							<span class="mt-1 text-xs text-muted-foreground">
+								Sugerido por quien lo envía:
+								{[
+									clasif.tipo,
+									clasif.etapas?.join(', '),
+									clasif.edades?.join(', '),
+									clasif.tags?.join(', ')
+								]
+									.filter(Boolean)
+									.join(' · ')}
+							</span>
+						{/if}
 						{#if envio.estado === 'revisar_ia' && envio.motivo_ia}
 							<span class="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-warm/15 px-2 py-1 text-xs">
 								<Bot class="size-3.5" />
@@ -130,7 +181,7 @@
 	{/if}
 </div>
 
-<!-- publicar: formulario de catalogación -->
+<!-- publicar: el mismo formulario que crear y editar un recurso -->
 <Dialog.Root open={revisando !== null} onOpenChange={(o) => !o && (revisando = null)}>
 	<Dialog.Content class="max-h-[90svh] overflow-y-auto sm:max-w-2xl">
 		{#if revisando}
@@ -173,113 +224,33 @@
 						{/if}
 					</div>
 					<Button type="submit" variant="outline" size="sm" disabled={analizandoEnvio}>
-						<Sparkles class="size-3.5" />
+						{#if analizandoEnvio}<LoaderCircle class="size-3.5 animate-spin" />{:else}<Sparkles class="size-3.5" />{/if}
 						{analizandoEnvio ? 'Analizando…' : sug ? 'Reanalizar' : 'Analizar con IA'}
 					</Button>
 				</div>
 				{#if sug?.avisos?.length}
 					<ul class="mt-2 flex flex-col gap-1 text-xs text-muted-foreground">
-						{#each sug.avisos as aviso}
+						{#each sug.avisos as aviso (aviso)}
 							<li>⚠️ {aviso}</li>
 						{/each}
 					</ul>
 				{/if}
 			</form>
 
-			<form method="POST" action="?/publicar" use:enhance={resultado('publicar')} class="flex flex-col gap-4">
-				<input type="hidden" name="envio_id" value={revisando.id} />
-				<input type="hidden" name="enlace" value={revisando.enlace ?? ''} />
-
-				<div class="flex flex-col gap-1.5">
-					<label class="text-sm font-medium" for="r-nombre">Nombre *</label>
-					<Input id="r-nombre" name="nombre" value={revisando.titulo} required />
-				</div>
-
-				<div class="flex flex-col gap-1.5">
-					<label class="text-sm font-medium" for="r-desc">Descripción</label>
-					<Textarea id="r-desc" name="descripcion" rows={2} value={sug?.descripcion ?? ''} />
-				</div>
-
-				<div class="grid gap-4 sm:grid-cols-2">
-					<div class="flex flex-col gap-1.5">
-						<label class="text-sm font-medium" for="r-tipo">Tipo</label>
-						<select id="r-tipo" name="tipo" value={sug?.tipo ?? ''} class="h-9 rounded-md border bg-background px-2 text-sm">
-							<option value="">—</option>
-							{#each opciones('tipo') as o (o.valor)}<option value={o.valor}>{o.valor}</option>{/each}
-						</select>
-					</div>
-					<div class="flex flex-col gap-1.5">
-						<label class="text-sm font-medium" for="r-mcm">MCM Local</label>
-						<select id="r-mcm" name="mcm_local_id" class="h-9 rounded-md border bg-background px-2 text-sm">
-							<option value="">—</option>
-							{#each data.mcmLocales as m (m.id)}<option value={m.id}>{m.nombre}</option>{/each}
-						</select>
-					</div>
-					<div class="flex flex-col gap-1.5">
-						<label class="text-sm font-medium" for="r-idioma">Idioma</label>
-						<select id="r-idioma" name="idioma" value={sug?.idioma ?? ''} class="h-9 rounded-md border bg-background px-2 text-sm">
-							<option value="">—</option>
-							{#each opciones('idioma') as o (o.valor)}<option value={o.valor}>{o.valor}</option>{/each}
-						</select>
-					</div>
-					<div class="flex flex-col gap-1.5">
-						<label class="text-sm font-medium" for="r-soporte">Soporte</label>
-						<select id="r-soporte" name="soporte" value={sug?.soporte ?? ''} class="h-9 rounded-md border bg-background px-2 text-sm">
-							<option value="">—</option>
-							{#each opciones('soporte') as o (o.valor)}<option value={o.valor}>{o.valor}</option>{/each}
-						</select>
-					</div>
-					<div class="flex flex-col gap-1.5">
-						<label class="text-sm font-medium" for="r-nivel">Nivel</label>
-						<select id="r-nivel" name="nivel" value={sug?.nivel ?? ''} class="h-9 rounded-md border bg-background px-2 text-sm">
-							<option value="">—</option>
-							{#each opciones('nivel') as o (o.valor)}<option value={o.valor}>{o.valor}</option>{/each}
-						</select>
-					</div>
-					<div class="flex flex-col gap-1.5">
-						<label class="text-sm font-medium" for="r-vis">Visibilidad</label>
-						<select id="r-vis" name="visibilidad" class="h-9 rounded-md border bg-background px-2 text-sm">
-							<option value="publico">Público</option>
-							<option value="privado">Privado (solo con login)</option>
-						</select>
-					</div>
-				</div>
-
-				<fieldset class="flex flex-col gap-2">
-					<legend class="pb-1 text-sm font-medium">Etapas</legend>
-					<div class="flex flex-wrap gap-3">
-						{#each opciones('etapas') as o (o.valor)}
-							<label class="inline-flex items-center gap-1.5 text-sm">
-								<input type="checkbox" name="etapas" value={o.valor} checked={sug?.etapas?.includes(o.valor)} class="accent-[var(--primary)]" />
-								{o.valor}
-							</label>
-						{/each}
-					</div>
-				</fieldset>
-
-				<fieldset class="flex flex-col gap-2">
-					<legend class="pb-1 text-sm font-medium">Edades</legend>
-					<div class="flex flex-wrap gap-x-3 gap-y-1.5">
-						{#each opciones('edades') as o (o.valor)}
-							<label class="inline-flex items-center gap-1.5 text-sm">
-								<input type="checkbox" name="edades" value={o.valor} checked={sug?.edades?.includes(o.valor)} class="accent-[var(--primary)]" />
-								{o.valor}
-							</label>
-						{/each}
-					</div>
-				</fieldset>
-
-				<div class="flex flex-col gap-1.5">
-					<label class="text-sm font-medium" for="r-tags">
-						Temáticas <span class="font-normal text-muted-foreground">(separadas por comas)</span>
-					</label>
-					<Input id="r-tags" name="tags" placeholder="María, Adviento…" value={sug?.tags?.join(', ') ?? ''} />
-				</div>
-
-				<Dialog.Footer class="gap-2">
-					<Button type="submit" size="lg">Publicar recurso</Button>
-				</Dialog.Footer>
-			</form>
+			<RecursoFormulario
+				action="?/publicar"
+				modo="publicar"
+				valores={valoresIniciales}
+				listas={data.listas}
+				mcmLocales={data.mcmLocales}
+				tagsExistentes={data.tags}
+				textoBoton="Publicar recurso"
+				onguardado={alPublicar}
+			>
+				{#snippet ocultos()}
+					<input type="hidden" name="envio_id" value={revisando.id} />
+				{/snippet}
+			</RecursoFormulario>
 		{/if}
 	</Dialog.Content>
 </Dialog.Root>
@@ -291,14 +262,19 @@
 			<Dialog.Header>
 				<Dialog.Title class="font-display">Devolver «{devolviendo.titulo}»</Dialog.Title>
 				<Dialog.Description>
-					El remitente verá el motivo y podrá corregir y reenviar.
+					{#if devolviendo.anonimo && !devolviendo.email_contacto}
+						Se enviaron sin cuenta y sin correo: verán el motivo al volver a «Mis envíos» desde el
+						mismo dispositivo.
+					{:else}
+						El remitente verá el motivo y podrá corregir y reenviar.
+					{/if}
 				</Dialog.Description>
 			</Dialog.Header>
 			<form
 				id="form-devolver"
 				method="POST"
 				action="?/devolver"
-				use:enhance={resultado('devolver')}
+				use:enhance={resultadoCierre('devolver')}
 				class="flex flex-col gap-3"
 			>
 				<input type="hidden" name="envio_id" value={devolviendo.id} />
@@ -308,15 +284,24 @@
 				id="form-descartar"
 				method="POST"
 				action="?/descartar"
-				use:enhance={resultado('descartar')}
+				use:enhance={resultadoCierre('descartar')}
 			>
 				<input type="hidden" name="envio_id" value={devolviendo.id} />
 			</form>
 			<Dialog.Footer class="gap-2">
-				<Button type="submit" form="form-descartar" variant="ghost" class="text-muted-foreground">
-					Descartar
+				<Button
+					type="submit"
+					form="form-descartar"
+					variant="ghost"
+					class="text-muted-foreground"
+					disabled={cerrando !== null}
+				>
+					{cerrando === 'descartar' ? 'Descartando…' : 'Descartar'}
 				</Button>
-				<Button type="submit" form="form-devolver">Devolver con motivo</Button>
+				<Button type="submit" form="form-devolver" disabled={cerrando !== null}>
+					{#if cerrando === 'devolver'}<LoaderCircle class="size-4 animate-spin" />{/if}
+					{cerrando === 'devolver' ? 'Devolviendo…' : 'Devolver con motivo'}
+				</Button>
 			</Dialog.Footer>
 		{/if}
 	</Dialog.Content>

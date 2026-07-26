@@ -20,9 +20,10 @@ export async function cargarDatosCatalogo(
 			.from('recurso')
 			.select(
 				`id, nombre, descripcion, tipo, etapas, nivel, edades, idioma, soporte, ubicacion,
-				 enlace, imagen, anyo_publicacion, curso_usado, visibilidad, estado, version_de,
+				 enlace, formato, imagen, anyo_publicacion, curso_usado, visibilidad, estado, version_de,
 				 fuera_del_banco, pendiente_clasificar,
 				 mcm_local:mcm_local_id (nombre),
+				 recurso_archivo (id, enlace, etiqueta, formato, orden),
 				 recurso_tag (tag (nombre)),
 				 recurso_autor (autor (nombre, apellidos)),
 				 relaciones:recurso_relacion!recurso_relacion_recurso_id_fkey (relacionado_id)`
@@ -53,6 +54,15 @@ export async function cargarDatosCatalogo(
 			soporte: r.soporte,
 			ubicacion: r.ubicacion,
 			enlace: r.enlace,
+			formato: r.formato ?? null,
+			archivos: [...((r.recurso_archivo ?? []) as any[])]
+				.sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0))
+				.map((a) => ({
+					id: a.id,
+					enlace: a.enlace,
+					etiqueta: a.etiqueta ?? null,
+					formato: a.formato ?? null
+				})),
 			imagen: r.imagen,
 			anyo_publicacion: r.anyo_publicacion,
 			curso_usado: r.curso_usado,

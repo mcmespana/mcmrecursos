@@ -70,6 +70,7 @@
 	}
 
 	async function crear() {
+		if (creando) return;
 		const nombre = nombreNueva.trim();
 		if (!nombre) return;
 		if (!session) {

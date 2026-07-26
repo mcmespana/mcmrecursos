@@ -6,37 +6,47 @@
 	import { Globe, HardDrive, ListChecks, Lock, Trash2 } from '@lucide/svelte';
 	import { browser } from '$app/environment';
 	import { socialLocal } from '$lib/social/local.svelte';
+	import { crearOcupado } from '$lib/acciones.svelte';
 
 	let { data } = $props();
+
+	// evita el doble clic mientras la petición está en vuelo
+	const ocupado = crearOcupado();
 	$effect(() => {
 		if (browser) socialLocal.cargar();
 	});
 
 	async function alternarPublica(lista: { id: string; publica: boolean; nombre: string }) {
-		const { error } = await data.supabase
-			.from('lista')
-			.update({ publica: !lista.publica })
-			.eq('id', lista.id);
-		if (error) {
-			toast.error('No se pudo cambiar la visibilidad');
-			return;
-		}
-		if (!lista.publica) {
-			await navigator.clipboard
-				.writeText(`${location.origin}/listas/${lista.id}`)
-				.catch(() => {});
-			toast.success('Lista pública — enlace copiado al portapapeles');
-		} else {
-			toast.success('Lista privada de nuevo');
-		}
-		invalidateAll();
+		if (ocupado.activo) return;
+		await ocupado.envolver(async () => {
+			const { error } = await data.supabase
+				.from('lista')
+				.update({ publica: !lista.publica })
+				.eq('id', lista.id);
+			if (error) {
+				toast.error('No se pudo cambiar la visibilidad');
+				return;
+			}
+			if (!lista.publica) {
+				await navigator.clipboard
+					.writeText(`${location.origin}/listas/${lista.id}`)
+					.catch(() => {});
+				toast.success('Lista pública — enlace copiado al portapapeles');
+			} else {
+				toast.success('Lista privada de nuevo');
+			}
+			await invalidateAll();
+		});
 	}
 
 	async function borrar(lista: { id: string; nombre: string }) {
+		if (ocupado.activo) return;
 		if (!confirm(`¿Borrar la lista «${lista.nombre}»? Los recursos no se tocan.`)) return;
-		const { error } = await data.supabase.from('lista').delete().eq('id', lista.id);
-		if (error) toast.error('No se pudo borrar');
-		else invalidateAll();
+		await ocupado.envolver(async () => {
+			const { error } = await data.supabase.from('lista').delete().eq('id', lista.id);
+			if (error) toast.error('No se pudo borrar');
+			else await invalidateAll();
+		});
 	}
 </script>
 
@@ -114,6 +124,7 @@
 						variant="ghost"
 						size="icon"
 						aria-label={lista.publica ? 'Hacer privada' : 'Hacer pública y copiar enlace'}
+						disabled={ocupado.activo}
 						onclick={() => alternarPublica(lista)}
 					>
 						{#if lista.publica}<Lock class="size-4" />{:else}<Globe class="size-4" />{/if}
@@ -123,6 +134,7 @@
 						size="icon"
 						class="text-muted-foreground hover:text-destructive"
 						aria-label="Borrar lista"
+						disabled={ocupado.activo}
 						onclick={() => borrar(lista)}
 					>
 						<Trash2 class="size-4" />

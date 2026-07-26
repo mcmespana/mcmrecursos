@@ -3,9 +3,12 @@
 	import { invalidateAll } from '$app/navigation';
 	import { Button } from '$lib/components/ui/button';
 	import { toast } from 'svelte-sonner';
+	import { crearOcupado } from '$lib/acciones.svelte';
 	import { CloudAlert, FileSpreadsheet, ShieldCheck } from '@lucide/svelte';
 
 	let { data } = $props();
+
+	const ocupado = crearOcupado();
 
 	const fecha = (iso: string | null) =>
 		iso
@@ -18,15 +21,14 @@
 			: 'nunca';
 
 	function alResolver() {
-		return () =>
-			async ({ result }: any) => {
-				if (result.type === 'success') {
-					toast.success('En la próxima sincronización se aplicará la versión del Sheet');
-					await invalidateAll();
-				} else {
-					toast.error('No se pudo resolver', { description: result.data?.error });
-				}
-			};
+		return ocupado.enhance(async ({ result }: any) => {
+			if (result.type === 'success') {
+				toast.success('En la próxima sincronización se aplicará la versión del Sheet');
+				await invalidateAll();
+			} else {
+				toast.error('No se pudo resolver', { description: result.data?.error });
+			}
+		});
 	}
 
 	const erroresDe = (log: any) =>
@@ -71,8 +73,8 @@
 						<Button variant="outline" size="sm" href={`/?r=${c.id}`} target="_blank">Ver ficha</Button>
 						<form method="POST" action="?/aplicar_sheet" use:enhance={alResolver()}>
 							<input type="hidden" name="id" value={c.id} />
-							<Button type="submit" variant="outline" size="sm">
-								Aplicar versión del Sheet
+							<Button type="submit" variant="outline" size="sm" disabled={ocupado.activo}>
+								{ocupado.activo ? 'Aplicando…' : 'Aplicar versión del Sheet'}
 							</Button>
 						</form>
 					</li>

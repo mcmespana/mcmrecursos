@@ -49,10 +49,16 @@ estado de la última sync y quién eres/rol.
 ordenada por antigüedad. Cada tarjeta: título, remitente (avatar + MCM local), enlace(s),
 notas del remitente, antigüedad, y origen del estado (persona/IA).
 
+Los envíos sin cuenta (SPEC-011) salen en la misma cola, identificados por el nombre o correo
+de contacto si lo dejaron, y con la clasificación que aportaron a la vista.
+
 **Flujo de aprobación** (pantalla de detalle, dos columnas):
 - Izquierda: lo enviado (enlace navegable, vista previa si es Drive/YouTube, notas).
 - Derecha: **el formulario de recurso completo** (mismo componente que edición, ver §2)
-  pre-rellenado con lo que dio el remitente. El revisor completa metadatos ahí mismo.
+  pre-rellenado con lo que dio el remitente y, encima, lo que proponga la IA.
+- **Publicar es idempotente**: el envío se cierra con un UPDATE condicionado al estado ANTES de
+  crear el recurso, así que un doble clic no puede publicar dos veces. Si algo falla después,
+  el envío vuelve a la cola.
 - Acciones: **Publicar** (crea/actualiza `recurso` con `estado=publicado`),
   **Guardar como borrador**, **Devolver** (vuelve al remitente con motivo, estado
   `rechazado` + texto), **Descartar**.
@@ -71,12 +77,23 @@ los mismos filtros/facetas del buscador + filtro por estado, búsqueda de texto.
 Selección múltiple → acciones en lote (cambiar estado, añadir tag, asignar MCM local).
 
 **Formulario de recurso** (sheet lateral ancho o página según viewport):
-- Campos agrupados: Identidad (nombre, descripción, tipo) · Clasificación (etapas, nivel,
-  edades, tags con combobox crea-si-no-existe, itinerario) · Origen (MCM local, autores,
-  año, curso) · Enlaces (enlace, imagen, más imágenes, ubicación, soporte) · Control
-  (estado, visibilidad, datos personales, IA, fuera del banco, pendiente de clasificar,
-  notas internas).
+- **Uno solo para los tres caminos**: alta manual («Nuevo recurso»), edición y catalogar-y-
+  publicar desde la cola de revisión comparten `RecursoFormulario.svelte`. Lo único que cambia
+  es la acción del servidor y el campo «es nueva versión de…», que solo aplica al editar.
+  Antes eran tres formularios con campos distintos, y catalogar un envío dejaba el recurso a
+  medias.
+- Orden: nombre · **clasificación primero** (temáticas, etapas, edades, en un bloque
+  destacado) · descripción · vocabularios · archivos · imágenes · control.
+- **Temáticas en chips** (`SelectorTags.svelte`): autocompletado sobre las que ya existen
+  ordenadas por uso, Intro o coma para añadir, y deduplicación por slug — si escribes
+  «adviento» y ya existe «Adviento», se reutiliza esa en vez de crear una gemela.
+- **Etapas y edades en chips** (`SelectorMultiple.svelte`) con atajos «Todas» y «N/A», y
+  atajo por grupo (Primaria, Secundaria, Jóvenes, Adultos).
+- **Archivos**: enlace principal + los formatos alternativos del mismo recurso, con el icono
+  deducido de cada enlace (SPEC-011).
 - Selects alimentados por `lista_valor`; solo `nombre` y `estado` obligatorios.
+- **Eliminar recurso**: botón en el formulario y en cada fila, con diálogo de confirmación que
+  recuerda que «retirado» es la alternativa no destructiva.
 - `edicion_local` solo puede abrir en edición recursos de su MCM (RLS ya lo garantiza;
   la UI además lo muestra en solo-lectura con aviso).
 - Al guardar: `recurso.editado_web_at = now()` (columna nueva, ver §6).
