@@ -59,10 +59,41 @@ IA (SPEC-010, autoclasificación + búsqueda semántica) y dashboard de estadís
 ya están implementados — ver `docs/05-configuracion-servicios.md` para las claves pendientes
 de configurar (Gemini, Voyage, cuenta de servicio de Drive, OAuth de Google).
 
-1. Configurar Google OAuth en el dashboard de Supabase (sigue pendiente, Fase 0).
-2. Confirmar email de Caravaca y preautorizarlo (Fase 3).
-3. "Recomiéndame una actividad para…" conversacional en Descubre (Fase 5, requiere Voyage).
-4. Más adelante: presets de mazo para Descubre y editor visual de itinerarios en /admin/config.
+### ⚠️ Estado de la rama ahora mismo (2026-07-26)
+
+Todo el trabajo de esta sesión (versiones de recurso, IA, login, Drive, búsqueda semántica
+y el dashboard de LayerChart) está **commiteado y pusheado** en la rama
+`claude/tabla-admin-config-85va91`, verificado con `npm run check` + `npm run build` (0
+errores) y, en el caso del dashboard, probado en navegador con capturas en claro/oscuro.
+**No hay ningún PR abierto ni mergeado a `main` con el dashboard de estadísticas** — el
+agente se detuvo ahí a propósito (el CLAUDE.md de este repo dice "no crear PRs sin que se
+pidan") esperando confirmación. Si retomas esto sin ese contexto: revisa primero si la
+rama ya se mergeó o sigue esperando `create_pull_request` + `merge_pull_request` (squash)
+contra `main`.
+
+La migración `supabase/migrations/00014_busqueda_semantica.sql` **ya está aplicada** en
+remoto (proyecto `sjhxhsdckvungsrbquve`, esquema `recursos`) — no reaplicar.
+
+Existe un usuario de servicio en Supabase Auth para entrar sin OAuth por `/entrar`
+(enlace discreto en el `·` del footer): `asistente@movimientoconsolacion.com`, rol
+`administrador`. La contraseña se entregó una sola vez por chat (no está en ningún
+fichero del repo, y así debe seguir) — si se ha perdido, resetéala desde el dashboard de
+Supabase (Authentication → Users).
+
+**Librería de gráficas: LayerChart** (`layerchart@2.0.2`), instalada y en uso en
+`/admin/stats`. Se evaluó **evilcharts.com** como alternativa a petición del usuario y se
+descartó (2026-07-26): es una colección de componentes exclusiva de React/Next.js
+(envuelve Recharts/ECharts), incompatible con Svelte sin reescribirla entera — detalle
+completo y motivo en `docs/04-diseno.md` §6. Seguir con LayerChart para cualquier
+gráfica nueva.
+
+### Próximos pasos
+
+1. Decidir si se abre/mergea el PR del dashboard (ver estado de la rama arriba).
+2. Configurar Google OAuth en el dashboard de Supabase (sigue pendiente, Fase 0).
+3. Confirmar email de Caravaca y preautorizarlo (Fase 3).
+4. "Recomiéndame una actividad para…" conversacional en Descubre (Fase 5, requiere Voyage).
+5. Más adelante: presets de mazo para Descubre y editor visual de itinerarios en /admin/config.
 
 ## Fase 3.5 — Descubre (el tinder de recursos) 🎴
 - [x] Modo swipe sin IA (SPEC-007 v1): `/descubre` con mazo desde los filtros del buscador,

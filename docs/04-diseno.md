@@ -101,6 +101,22 @@ barras, jamás donut de 8 quesitos), color al final y computado — secuencial =
 claro→oscuro, categórica = la de familias validada, semánticos reservados. Un eje, nunca
 dos. Tooltips por defecto; `tabular-nums`; vista tabla accesible para cada gráfica.
 
+**Librería: LayerChart** (`layerchart@2.0.2`, ya instalada y en uso en `/admin/stats`).
+Es la elegida y la que toca seguir usando para cualquier gráfica nueva: nativa de
+Svelte 5 (runes), sobre D3, se colorea con las variables de Tailwind del tema
+(`var(--color-primary)`, `var(--color-warm)`) sin CSS aparte, y funciona igual en
+claro/oscuro (verificado con capturas).
+
+*Evaluado y descartado:* **evilcharts.com** (2026-07-26, a petición del usuario). Es una
+colección de componentes "al estilo shadcn" (CLI copy-paste) pero **exclusiva de
+React/Next.js**, envolviendo Recharts/ECharts — nada de Svelte. Adoptarla exigiría
+reescribir cada componente desde cero en Svelte, perdiendo la ventaja de "copiar y
+listo" que tiene en su ecosistema original. Además su estética (glow, gradientes,
+animaciones Motion.dev) es más "dramática" que el sistema editorial teal/ámbar de esta
+app y necesitaría un restyling importante aparte de la reescritura. **Conclusión: no
+migrar. Seguir con LayerChart** para todo lo de dataviz salvo que aparezca un motivo
+técnico concreto (no solo "dicen que es mejor").
+
 ## 7. Accesibilidad y calidad
 
 - Contraste AA en ambos temas (validador en CI de la paleta cuando se fije).
