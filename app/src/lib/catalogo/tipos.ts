@@ -1,12 +1,37 @@
 import {
 	BookOpen,
 	Clapperboard,
+	ClipboardList,
+	Compass,
+	Cross,
+	FolderOpen,
+	Globe,
+	GraduationCap,
+	HandHeart,
+	Image,
+	ListTree,
+	Music,
+	Paintbrush,
+	Palette,
+	Presentation,
 	Shapes,
 	Sparkles,
 	Tent,
+	TentTree,
 	Users,
+	Video,
+	Wrench,
 	type Icon as IconType
 } from '@lucide/svelte';
+
+/** Formato alternativo del mismo recurso: el PDF junto al Doc, el Word junto al PDF… */
+export interface ArchivoRecurso {
+	id: string;
+	enlace: string;
+	etiqueta: string | null;
+	/** Clave de `formatos.ts`; null = se deduce del enlace al vuelo. */
+	formato: string | null;
+}
 
 export interface RecursoCatalogo {
 	id: string;
@@ -21,6 +46,10 @@ export interface RecursoCatalogo {
 	soporte: string | null;
 	ubicacion: string | null;
 	enlace: string | null;
+	/** Formato detectado del enlace principal (SPEC-011); null = se deduce en cliente. */
+	formato: string | null;
+	/** Formatos alternativos del mismo recurso. */
+	archivos: ArchivoRecurso[];
 	imagen: string | null;
 	anyo_publicacion: number | null;
 	curso_usado: string | null;
@@ -93,7 +122,45 @@ export const FAMILIA_ICON: Record<string, typeof IconType> = {
 	Documentos: BookOpen
 };
 
+/**
+ * Icono propio de cada `tipo`. La familia solo sirve de red de seguridad para tipos nuevos:
+ * un recurso de tipo «Imagen» no puede salir con una claqueta de cine porque comparta familia
+ * con «Película».
+ */
+export const TIPO_ICON: Record<string, typeof IconType> = {
+	'Sesión de grupo': Users,
+	'Itinerario de sesiones': ListTree,
+	'Formación de monitores': GraduationCap,
+	Taller: Wrench,
+	Guía: Compass,
+	Campamento: TentTree,
+	Acampada: Tent,
+	'Actividad de voluntariado': HandHeart,
+	'Conclusiones de actividad': ClipboardList,
+	Oración: Cross,
+	Canción: Music,
+	Vídeo: Video,
+	Película: Clapperboard,
+	Imagen: Image,
+	Dibujo: Paintbrush,
+	Diseño: Palette,
+	Presentación: Presentation,
+	Libro: BookOpen,
+	'Documento MCM': BookOpen,
+	Web: Globe,
+	'Recurso general': Shapes,
+	'Carpeta de Drive': FolderOpen
+};
+
 export const ICONO_NEUTRO = Shapes;
+
+/** Icono a pintar para un recurso: primero su tipo, luego su familia, luego el neutro. */
+export function iconoDeTipo(
+	tipo: string | null | undefined,
+	familia: string | null | undefined
+): typeof IconType {
+	return (tipo && TIPO_ICON[tipo]) || (familia && FAMILIA_ICON[familia]) || ICONO_NEUTRO;
+}
 export const BADGE_NEUTRO = 'bg-muted text-muted-foreground';
 export const FONDO_NEUTRO = 'from-primary/15 via-accent to-warm/20';
 

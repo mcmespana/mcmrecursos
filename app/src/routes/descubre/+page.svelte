@@ -157,10 +157,11 @@
 		}
 	}
 
-	function abrirRecurso(r: RecursoCatalogo) {
-		if (!r.enlace) return;
+	function abrirRecurso(r: RecursoCatalogo, enlace?: string) {
+		const destino = enlace ?? r.enlace;
+		if (!destino) return;
 		data.supabase.rpc('registrar_acceso', { rid: r.id });
-		window.open(r.enlace, '_blank', 'noopener,noreferrer');
+		window.open(destino, '_blank', 'noopener,noreferrer');
 	}
 
 	// --- descartes de la sesión (no repetir hasta volver a barajar) ---

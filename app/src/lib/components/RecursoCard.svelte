@@ -3,14 +3,15 @@
 	import {
 		FAMILIA_BADGE,
 		FAMILIA_FONDO,
-		FAMILIA_ICON,
 		BADGE_NEUTRO,
 		FONDO_NEUTRO,
-		ICONO_NEUTRO,
+		iconoDeTipo,
 		limpiarNombre,
 		esEjemplo,
 		miniatura
 	} from '$lib/catalogo/tipos';
+	import { FORMATOS, formatoEfectivo } from '$lib/catalogo/formatos';
+	import IconoFormato from '$lib/components/IconoFormato.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import Estrellas from '$lib/components/Estrellas.svelte';
 	import { FolderSymlink, Heart, Lock, PackageOpen } from '@lucide/svelte';
@@ -31,8 +32,9 @@
 
 	const badgeClase = $derived((familia && FAMILIA_BADGE[familia]) || BADGE_NEUTRO);
 	const fondoClase = $derived((familia && FAMILIA_FONDO[familia]) || FONDO_NEUTRO);
-	const Icono = $derived((familia && FAMILIA_ICON[familia]) || ICONO_NEUTRO);
+	const Icono = $derived(iconoDeTipo(recurso.tipo, familia));
 	const nombre = $derived(limpiarNombre(recurso.nombre));
+	const formato = $derived(formatoEfectivo(recurso.enlace, recurso.formato));
 	let imgFallo = $state(false);
 	const srcMiniatura = $derived(!imgFallo ? miniatura(recurso) : null);
 </script>
@@ -69,6 +71,21 @@
 		<div class="absolute top-2 left-2 flex items-center gap-1.5">
 			{#if recurso.tipo}
 				<Badge class={`border-transparent shadow-sm ${badgeClase}`}>{recurso.tipo}</Badge>
+			{/if}
+			{#if formato}
+				<span
+					class="flex items-center gap-1 rounded-full bg-background/85 px-1.5 py-0.5 shadow-sm backdrop-blur"
+					title={recurso.archivos.length
+						? `${FORMATOS[formato].etiqueta} · y ${recurso.archivos.length} formato${recurso.archivos.length === 1 ? '' : 's'} más`
+						: FORMATOS[formato].etiqueta}
+				>
+					<IconoFormato enlace={recurso.enlace} formato={recurso.formato} class="size-3.5" />
+					{#if recurso.archivos.length}
+						<span class="text-[10px] font-medium text-muted-foreground tabular-nums">
+							+{recurso.archivos.length}
+						</span>
+					{/if}
+				</span>
 			{/if}
 			{#if recurso.visibilidad === 'privado'}
 				<span

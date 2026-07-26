@@ -3,7 +3,7 @@
 	import { fade } from 'svelte/transition';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { browser } from '$app/environment';
-	import { invalidateAll, replaceState } from '$app/navigation';
+	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import { create, insertMultiple, search, type Orama } from '@orama/orama';
 	import { toast } from 'svelte-sonner';
@@ -23,6 +23,7 @@
 	import LoginDialog from '$lib/components/LoginDialog.svelte';
 	import AvisoLocal from '$lib/components/AvisoLocal.svelte';
 	import { socialLocal } from '$lib/social/local.svelte';
+	import { refrescarCatalogo } from '$lib/catalogo/refresco';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
 	import { LayoutGrid, Rows3, Search, Sparkles, X } from '@lucide/svelte';
@@ -178,7 +179,7 @@
 			else favoritos.delete(r.id);
 			toast.error('No se pudo guardar el favorito');
 		} else {
-			invalidateAll();
+			refrescarCatalogo();
 		}
 	}
 
@@ -198,7 +199,7 @@
 			else usos.delete(r.id);
 			toast.error('No se pudo registrar el uso');
 		} else {
-			invalidateAll();
+			refrescarCatalogo();
 		}
 	}
 
@@ -214,7 +215,7 @@
 				toast.error('No se pudo guardar la valoración');
 			} else {
 				toast.success(`Valorado con ${estrellas} ${estrellas === 1 ? 'estrella' : 'estrellas'}`);
-				invalidateAll();
+				refrescarCatalogo();
 			}
 			return;
 		}
@@ -229,15 +230,16 @@
 			toast.error('No se pudo guardar la valoración');
 		} else {
 			toast.success(`Valorado con ${estrellas} ${estrellas === 1 ? 'estrella' : 'estrellas'}`);
-			invalidateAll();
+			refrescarCatalogo();
 		}
 	}
 
-	function abrirRecurso(r: RecursoCatalogo) {
-		if (!r.enlace) return;
+	function abrirRecurso(r: RecursoCatalogo, enlace?: string) {
+		const destino = enlace ?? r.enlace;
+		if (!destino) return;
 		// registro en segundo plano; la navegación no espera
-		data.supabase.rpc('registrar_acceso', { rid: r.id }).then(() => invalidateAll());
-		window.open(r.enlace, '_blank', 'noopener,noreferrer');
+		data.supabase.rpc('registrar_acceso', { rid: r.id }).then(() => refrescarCatalogo());
+		window.open(destino, '_blank', 'noopener,noreferrer');
 	}
 
 	// --- derivados de catálogo ---

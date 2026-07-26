@@ -38,10 +38,26 @@
 		WithElementRef<HTMLAnchorAttributes> & {
 			variant?: ButtonVariant;
 			size?: ButtonSize;
+			/**
+			 * Acción en marcha: aparece un spinner delante, el botón deja de aceptar clics y
+			 * se marca `aria-busy`. Es lo que evita el «¿le he dado o no?» — y, de paso, el
+			 * doble envío por pulsar dos veces seguidas.
+			 */
+			cargando?: boolean;
+			/** Texto mientras carga. Si no se pasa, se conserva el de siempre. */
+			textoCargando?: string;
+			/**
+			 * Acaba de salir bien: un check verde durante un momento. El padre lo pone a true
+			 * al terminar y el propio botón lo apaga solo (`duracionHecho`).
+			 */
+			hecho?: boolean;
+			duracionHecho?: number;
 		};
 </script>
 
 <script lang="ts">
+	import { Check, LoaderCircle } from "@lucide/svelte";
+
 	let {
 		class: className,
 		variant = "default",
@@ -50,23 +66,56 @@
 		href = undefined,
 		type = "button",
 		disabled,
+		cargando = false,
+		textoCargando = undefined,
+		hecho = false,
+		duracionHecho = 1400,
 		children,
 		...restProps
 	}: ButtonProps = $props();
+
+	// El check de «hecho» se apaga solo: es una confirmación, no un estado del formulario.
+	let celebrando = $state(false);
+	$effect(() => {
+		// si el padre retira `hecho` antes de que expire el temporizador, el check se apaga
+		// igualmente: si no, se quedaría encendido para siempre
+		if (!hecho) {
+			celebrando = false;
+			return;
+		}
+		celebrando = true;
+		const t = setTimeout(() => (celebrando = false), duracionHecho);
+		return () => clearTimeout(t);
+	});
+
+	const bloqueado = $derived(disabled || cargando);
 </script>
+
+{#snippet contenido()}
+	{#if cargando}
+		<LoaderCircle class="animate-spin" />
+		{#if textoCargando}{textoCargando}{:else}{@render children?.()}{/if}
+	{:else if celebrando}
+		<Check class="animate-in zoom-in-50 duration-200" />
+		{@render children?.()}
+	{:else}
+		{@render children?.()}
+	{/if}
+{/snippet}
 
 {#if href}
 	<a
 		bind:this={ref}
 		data-slot="button"
 		class={cn(buttonVariants({ variant, size }), className)}
-		href={disabled ? undefined : href}
-		aria-disabled={disabled}
-		role={disabled ? "link" : undefined}
-		tabindex={disabled ? -1 : undefined}
+		href={bloqueado ? undefined : href}
+		aria-disabled={bloqueado}
+		aria-busy={cargando || undefined}
+		role={bloqueado ? "link" : undefined}
+		tabindex={bloqueado ? -1 : undefined}
 		{...restProps}
 	>
-		{@render children?.()}
+		{@render contenido()}
 	</a>
 {:else}
 	<button
@@ -74,9 +123,10 @@
 		data-slot="button"
 		class={cn(buttonVariants({ variant, size }), className)}
 		{type}
-		{disabled}
+		disabled={bloqueado}
+		aria-busy={cargando || undefined}
 		{...restProps}
 	>
-		{@render children?.()}
+		{@render contenido()}
 	</button>
 {/if}

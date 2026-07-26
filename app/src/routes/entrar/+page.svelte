@@ -43,9 +43,8 @@
 		{#if form?.error}
 			<p class="text-sm text-destructive">{form.error}</p>
 		{/if}
-		<Button type="submit" size="lg" class="mt-1 gap-2" disabled={enviando}>
-			<Lock class="size-4" />
-			{enviando ? 'Entrando…' : 'Entrar'}
+		<Button type="submit" size="lg" class="mt-1 gap-2" cargando={enviando} textoCargando="Entrando…">
+			<Lock class="size-4" /> Entrar
 		</Button>
 	</form>
 

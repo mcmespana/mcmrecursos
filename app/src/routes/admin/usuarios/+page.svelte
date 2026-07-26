@@ -5,8 +5,11 @@
 	import { Input } from '$lib/components/ui/input';
 	import { toast } from 'svelte-sonner';
 	import { normalizarConsulta } from '$lib/catalogo/filtros';
+	import { crearOcupado } from '$lib/acciones.svelte';
 
 	let { data } = $props();
+
+	const ocupado = crearOcupado();
 
 	let filtro = $state('');
 
@@ -27,16 +30,15 @@
 	});
 
 	function alGuardar() {
-		return () =>
-			async ({ result }: any) => {
-				if (result.type === 'success') {
-					toast.success('Actualizado');
-					await invalidateAll();
-				} else {
-					toast.error('No se pudo actualizar', { description: result.data?.error });
-					await invalidateAll();
-				}
-			};
+		return ocupado.enhance(async ({ result }: any) => {
+			if (result.type === 'success') {
+				toast.success('Actualizado');
+				await invalidateAll();
+			} else {
+				toast.error('No se pudo actualizar', { description: result.data?.error });
+				await invalidateAll();
+			}
+		});
 	}
 
 	const fecha = (iso: string) =>

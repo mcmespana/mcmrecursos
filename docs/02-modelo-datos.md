@@ -37,6 +37,7 @@ configurar los desplegables de validación del Google Sheet. Añadir un valor = 
 | `soporte` | text | PDF, Word, Docs, Formulario, Genially, Canva, PPT, Hoja de cálculo, YouTube, Archivo |
 | `ubicacion` | text | lista: Drive, Servidor propio, Servidor externo, YouTube |
 | `enlace` | text | el link principal (Drive o externo) |
+| `formato` | text | **deducido, no se escribe a mano**: qué hay tras el enlace (`google-doc`, `pdf`, `drive-carpeta`…). Da el icono del botón de abrir. null = pendiente de detectar (SPEC-011) |
 | `imagen` | text | URL de miniatura |
 | `enlace_imagenes` | text | link a carpeta/álbum con más imágenes |
 | `anyo_publicacion` | int | año de creación del recurso |
@@ -60,7 +61,21 @@ valoración media, nº votos, veces usado, veces en favoritos, accesos. El sync 
 - **Actividades**: Campamento, Acampada, Actividad de voluntariado, Conclusiones de actividad
 - **Celebración y oración**: Oración, Canción
 - **Audiovisual y gráfico**: Vídeo, Película, Imagen, Dibujo, Diseño, Presentación
-- **Documentos**: Libro, Documento MCM, Web, Recurso general
+- **Documentos**: Libro, Documento MCM, Web, Recurso general, Carpeta de Drive
+
+### `formato` vs `tipo` vs `soporte`
+
+Tres cosas distintas que conviven en la ficha: `tipo` es **qué es** el recurso (lo pone el
+equipo editor), `soporte` es la **etiqueta editorial** que viaja en el Sheet, y `formato` es
+**qué hay realmente detrás del enlace**, deducido por la app a partir de la URL y, si hace
+falta, de una consulta a la API de Drive. Detalle en SPEC-011.
+
+### `recurso_archivo` — el mismo recurso en varios formatos
+
+`recurso_archivo(id, recurso_id, enlace, etiqueta, formato, orden)` — el Word junto al PDF, o
+la carpeta de Drive con el material suelto. `recurso.enlace` sigue siendo el principal (es lo
+que sincroniza el Sheet); esta tabla guarda **solo los alternativos**, para no tener dos
+fuentes de verdad del enlace de siempre.
 
 ## Vocabularios reutilizables (evitan el caos "Adviento/Advent/adviento")
 

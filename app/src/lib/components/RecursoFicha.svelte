@@ -3,13 +3,14 @@
 	import {
 		FAMILIA_BADGE,
 		FAMILIA_FONDO,
-		FAMILIA_ICON,
 		BADGE_NEUTRO,
 		FONDO_NEUTRO,
-		ICONO_NEUTRO,
+		iconoDeTipo,
 		limpiarNombre,
 		esEjemplo
 	} from '$lib/catalogo/tipos';
+	import { FORMATOS, formatoEfectivo } from '$lib/catalogo/formatos';
+	import IconoFormato from '$lib/components/IconoFormato.svelte';
 	import * as Sheet from '$lib/components/ui/sheet';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { Badge } from '$lib/components/ui/badge';
@@ -24,7 +25,6 @@
 		Check,
 		ChevronLeft,
 		ChevronRight,
-		ExternalLink,
 		Eye,
 		FolderSymlink,
 		Heart,
@@ -79,7 +79,7 @@
 		onfavorito: (r: RecursoCatalogo) => void;
 		onusado: (r: RecursoCatalogo) => void;
 		onvalorar: (r: RecursoCatalogo, estrellas: number) => void;
-		onabrir: (r: RecursoCatalogo) => void;
+		onabrir: (r: RecursoCatalogo, enlace?: string) => void;
 	} = $props();
 
 	const puedeAnterior = $derived(indice > 0);
@@ -87,8 +87,37 @@
 
 	const badgeClase = $derived((familia && FAMILIA_BADGE[familia]) || BADGE_NEUTRO);
 	const fondoClase = $derived((familia && FAMILIA_FONDO[familia]) || FONDO_NEUTRO);
-	const Icono = $derived((familia && FAMILIA_ICON[familia]) || ICONO_NEUTRO);
+	const Icono = $derived(iconoDeTipo(recurso?.tipo, familia));
 	const nombre = $derived(recurso ? limpiarNombre(recurso.nombre) : '');
+
+	/**
+	 * Todo lo que se puede abrir de este recurso: el enlace principal y los formatos
+	 * alternativos (SPEC-011). Cada uno con su formato ya resuelto para pintar el icono.
+	 */
+	const archivos = $derived.by(() => {
+		if (!recurso) return [];
+		const lista: { enlace: string; etiqueta: string; formato: string | null; principal: boolean }[] =
+			[];
+		if (recurso.enlace) {
+			const clave = formatoEfectivo(recurso.enlace, recurso.formato);
+			lista.push({
+				enlace: recurso.enlace,
+				etiqueta: clave ? FORMATOS[clave].corto : 'Abrir recurso',
+				formato: recurso.formato,
+				principal: true
+			});
+		}
+		for (const a of recurso.archivos) {
+			const clave = formatoEfectivo(a.enlace, a.formato);
+			lista.push({
+				enlace: a.enlace,
+				etiqueta: a.etiqueta || (clave ? FORMATOS[clave].corto : 'Abrir'),
+				formato: a.formato,
+				principal: false
+			});
+		}
+		return lista;
+	});
 
 	let imgFallo = $state(false);
 	$effect(() => {
@@ -208,10 +237,15 @@
 
 				<!-- acciones -->
 				<div class="flex items-stretch gap-2">
-					{#if recurso.enlace}
-						<Button size="lg" class="flex-1" onclick={() => onabrir(recurso!)}>
-							<ExternalLink class="size-4" />
-							Abrir recurso
+					{#if archivos.length}
+						<Button size="lg" class="flex-1" onclick={() => onabrir(recurso!, archivos[0].enlace)}>
+							<IconoFormato
+								enlace={archivos[0].enlace}
+								formato={archivos[0].formato}
+								neutro
+								class="size-4"
+							/>
+							Abrir {archivos.length > 1 ? archivos[0].etiqueta.toLowerCase() : 'recurso'}
 						</Button>
 					{/if}
 					<Tooltip.Provider delayDuration={300}>
@@ -253,6 +287,27 @@
 					</Tooltip.Provider>
 					<GuardarEnLista {supabase} {session} recursoId={recurso.id} {onrequierelogin} />
 				</div>
+
+				<!-- otros formatos del mismo recurso (SPEC-011) -->
+				{#if archivos.length > 1}
+					<div class="flex flex-col gap-1.5">
+						<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+							También disponible en
+						</p>
+						<div class="flex flex-wrap gap-2">
+							{#each archivos.slice(1) as archivo (archivo.enlace)}
+								<button
+									type="button"
+									class="inline-flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm transition-colors hover:bg-accent"
+									onclick={() => onabrir(recurso!, archivo.enlace)}
+								>
+									<IconoFormato enlace={archivo.enlace} formato={archivo.formato} class="size-4" />
+									{archivo.etiqueta}
+								</button>
+							{/each}
+						</div>
+					</div>
+				{/if}
 
 				<!-- tu valoración -->
 				<div class="flex items-center justify-between rounded-xl border bg-muted/40 px-4 py-3">

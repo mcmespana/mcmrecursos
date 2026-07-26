@@ -93,6 +93,21 @@ Poco y orquestado; todo bajo `prefers-reduced-motion`.
   contadores que cuentan (solo en stats-héroe).
 - Nada de parallax, nada de reveals por scroll en la herramienta.
 
+**Estados de acción** — toda acción que hable con el servidor tiene que verse. El vocabulario
+es siempre el mismo, para que se aprenda una vez:
+
+| Estado    | Cómo se ve                                                                 |
+| --------- | -------------------------------------------------------------------------- |
+| Reposo    | el botón de siempre                                                          |
+| Cargando  | `<Button cargando textoCargando="Guardando…">`: spinner, `aria-busy`, no acepta clics |
+| Hecho     | `<Button hecho>`: check verde ~1,4 s, se apaga solo. Confirma sin robar sitio |
+| Fila ocupada | la fila entera baja a 60 % con `animate-pulse` y `aria-busy`               |
+| Navegando | barra de progreso teal de 2 px arriba del todo (`BarraProgreso.svelte`)      |
+
+Que el botón deje de aceptar clics no es solo estética: es lo que impide mandar la misma acción
+dos veces. Y `prefers-reduced-motion: reduce` apaga todas las animaciones en `app.css`, así que
+el estado se sigue viendo aunque no se mueva nada.
+
 ## 6. Dataviz (panel de stats, fase 4)
 
 Método del skill dataviz: la forma primero (top = barras horizontales con data-ends

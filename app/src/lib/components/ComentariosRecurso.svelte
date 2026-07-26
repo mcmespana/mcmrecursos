@@ -26,6 +26,7 @@
 	let texto = $state('');
 	let esSugerencia = $state(false);
 	let enviando = $state(false);
+	let publicado = $state(false);
 
 	$effect(() => {
 		const id = recursoId;
@@ -49,6 +50,7 @@
 	});
 
 	async function publicar() {
+		if (enviando) return;
 		if (!session) {
 			onrequierelogin();
 			return;
@@ -83,6 +85,8 @@
 		];
 		texto = '';
 		esSugerencia = false;
+		publicado = true;
+		setTimeout(() => (publicado = false), 1600);
 	}
 
 	async function borrar(id: string) {
@@ -128,7 +132,14 @@
 				<Lightbulb class="size-3.5" />
 				Sugerencia de mejora
 			</button>
-			<Button size="sm" disabled={enviando || !texto.trim()} onclick={publicar}>
+			<Button
+				size="sm"
+				disabled={!texto.trim()}
+				cargando={enviando}
+				textoCargando="Publicando…"
+				hecho={publicado}
+				onclick={publicar}
+			>
 				<Send class="size-3.5" /> Publicar
 			</Button>
 		</div>
