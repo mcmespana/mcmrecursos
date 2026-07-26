@@ -8,7 +8,7 @@
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
 	import { FORMATOS, formatoEfectivo } from '$lib/catalogo/formatos';
 	import { toast } from 'svelte-sonner';
-	import { LoaderCircle, Plus, Trash2 } from '@lucide/svelte';
+	import { Plus, Trash2 } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 
 	/**
@@ -273,9 +273,8 @@
 	</div>
 
 	<div class="flex justify-end">
-		<Button type="submit" size="lg" disabled={guardando}>
-			{#if guardando}<LoaderCircle class="size-4 animate-spin" />{/if}
-			{guardando ? 'Guardando…' : textoBoton}
+		<Button type="submit" size="lg" cargando={guardando} textoCargando="Guardando…">
+			{textoBoton}
 		</Button>
 	</div>
 </form>

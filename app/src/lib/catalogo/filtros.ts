@@ -1,4 +1,5 @@
 import type { RecursoCatalogo } from './tipos';
+import { FORMATOS, formatoEfectivo } from './formatos';
 
 export interface FacetaDef {
 	campo: string;
@@ -27,6 +28,15 @@ const EXTRACTORES: Record<string, (r: RecursoCatalogo) => string[]> = {
 	mcm_local: (r) => (r.mcm_local ? [r.mcm_local] : []),
 	idioma: (r) => (r.idioma ? [r.idioma] : []),
 	soporte: (r) => (r.soporte ? [r.soporte] : []),
+	// Formato (SPEC-011): cuentan el enlace principal Y los alternativos, así que buscar
+	// «PDF» encuentra también los recursos que solo tienen el PDF como formato secundario.
+	formato: (r) => {
+		const claves = [
+			formatoEfectivo(r.enlace, r.formato),
+			...r.archivos.map((a) => formatoEfectivo(a.enlace, a.formato))
+		].filter((c): c is keyof typeof FORMATOS => !!c);
+		return [...new Set(claves.map((c) => FORMATOS[c].etiqueta))];
+	},
 	autores: (r) => r.autores,
 	anyo_publicacion: (r) => (r.anyo_publicacion != null ? [String(r.anyo_publicacion)] : [])
 };
@@ -40,7 +50,8 @@ export const FACETAS: FacetaDef[] = [
 	{ campo: 'nivel', etiqueta: 'Nivel', valores: EXTRACTORES.nivel },
 	{ campo: 'mcm_local', etiqueta: 'MCM Local', valores: EXTRACTORES.mcm_local },
 	{ campo: 'idioma', etiqueta: 'Idioma', valores: EXTRACTORES.idioma },
-	{ campo: 'soporte', etiqueta: 'Soporte', valores: EXTRACTORES.soporte }
+	{ campo: 'soporte', etiqueta: 'Soporte', valores: EXTRACTORES.soporte },
+	{ campo: 'formato', etiqueta: 'Formato', valores: EXTRACTORES.formato }
 ];
 
 /**

@@ -5,7 +5,7 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Avatar from '$lib/components/ui/avatar';
 	import { toast } from 'svelte-sonner';
-	import { Lightbulb, LoaderCircle, MessageCircle, Send, Trash2 } from '@lucide/svelte';
+	import { Lightbulb, MessageCircle, Send, Trash2 } from '@lucide/svelte';
 
 	let {
 		supabase,
@@ -26,6 +26,7 @@
 	let texto = $state('');
 	let esSugerencia = $state(false);
 	let enviando = $state(false);
+	let publicado = $state(false);
 
 	$effect(() => {
 		const id = recursoId;
@@ -84,6 +85,8 @@
 		];
 		texto = '';
 		esSugerencia = false;
+		publicado = true;
+		setTimeout(() => (publicado = false), 1600);
 	}
 
 	async function borrar(id: string) {
@@ -129,12 +132,15 @@
 				<Lightbulb class="size-3.5" />
 				Sugerencia de mejora
 			</button>
-			<Button size="sm" disabled={enviando || !texto.trim()} onclick={publicar}>
-				{#if enviando}
-					<LoaderCircle class="size-3.5 animate-spin" /> Publicando…
-				{:else}
-					<Send class="size-3.5" /> Publicar
-				{/if}
+			<Button
+				size="sm"
+				disabled={!texto.trim()}
+				cargando={enviando}
+				textoCargando="Publicando…"
+				hecho={publicado}
+				onclick={publicar}
+			>
+				<Send class="size-3.5" /> Publicar
 			</Button>
 		</div>
 	</div>

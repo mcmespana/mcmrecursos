@@ -10,15 +10,7 @@
 	import { FORMATOS, formatoEfectivo } from '$lib/catalogo/formatos';
 	import { socialLocal } from '$lib/social/local.svelte';
 	import { toast } from 'svelte-sonner';
-	import {
-		ChevronDown,
-		Link2,
-		LoaderCircle,
-		Plus,
-		Send,
-		Sparkles,
-		Trash2
-	} from '@lucide/svelte';
+	import { ChevronDown, Link2, Plus, Send, Sparkles, Trash2 } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -263,13 +255,15 @@
 		>
 			<Plus class="size-4" /> Otro recurso
 		</Button>
-		<Button size="lg" disabled={enviando || !validas.length} onclick={enviar}>
-			{#if enviando}
-				<LoaderCircle class="size-4 animate-spin" /> Enviando…
-			{:else}
-				<Send class="size-4" />
-				Enviar {validas.length > 1 ? `${validas.length} recursos` : 'recurso'}
-			{/if}
+		<Button
+			size="lg"
+			disabled={!validas.length}
+			cargando={enviando}
+			textoCargando="Enviando…"
+			onclick={enviar}
+		>
+			<Send class="size-4" />
+			Enviar {validas.length > 1 ? `${validas.length} recursos` : 'recurso'}
 		</Button>
 	</div>
 </main>

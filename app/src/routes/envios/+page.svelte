@@ -5,7 +5,7 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { toast } from 'svelte-sonner';
 	import { socialLocal } from '$lib/social/local.svelte';
-	import { ExternalLink, Inbox, LoaderCircle, RefreshCw } from '@lucide/svelte';
+	import { ExternalLink, Inbox, RefreshCw } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -132,9 +132,13 @@
 			<Input bind:value={nuevoEnlace} placeholder="Enlace" type="url" />
 		</div>
 		<Dialog.Footer>
-			<Button disabled={reenviando || !nuevoTitulo.trim() || !nuevoEnlace.trim()} onclick={reenviar}>
-				{#if reenviando}<LoaderCircle class="size-4 animate-spin" />{/if}
-				{reenviando ? 'Reenviando…' : 'Reenviar'}
+			<Button
+				disabled={!nuevoTitulo.trim() || !nuevoEnlace.trim()}
+				cargando={reenviando}
+				textoCargando="Reenviando…"
+				onclick={reenviar}
+			>
+				Reenviar
 			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>

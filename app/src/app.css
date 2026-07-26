@@ -140,4 +140,17 @@
 		font-family: var(--font-display);
 		text-wrap: balance;
 	}
+
+	/* Movimiento bajo demanda (docs/04-diseno.md §5): quien pide menos animación, recibe
+	   menos animación — incluidas las de Tailwind y las transiciones de Svelte. */
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			animation-duration: 0.01ms !important;
+			animation-iteration-count: 1 !important;
+			transition-duration: 0.01ms !important;
+			scroll-behavior: auto !important;
+		}
+	}
 }

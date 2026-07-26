@@ -20,6 +20,7 @@
 		Sun
 	} from '@lucide/svelte';
 	import OnboardingMcm from '$lib/components/OnboardingMcm.svelte';
+	import BarraProgreso from '$lib/components/BarraProgreso.svelte';
 	import { browser } from '$app/environment';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { socialLocal } from '$lib/social/local.svelte';
@@ -132,6 +133,7 @@
 <svelte:head><link rel="icon" href={favicon} /></svelte:head>
 
 <ModeWatcher />
+<BarraProgreso />
 <Toaster richColors position="bottom-center" />
 
 {#if browser && data.perfil && !data.perfil.mcm_local_id && data.mcmLocales.length}

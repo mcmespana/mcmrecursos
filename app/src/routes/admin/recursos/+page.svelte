@@ -16,7 +16,6 @@
 		CloudAlert,
 		FileSearch,
 		GitBranch,
-		LoaderCircle,
 		Pencil,
 		Plus,
 		ScanSearch,
@@ -267,11 +266,11 @@
 					variant="outline"
 					size="sm"
 					class="h-8 gap-1.5"
-					disabled={loteAnalizando}
+					cargando={loteAnalizando}
+					textoCargando="Analizando…"
 					title="Clasifica con IA los recursos pendientes sin propuesta"
 				>
-					{#if loteAnalizando}<LoaderCircle class="size-3.5 animate-spin" />{:else}<Sparkles class="size-3.5" />{/if}
-					{loteAnalizando ? 'Analizando…' : 'Analizar pendientes'}
+					<Sparkles class="size-3.5" /> Analizar pendientes
 				</Button>
 			</form>
 			<form method="POST" action="?/detectarFormatos" use:enhance={resultadoFormatos()}>
@@ -280,11 +279,11 @@
 					variant="outline"
 					size="sm"
 					class="h-8 gap-1.5"
-					disabled={detectandoFormatos}
+					cargando={detectandoFormatos}
+					textoCargando="Detectando…"
 					title="Deduce el formato de cada enlace (Docs, PDF, Word, carpeta de Drive…)"
 				>
-					{#if detectandoFormatos}<LoaderCircle class="size-3.5 animate-spin" />{:else}<FileSearch class="size-3.5" />{/if}
-					{detectandoFormatos ? 'Detectando…' : 'Detectar formatos'}
+					<FileSearch class="size-3.5" /> Detectar formatos
 				</Button>
 			</form>
 			<form method="POST" action="?/reindexarSemantica" use:enhance={resultadoReindexar()}>
@@ -293,11 +292,11 @@
 					variant="outline"
 					size="sm"
 					class="h-8 gap-1.5"
-					disabled={reindexando}
+					cargando={reindexando}
+					textoCargando="Indexando…"
 					title="Genera los embeddings (Voyage) para la búsqueda por significado"
 				>
-					{#if reindexando}<LoaderCircle class="size-3.5 animate-spin" />{:else}<ScanSearch class="size-3.5" />{/if}
-					{reindexando ? 'Indexando…' : 'Reindexar búsqueda'}
+					<ScanSearch class="size-3.5" /> Reindexar búsqueda
 				</Button>
 			</form>
 			<Input bind:value={filtroTexto} placeholder="Buscar por id, nombre, tag…" class="h-8 w-56" />
@@ -329,7 +328,11 @@
 			</thead>
 			<tbody>
 				{#each filtrados as r (r.id)}
-					<tr class="h-11 border-t transition-colors hover:bg-accent/40">
+					{@const ocupada = cambiandoEstado.has(r.id) || versionando.has(r.id)}
+					<tr
+						class={`h-11 border-t transition-all hover:bg-accent/40 ${ocupada ? 'animate-pulse opacity-60' : ''}`}
+						aria-busy={ocupada || undefined}
+					>
 						<td class="px-3 font-mono text-xs text-muted-foreground">{r.id}</td>
 						<td class="max-w-72 px-3">
 							<span class="flex items-center gap-1.5">
@@ -400,15 +403,11 @@
 									type="submit"
 									variant="ghost"
 									size="sm"
-									disabled={versionando.has(r.id)}
+									cargando={versionando.has(r.id)}
+									textoCargando="Creando…"
 									title="Crear nueva versión (duplica y enlaza)"
 								>
-									{#if versionando.has(r.id)}
-										<LoaderCircle class="size-3.5 animate-spin" />
-									{:else}
-										<GitBranch class="size-3.5" />
-									{/if}
-									Versión
+									<GitBranch class="size-3.5" /> Versión
 								</Button>
 							</form>
 							<Button variant="ghost" size="sm" onclick={() => (editando = r)}>
@@ -464,9 +463,15 @@
 			<div class="px-4">
 				<form method="POST" action="?/clasificar" use:enhance={resultadoClasificar()}>
 					<input type="hidden" name="id" value={editando.id} />
-					<Button type="submit" variant="outline" size="sm" class="gap-1.5" disabled={analizando}>
-						{#if analizando}<LoaderCircle class="size-3.5 animate-spin" />{:else}<Sparkles class="size-3.5" />{/if}
-						{analizando ? 'Analizando…' : 'Analizar con IA'}
+					<Button
+						type="submit"
+						variant="outline"
+						size="sm"
+						class="gap-1.5"
+						cargando={analizando}
+						textoCargando="Analizando…"
+					>
+						<Sparkles class="size-3.5" /> Analizar con IA
 					</Button>
 				</form>
 
@@ -555,9 +560,13 @@
 				<input type="hidden" name="id" value={borrando.id} />
 				<Dialog.Footer class="gap-2">
 					<Button type="button" variant="ghost" onclick={() => (borrando = null)}>Cancelar</Button>
-					<Button type="submit" variant="destructive" disabled={eliminando}>
-						{#if eliminando}<LoaderCircle class="size-4 animate-spin" />{/if}
-						{eliminando ? 'Eliminando…' : 'Eliminar definitivamente'}
+					<Button
+						type="submit"
+						variant="destructive"
+						cargando={eliminando}
+						textoCargando="Eliminando…"
+					>
+						Eliminar definitivamente
 					</Button>
 				</Dialog.Footer>
 			</form>

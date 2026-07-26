@@ -73,8 +73,14 @@
 						<Button variant="outline" size="sm" href={`/?r=${c.id}`} target="_blank">Ver ficha</Button>
 						<form method="POST" action="?/aplicar_sheet" use:enhance={alResolver()}>
 							<input type="hidden" name="id" value={c.id} />
-							<Button type="submit" variant="outline" size="sm" disabled={ocupado.activo}>
-								{ocupado.activo ? 'Aplicando…' : 'Aplicar versión del Sheet'}
+							<Button
+								type="submit"
+								variant="outline"
+								size="sm"
+								cargando={ocupado.activo}
+								textoCargando="Aplicando…"
+							>
+								Aplicar versión del Sheet
 							</Button>
 						</form>
 					</li>

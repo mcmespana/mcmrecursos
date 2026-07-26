@@ -19,12 +19,14 @@ Entra:
 - Envío de recursos sin sesión iniciada, con clasificación opcional.
 - Borrado de recursos desde el panel.
 
-Queda fuera (por ahora):
+Queda fuera **por ahora, y está en el roadmap** (Fase 3.6):
 
 - Convertir documentos de Drive a PDF automáticamente. Se hará cuando exista la cuenta de
   servicio con permiso de escritura; el modelo ya lo admite (basta añadir otro
   `recurso_archivo` con `formato = 'pdf'`).
-- Subida de archivos a Storage: se siguen guardando enlaces.
+- Subida de archivos a Supabase Storage desde `/enviar`: se siguen guardando enlaces. Quien
+  aporta suele tener el material ya en su Drive, y el enlace evita duplicar el fichero y tener
+  que decidir su destino final.
 
 ## Tres conceptos que no son lo mismo
 
@@ -142,8 +144,22 @@ enlace al recurso.
 - [x] Un recurso se puede eliminar desde el panel, con confirmación.
 - [x] Detectar formatos en lote no marca los recursos como editados en web.
 
+## Faceta «Formato» en el buscador (migración 00017)
+
+El dato ya existía, así que promocionarlo a filtro fue insertar una fila en `recursos.faceta`:
+el buscador la lee de BD y no hizo falta tocar código de rutas. Va después de «Soporte». El
+extractor cuenta el enlace principal **y** los alternativos, así que filtrar por «PDF»
+encuentra también los recursos que solo tienen el PDF como formato secundario. Se puede
+ocultar o reordenar desde `/admin/config`.
+
+## Estados de acción en la interfaz
+
+Todo lo que habla con el servidor lo dice ahora en pantalla: `<Button cargando>` con spinner y
+`aria-busy`, `<Button hecho>` con un check que se apaga solo, filas atenuadas mientras su
+acción está en vuelo y una barra de progreso al navegar. El vocabulario completo está en
+`docs/04-diseno.md` §5. Que el botón deje de aceptar clics es, además, la segunda barrera
+contra el doble envío (la primera es la idempotencia del servidor).
+
 ## Preguntas abiertas
 
-- ¿Merece la pena una faceta «Formato» en el buscador público, ahora que el dato existe? De
-  momento solo es columna opcional de la tabla; se puede promover desde `/admin/config` sin
-  tocar código en cuanto se decida.
+Ninguna pendiente.

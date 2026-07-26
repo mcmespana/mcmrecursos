@@ -8,7 +8,7 @@
 	import RecursoFormulario from '$lib/components/admin/RecursoFormulario.svelte';
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
 	import { toast } from 'svelte-sonner';
-	import { Bot, ExternalLink, Inbox, LoaderCircle, Sparkles, UserRound, Undo2 } from '@lucide/svelte';
+	import { Bot, ExternalLink, Inbox, Sparkles, UserRound, Undo2 } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -223,9 +223,15 @@
 							</span>
 						{/if}
 					</div>
-					<Button type="submit" variant="outline" size="sm" disabled={analizandoEnvio}>
-						{#if analizandoEnvio}<LoaderCircle class="size-3.5 animate-spin" />{:else}<Sparkles class="size-3.5" />{/if}
-						{analizandoEnvio ? 'Analizando…' : sug ? 'Reanalizar' : 'Analizar con IA'}
+					<Button
+						type="submit"
+						variant="outline"
+						size="sm"
+						cargando={analizandoEnvio}
+						textoCargando="Analizando…"
+					>
+						<Sparkles class="size-3.5" />
+						{sug ? 'Reanalizar' : 'Analizar con IA'}
 					</Button>
 				</div>
 				{#if sug?.avisos?.length}
@@ -295,12 +301,19 @@
 					variant="ghost"
 					class="text-muted-foreground"
 					disabled={cerrando !== null}
+					cargando={cerrando === 'descartar'}
+					textoCargando="Descartando…"
 				>
-					{cerrando === 'descartar' ? 'Descartando…' : 'Descartar'}
+					Descartar
 				</Button>
-				<Button type="submit" form="form-devolver" disabled={cerrando !== null}>
-					{#if cerrando === 'devolver'}<LoaderCircle class="size-4 animate-spin" />{/if}
-					{cerrando === 'devolver' ? 'Devolviendo…' : 'Devolver con motivo'}
+				<Button
+					type="submit"
+					form="form-devolver"
+					disabled={cerrando !== null}
+					cargando={cerrando === 'devolver'}
+					textoCargando="Devolviendo…"
+				>
+					Devolver con motivo
 				</Button>
 			</Dialog.Footer>
 		{/if}
