@@ -101,6 +101,27 @@ barras, jamás donut de 8 quesitos), color al final y computado — secuencial =
 claro→oscuro, categórica = la de familias validada, semánticos reservados. Un eje, nunca
 dos. Tooltips por defecto; `tabular-nums`; vista tabla accesible para cada gráfica.
 
+**Cómo está implementado en `/admin/stats`** (referencia para gráficas nuevas):
+
+- **Un tono por significado.** Teal = magnitud de uso/aperturas (serie temporal y los dos
+  rankings comparten tono porque miden lo mismo); ámbar = valoración, coherente con la capa
+  social del resto de la app; el estado del catálogo usa pasos de teal como rampa *ordinal*
+  del flujo editorial (borrador → publicado), nunca por tamaño del dato.
+- **Rankings top-N como lista de barras**, no como gráfica de ejes: los nombres largos en
+  español caben enteros, la tarjeta se ajusta al contenido (2 filas o 8) y el valor va como
+  etiqueta directa. Marca de 8 px, extremo de dato redondeado 4 px, base cuadrada.
+- **Serie temporal con LayerChart**: área en *wash* (~12 % de opacidad, nunca un bloque
+  saturado), línea de 2 px, rejilla horizontal fina y sólida, crosshair con regla **sólida**
+  (las discontinuas se leen como umbral) y fecha del tooltip en español.
+- **Vista tabla en cada gráfica** (`<details>` «Ver datos»), requisito de accesibilidad: ningún
+  valor queda accesible solo por el tooltip.
+- Cifras grandes de KPI con figuras **proporcionales**; `tabular-nums` solo donde los números
+  se alinean en columna (tablas, ticks de eje, valores de las listas).
+
+⚠️ Detalle de LayerChart: los objetos que se pasan por `props={{ highlight: { lines: … } }}`
+**se descartan si no llevan `class`** (`extractLayerProps` solo los propaga en ese caso). Por
+eso la regla sólida se fuerza con `class="… [stroke-dasharray:none]"` y no con `dashArray`.
+
 **Librería: LayerChart** (`layerchart@2.0.2`, ya instalada y en uso en `/admin/stats`).
 Es la elegida y la que toca seguir usando para cualquier gráfica nueva: nativa de
 Svelte 5 (runes), sobre D3, se colorea con las variables de Tailwind del tema
