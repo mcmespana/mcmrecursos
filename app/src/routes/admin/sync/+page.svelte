@@ -20,7 +20,7 @@
 				})
 			: 'nunca';
 
-	function alResolver() {
+	function alResolver(id: string) {
 		return ocupado.enhance(async ({ result }: any) => {
 			if (result.type === 'success') {
 				toast.success('En la próxima sincronización se aplicará la versión del Sheet');
@@ -28,7 +28,7 @@
 			} else {
 				toast.error('No se pudo resolver', { description: result.data?.error });
 			}
-		});
+		}, id);
 	}
 
 	const erroresDe = (log: any) =>
@@ -71,13 +71,13 @@
 							</span>
 						</div>
 						<Button variant="outline" size="sm" href={`/?r=${c.id}`} target="_blank">Ver ficha</Button>
-						<form method="POST" action="?/aplicar_sheet" use:enhance={alResolver()}>
+						<form method="POST" action="?/aplicar_sheet" use:enhance={alResolver(c.id)}>
 							<input type="hidden" name="id" value={c.id} />
 							<Button
 								type="submit"
 								variant="outline"
 								size="sm"
-								cargando={ocupado.activo}
+								cargando={ocupado.cargando(c.id)}
 								textoCargando="Aplicando…"
 							>
 								Aplicar versión del Sheet
