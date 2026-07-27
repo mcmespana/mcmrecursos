@@ -6,7 +6,7 @@
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { toast } from 'svelte-sonner';
 	import { crearOcupado } from '$lib/acciones.svelte';
-	import { Eye, EyeOff, Lock, LockOpen, Plus, Save, Trash2 } from '@lucide/svelte';
+	import { Eye, EyeOff, Lock, LockOpen, Plus, Power, Save, Sparkles, Trash2 } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -47,7 +47,7 @@
 	<div>
 		<h1 class="font-display text-2xl font-bold">Configuración</h1>
 		<p class="text-sm text-muted-foreground">
-			Listas cerradas, facetas del buscador, MCM locales y accesos preautorizados.
+			Listas cerradas, facetas del buscador, MCM locales, accesos preautorizados y funciones.
 		</p>
 	</div>
 
@@ -57,6 +57,7 @@
 			<Tabs.Trigger value="facetas">Facetas</Tabs.Trigger>
 			<Tabs.Trigger value="mcm">MCM locales</Tabs.Trigger>
 			<Tabs.Trigger value="accesos">Accesos preautorizados</Tabs.Trigger>
+			<Tabs.Trigger value="funciones">Funciones</Tabs.Trigger>
 		</Tabs.List>
 
 		<!-- ═══ Listas cerradas (lista_valor) ═══ -->
@@ -437,6 +438,87 @@
 				Al hacer su primer login con Google, estos emails nacen ya con su rol y MCM local. Si el
 				perfil ya existe, el cambio se aplica al momento.
 			</p>
+		</Tabs.Content>
+
+		<!-- ═══ Funciones apagables (ajuste) ═══ -->
+		<Tabs.Content value="funciones" class="flex flex-col gap-3 pt-3">
+			<p class="text-sm text-pretty text-muted-foreground">
+				Interruptores para apagar una función al momento, sin tocar código ni desplegar. Lo que se
+				apaga desaparece de la interfaz y el resto del banco sigue funcionando igual. El cambio
+				tarda unos segundos en llegar a todos los servidores.
+			</p>
+
+			<div class="flex flex-col gap-2 rounded-xl border p-4">
+				<div class="flex flex-wrap items-center gap-2">
+					<Sparkles class="size-4 text-primary" />
+					<span class="font-medium">«Recomiéndame…» en Descubre</span>
+					<span
+						class={`rounded-full px-2 py-0.5 text-xs font-medium ${
+							data.funciones.descubreIa
+								? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300'
+								: 'bg-muted text-muted-foreground'
+						}`}
+					>
+						{data.funciones.descubreIa ? 'Encendida' : 'Apagada'}
+					</span>
+					<form
+						method="POST"
+						action="?/ajusteFlag"
+						class="ml-auto"
+						use:enhance={alGuardar(
+							data.funciones.descubreIa ? 'Recomendaciones apagadas' : 'Recomendaciones encendidas',
+							'descubre_ia'
+						)}
+					>
+						<input type="hidden" name="clave" value="descubre_ia" />
+						<input type="hidden" name="valor" value={String(!data.funciones.descubreIa)} />
+						<Button
+							type="submit"
+							size="sm"
+							variant={data.funciones.descubreIa ? 'outline' : 'default'}
+							class="h-8 gap-1.5"
+							disabled={ocupado.activo || data.funciones.descubreIaForzado}
+							hecho={ocupado.hecho('descubre_ia')}
+						>
+							<Power class="size-3.5" />
+							{data.funciones.descubreIa ? 'Apagar' : 'Encender'}
+						</Button>
+					</form>
+				</div>
+
+				<p class="text-sm text-pretty text-muted-foreground">
+					El cuadro de texto de <a href="/descubre" class="text-primary hover:underline">/descubre</a>
+					donde se cuenta qué se necesita («una dinámica de confianza para 1º ESO, 45 min») y la IA
+					sube al principio del mazo lo que encaja, explicando cada tarjeta. Si un día falla, se
+					pone caro o recomienda mal, apágalo aquí: el mazo normal de Descubre no se entera.
+				</p>
+
+				<div class="flex flex-wrap gap-3 text-xs text-muted-foreground">
+					<span>
+						Gemini (redacta y elige):
+						<strong class={data.funciones.gemini ? 'text-emerald-600' : 'text-destructive'}>
+							{data.funciones.gemini ? 'clave puesta' : 'sin clave'}
+						</strong>
+					</span>
+					<span>
+						Voyage (busca por significado):
+						<strong class={data.funciones.voyage ? 'text-emerald-600' : 'text-muted-foreground'}>
+							{data.funciones.voyage ? 'clave puesta' : 'sin clave (irá por palabras)'}
+						</strong>
+					</span>
+				</div>
+
+				{#if data.funciones.descubreIaForzado}
+					<p class="rounded-lg bg-warm/15 px-3 py-2 text-xs text-pretty">
+						⚠️ La variable <code>DESCUBRE_IA</code> del entorno manda sobre este botón. Quítala en
+						Vercel para volver a decidirlo desde aquí.
+					</p>
+				{:else if !data.funciones.gemini}
+					<p class="rounded-lg bg-muted px-3 py-2 text-xs text-pretty">
+						Sin <code>GEMINI_API_KEY</code> la función no aparece en Descubre aunque esté encendida.
+					</p>
+				{/if}
+			</div>
 		</Tabs.Content>
 	</Tabs.Root>
 </div>

@@ -5,8 +5,8 @@
 - [x] Documentación spec-driven
 - [x] BD operativa: esquema `recursos` en el proyecto compartido mcmvotaciones, migración 00001 aplicada (AD-6)
 - [x] App conectada a Supabase (@supabase/ssr, hooks + locals, callback OAuth)
-- [ ] Google OAuth configurado en el dashboard de Supabase (pendiente: falta client ID/secret
-      de Google Cloud; mientras tanto, login alternativo por email+contraseña en `/entrar`)
+- [x] Google OAuth configurado en el dashboard de Supabase (2026-07-27). Sigue existiendo el
+      login alternativo por email+contraseña en `/entrar` para administración.
 - [x] Login con Google + perfiles, onboarding de MCM local (SPEC-001)
 
 ## Fase 1 — Catálogo y búsqueda
@@ -45,8 +45,7 @@
 - [x] /admin/config (SPEC-008 §config, solo admin) con pestañas: listas cerradas
       (`lista_valor`), facetas (`faceta`, incluye promocionar campos nuevos), MCM locales
       (`mcm_local`) y accesos preautorizados (`acceso_previo`, aplica al perfil si ya existe)
-- [ ] Confirmar email limpio de Caravaca y preautorizarlo (única delegación sin editor;
-      ya se puede dar de alta desde /admin/config → Accesos preautorizados)
+- [x] Caravaca preautorizada (2026-07-27): ya no queda ninguna delegación sin editor
 - [x] Nuevas versiones de un recurso (SPEC-009, migración 00012): linaje `version_de`,
       la vigente oculta a las anteriores y hereda su valoración/uso/accesos; ficha con
       «versiones anteriores» y banner en las viejas; «Crear nueva versión» en /admin/recursos
@@ -55,24 +54,19 @@
 
 ## 👉 SIGUIENTE
 
-IA (SPEC-010, autoclasificación + búsqueda semántica) y dashboard de estadísticas (Fase 4)
-ya están implementados — ver `docs/05-configuracion-servicios.md` para las claves pendientes
-de configurar (Gemini, Voyage, cuenta de servicio de Drive, OAuth de Google).
+Toda la SPEC-010 está implementada (autoclasificación, búsqueda semántica y el
+«Recomiéndame…» de Descubre) y el dashboard de estadísticas también. Lo que queda es
+sobre todo **configuración** — ver `docs/05-configuracion-servicios.md` para las claves
+pendientes (Gemini, Voyage, cuenta de servicio de Drive).
 
-### ⚠️ Estado de la rama ahora mismo (2026-07-26)
+### ⚠️ Estado (2026-07-27)
 
-Todo el trabajo de esta sesión (versiones de recurso, IA, login, Drive, búsqueda semántica
-y el dashboard de LayerChart) está **commiteado y pusheado** en la rama
-`claude/tabla-admin-config-85va91`, verificado con `npm run check` + `npm run build` (0
-errores) y, en el caso del dashboard, probado en navegador con capturas en claro/oscuro.
-**No hay ningún PR abierto ni mergeado a `main` con el dashboard de estadísticas** — el
-agente se detuvo ahí a propósito (el CLAUDE.md de este repo dice "no crear PRs sin que se
-pidan") esperando confirmación. Si retomas esto sin ese contexto: revisa primero si la
-rama ya se mergeó o sigue esperando `create_pull_request` + `merge_pull_request` (squash)
-contra `main`.
+El dashboard de estadísticas **ya está en `main`** (PR #15), igual que formatos, aportación
+sin cuenta y estados de carga (PR #16). La nota anterior sobre un PR pendiente del dashboard
+quedó obsoleta.
 
-La migración `supabase/migrations/00014_busqueda_semantica.sql` **ya está aplicada** en
-remoto (proyecto `sjhxhsdckvungsrbquve`, esquema `recursos`) — no reaplicar.
+Migraciones **ya aplicadas** en remoto (proyecto `sjhxhsdckvungsrbquve`, esquema `recursos`)
+— no reaplicar: hasta la `00018_ajustes_descubre_ia.sql` inclusive.
 
 Existe un usuario de servicio en Supabase Auth para entrar sin OAuth por `/entrar`
 (enlace discreto en el `·` del footer): `asistente@movimientoconsolacion.com`, rol
@@ -89,13 +83,13 @@ gráfica nueva.
 
 ### Próximos pasos
 
-1. Decidir si se abre/mergea el PR del dashboard (ver estado de la rama arriba).
-2. Configurar Google OAuth en el dashboard de Supabase (sigue pendiente, Fase 0).
-3. Confirmar email de Caravaca y preautorizarlo (Fase 3).
-4. Pulsar «Detectar formatos» en /admin/recursos para rellenar el formato de lo que ya hay.
-5. "Recomiéndame una actividad para…" conversacional en Descubre (Fase 5, requiere Voyage).
-6. Más adelante: conversión a PDF desde Drive, subida a Storage, presets de mazo para Descubre
-   y editor visual de itinerarios en /admin/config.
+1. Poner `GEMINI_API_KEY` y `VOYAGE_API_KEY` en Vercel y pulsar «Reindexar búsqueda» en
+   /admin/recursos: es lo único que le falta al «Recomiéndame…» para encenderse del todo
+   (sin Voyage funciona, pero recomienda peor porque los candidatos salen por palabras).
+2. Pulsar «Detectar formatos» en /admin/recursos para rellenar el formato de lo que ya hay.
+3. Presets de mazo para Descubre («Adviento», «Para monitores»…).
+4. Más adelante: conversión a PDF desde Drive, subida a Storage y editor visual de
+   itinerarios en /admin/config.
 
 ## Fase 3.6 — Formatos, aportación abierta y pulido del panel (SPEC-011)
 - [x] Migración 00015: `recurso.formato`, tabla `recurso_archivo`, envío sin cuenta
@@ -133,7 +127,13 @@ gráfica nueva.
       sesgo a mejor valorados, gestos táctiles + botones + atajos de teclado, descartes por
       sesión, deshacer, volver a barajar y enlace en cabecera
 - [ ] Presets de mazo configurables ("Adviento", "Para monitores"…)
-- [ ] Con IA (tras fase 5): mazo por texto libre con embeddings y explicación por tarjeta
+- [x] Con IA (SPEC-007 fase 2, migración 00018): cuentas qué necesitas en texto libre y la IA
+      **reordena** el mazo (no lo recorta) con una línea por tarjeta explicando por qué;
+      chips de retoque («más cortas», «para más mayores»), filtros interpretados que se
+      ofrecen con un clic y consulta compartible en `?ia=`. Dos llamadas por consulta
+      (embedding + una a Gemini para todas las tarjetas), tope por IP y **cuatro formas de
+      apagarlo**: /admin/config → Funciones, `DESCUBRE_IA=off`, fusible automático tras 3
+      fallos seguidos y ausencia de clave
 
 ## Fase 4 — Estadísticas
 - [x] Dashboard con LayerChart: serie de accesos (30 días), top recursos, mejor valorados
@@ -147,4 +147,4 @@ gráfica nueva.
 - [x] «Analizar todo lo pendiente» en lote y en la cola de revisión
 - [x] Embeddings (pgvector, Voyage 200M gratis) + búsqueda híbrida con Orama (etiqueta «por
       significado» en el buscador; migración 00014, «Reindexar búsqueda» en /admin/recursos)
-- [ ] "Recomiéndame una actividad para…" conversacional en Descubre
+- [x] "Recomiéndame una actividad para…" conversacional en Descubre (ver Fase 3.5)

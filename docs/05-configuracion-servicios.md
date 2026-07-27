@@ -25,6 +25,7 @@ Resumen de todas las variables:
 | `VOYAGE_API_KEY` | Búsqueda semántica (embeddings Voyage) | Opcional |
 | `VOYAGE_MODELO` | Modelo de embeddings (por defecto `voyage-4-lite`) | Opcional |
 | `GOOGLE_SERVICE_ACCOUNT_JSON` | Leer documentos de Drive para clasificar | Opcional |
+| `DESCUBRE_IA` | Freno de mano de «Recomiéndame…» (`off`/`on`) | Opcional |
 
 ---
 
@@ -80,6 +81,37 @@ IA añade recursos afines que la búsqueda por palabras no habría encontrado. S
 buscador funciona igual (solo por palabras) y la etiqueta no aparece.
 
 > Ojo: Voyage **solo hace embeddings** (búsqueda), no clasifica. Clasificar sigue siendo Gemini.
+
+---
+
+## 2 bis. «Recomiéndame…» en Descubre — cómo se enciende y cómo se apaga
+
+**Qué es:** el cuadro de texto de `/descubre` donde alguien cuenta lo que necesita («una
+dinámica de confianza para 1º ESO, 45 min») y la IA sube al principio del mazo lo que encaja,
+con una línea por tarjeta explicando por qué (SPEC-007 §fase 2).
+
+**Para encenderlo del todo:** `GEMINI_API_KEY` (obligatoria: sin ella no aparece) y
+`VOYAGE_API_KEY` + «Reindexar búsqueda» (opcional pero muy recomendable: sin embeddings los
+candidatos salen por coincidencia de palabras y recomienda bastante peor).
+
+**Coste:** dos llamadas por consulta (un embedding minúsculo + una sola a Gemini Flash para
+todas las tarjetas de golpe, no una por tarjeta). Además hay un tope de 12 consultas cada 5
+minutos por IP, porque `/descubre` es público.
+
+**Cómo apagarlo si un día da guerra** — cuatro capas, de más fuerte a más débil:
+
+1. **`DESCUBRE_IA=off`** en Vercel → el freno de mano: gana sobre todo lo demás. Requiere
+   redeploy, pero corta seguro aunque el panel o la BD estén de por medio.
+2. **`/admin/config` → pestaña Funciones** → botón **Apagar**. Es el del día a día: sin
+   desplegar, tarda unos segundos en llegar a todos los servidores. Esa misma pestaña dice
+   si las claves de Gemini y Voyage están puestas, que es lo primero que mirar cuando «no
+   sale el cuadro».
+3. **Fusible automático:** si Gemini falla 3 veces seguidas, el endpoint se apaga solo 10
+   minutos y deja de llamar. Se rearma sin que nadie haga nada.
+4. **Sin `GEMINI_API_KEY`** simplemente no existe.
+
+En los cuatro casos el cuadro desaparece de `/descubre` y el mazo de siempre sigue igual:
+apagar esto nunca rompe la página.
 
 ---
 
@@ -144,13 +176,14 @@ sería un agujero de seguridad): el usuario se crea en Supabase y la contraseña
 
 ---
 
-## 5. Google OAuth (login con Google) — pendiente
+## 5. Google OAuth (login con Google) — ✅ configurado (2026-07-27)
 
-Para el login «Entrar con Google» del público (SPEC-001), en el dashboard de Supabase:
+Ya funciona el «Entrar con Google» del público (SPEC-001). Queda documentado cómo se hizo por
+si hay que rehacerlo o rotar credenciales — en el dashboard de Supabase:
 **Authentication → Providers → Google**, y pega el **Client ID/Secret** de una credencial
 OAuth creada en Google Cloud (**APIs y servicios → Credenciales → ID de cliente de OAuth**,
-tipo *Aplicación web*, con la URL de callback de Supabase). Mientras no esté, usa el login de
-usuario+contraseña del punto 4.
+tipo *Aplicación web*, con la URL de callback de Supabase). El login de usuario+contraseña del
+punto 4 sigue existiendo para administración.
 
 ---
 
@@ -173,8 +206,8 @@ solo en el servidor, nunca en el cliente. `SYNC_CLAVE` es la clave del sync del 
 
 ## Orden sugerido para el día de la configuración
 
-1. **`GEMINI_API_KEY`** → enciende la autoclasificación (lo que más curro ahorra).
-2. **Usuario admin** (punto 4) → para entrar cómodo sin OAuth.
+1. **`GEMINI_API_KEY`** → enciende la autoclasificación (lo que más curro ahorra) y el
+   «Recomiéndame…» de Descubre.
+2. **`VOYAGE_API_KEY`** + «Reindexar búsqueda» → búsqueda semántica y recomendaciones buenas.
 3. **Cuenta de servicio** (punto 3) → la IA lee los documentos y clasifica de lujo.
-4. **`VOYAGE_API_KEY`** → búsqueda semántica.
-5. Resto (Resend, OAuth Google, Sheet) cuando toque.
+4. Resto (Resend, Sheet) cuando toque. OAuth de Google y el usuario admin ya están hechos.

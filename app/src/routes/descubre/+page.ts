@@ -1,7 +1,7 @@
 import type { PageLoad } from './$types';
 import { cargarDatosCatalogo } from '$lib/catalogo/cargar';
 
-export const load: PageLoad = async ({ parent }) => {
+export const load: PageLoad = async ({ parent, data }) => {
 	const { supabase, session } = await parent();
-	return cargarDatosCatalogo(supabase, session);
+	return { ...data, ...(await cargarDatosCatalogo(supabase, session)) };
 };

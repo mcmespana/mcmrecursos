@@ -25,7 +25,8 @@
 	import { socialLocal } from '$lib/social/local.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Button } from '$lib/components/ui/button';
-	import { Eye, Heart, RotateCcw, SearchX, Shuffle, X } from '@lucide/svelte';
+	import { Input } from '$lib/components/ui/input';
+	import { Eye, Heart, Plus, RotateCcw, SearchX, Shuffle, Sparkles, X } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -57,6 +58,8 @@
 		for (const f of facetas) {
 			if (seleccion[f.campo]?.length) params.set(f.campo, seleccion[f.campo].join('|'));
 		}
+		// la consulta de IA viaja en la URL: un mazo pensado se puede compartir por WhatsApp
+		if (recomendacion) params.set('ia', recomendacion.consulta);
 		const cadena = params.toString();
 		if (`${page.url.search}` !== (cadena ? `?${cadena}` : '')) {
 			replaceState(cadena ? `?${cadena}` : page.url.pathname, {});
@@ -189,6 +192,111 @@
 	let abierto = $state<RecursoCatalogo | null>(null);
 	let historial = $state<{ recurso: RecursoCatalogo; accion: 'descartar' | 'guardar' }[]>([]);
 
+	// --- «Recomiéndame…» (SPEC-007 fase 2): cuentas qué necesitas y la IA sube al principio
+	//     del mazo lo que encaja, con una línea explicando por qué cada tarjeta ---
+	let consultaIa = $state(paramsIniciales.get('ia') ?? '');
+	let pensando = $state(false);
+	let iaApagada = $state(false); // el servidor la apagó a mitad de sesión
+	let recomendacion = $state<{
+		consulta: string;
+		resumen: string | null;
+		orden: string[];
+		motivos: Map<string, string>;
+		sugerencias: { campo: string; valor: string }[];
+	} | null>(null);
+
+	const puedeRecomendar = $derived(data.iaDescubre && !iaApagada);
+	const motivoDe = (id: string) => recomendacion?.motivos.get(id) ?? null;
+
+	/** Retoques de un clic: hablarle en corto, como se le habla a una persona. */
+	const RETOQUES = [
+		'más cortas',
+		'más movidas',
+		'más tranquilas',
+		'para más mayores',
+		'para más pequeños',
+		'más creativas'
+	];
+
+	async function pedirRecomendacion(texto = consultaIa) {
+		const q = texto.replace(/\s+/g, ' ').trim();
+		if (!q || pensando) return;
+		pensando = true;
+		try {
+			const res = await fetch('/api/recomendar', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ q })
+			});
+			const json = await res.json();
+
+			if (!json?.disponible) {
+				iaApagada = true;
+				toast.info('Las recomendaciones con IA están apagadas ahora mismo', {
+					description: 'Descubre sigue funcionando con el mazo de siempre.'
+				});
+				return;
+			}
+			if (!json.ok) {
+				toast.error('No he podido pensar la recomendación', { description: json.error });
+				return;
+			}
+
+			consultaIa = json.consulta;
+			if (!json.recomendaciones?.length) {
+				recomendacion = null;
+				toast.info('No he encontrado nada que encaje con eso', {
+					description: 'Te dejo el mazo normal; prueba a contármelo de otra manera.'
+				});
+				return;
+			}
+			recomendacion = {
+				consulta: json.consulta,
+				resumen: json.resumen ?? null,
+				orden: json.recomendaciones.map((r: any) => r.id),
+				motivos: new Map<string, string>(
+					json.recomendaciones.map((r: any) => [r.id, r.motivo] as [string, string])
+				),
+				sugerencias: ['etapas', 'edades', 'tipo'].flatMap((campo) =>
+					((json.sugerencias?.[campo] ?? []) as string[]).map((valor) => ({ campo, valor }))
+				)
+			};
+			toast.success(
+				`${json.recomendaciones.length} ${json.recomendaciones.length === 1 ? 'recurso' : 'recursos'} para ti, al principio del mazo`
+			);
+		} catch {
+			toast.error('No he podido conectar para recomendarte');
+		} finally {
+			pensando = false;
+		}
+	}
+
+	function limpiarRecomendacion() {
+		recomendacion = null;
+		consultaIa = '';
+	}
+
+	// Los filtros que ha entendido la IA se ofrecen, no se aplican: los metadatos del banco
+	// son irregulares y un filtro duro sobre una etapa mal puesta te deja el mazo vacío.
+	// La ordenación semántica ya lleva la intención dentro; esto es para rematar a mano.
+	const sugerenciasUtiles = $derived(
+		(recomendacion?.sugerencias ?? []).filter(
+			(s) => facetas.some((f) => f.campo === s.campo) && !seleccion[s.campo]?.includes(s.valor)
+		)
+	);
+	function aplicarSugerencia(campo: string, valor: string) {
+		seleccion = { ...seleccion, [campo]: [...(seleccion[campo] ?? []), valor] };
+	}
+
+	// deep link `?ia=…`: se lanza sola una vez al abrir, para que un enlace compartido
+	// llegue con su mazo ya pensado
+	let arrancada = false;
+	$effect(() => {
+		if (!browser || arrancada) return;
+		arrancada = true;
+		if (consultaIa.trim() && data.iaDescubre) untrack(() => pedirRecomendacion());
+	});
+
 	function armarMazo() {
 		cargarDescartes();
 		const candidatos = filtrar(recursosVigentes, facetas, seleccion, null).filter(
@@ -199,15 +307,30 @@
 			if (esFavorito(r.id) || esUsado(r.id)) w -= 10;
 			return w;
 		};
-		mazo = candidatos
-			.map((r) => [r, peso(r)] as const)
-			.sort((a, b) => b[1] - a[1])
-			.map(([r]) => r);
+		const barajar = (lista: RecursoCatalogo[]) =>
+			lista
+				.map((r) => [r, peso(r)] as const)
+				.sort((a, b) => b[1] - a[1])
+				.map(([r]) => r);
+
+		if (!recomendacion) {
+			mazo = barajar(candidatos);
+			return;
+		}
+		// Con recomendación: lo que ha elegido la IA va delante y en SU orden; detrás, el
+		// mazo de siempre. La IA ordena, no recorta — así una mala recomendación te deja
+		// igual que estabas en vez de dejarte sin nada que descubrir.
+		const rango = new Map(recomendacion.orden.map((id, i) => [id, i]));
+		const elegidos = candidatos
+			.filter((r) => rango.has(r.id))
+			.sort((a, b) => rango.get(a.id)! - rango.get(b.id)!);
+		mazo = [...elegidos, ...barajar(candidatos.filter((r) => !rango.has(r.id)))];
 	}
 
 	$effect(() => {
 		if (!browser) return;
 		void seleccion; // el mazo se rearma al cambiar filtros, no con cada swipe
+		void recomendacion; // ...y al llegar (o irse) una recomendación
 		untrack(armarMazo);
 	});
 
@@ -346,10 +469,93 @@
 		<h1 class="font-display text-3xl font-bold tracking-tight">
 			Descubre <span class="text-primary">recursos</span>
 		</h1>
-		<p class="text-sm text-muted-foreground">
-			Uno a uno: ✕ descarta, ❤ guarda en favoritos, ↑ abre la ficha. También con las flechas del
-			teclado.
-		</p>
+		{#if !recomendacion}
+			<p class="text-sm text-muted-foreground">
+				Uno a uno: ✕ descarta, ❤ guarda en favoritos, ↑ abre la ficha. También con las flechas del
+				teclado.
+			</p>
+		{/if}
+
+		{#if puedeRecomendar}
+			<form
+				class="flex w-full max-w-md items-center gap-2"
+				onsubmit={(e) => {
+					e.preventDefault();
+					pedirRecomendacion();
+				}}
+			>
+				<Input
+					bind:value={consultaIa}
+					maxlength={220}
+					class="h-9"
+					aria-label="Cuéntame qué necesitas"
+					placeholder="Una dinámica de confianza para 1º ESO, 45 min…"
+				/>
+				<Button
+					type="submit"
+					class="h-9 shrink-0 gap-1.5"
+					disabled={!consultaIa.trim()}
+					cargando={pensando}
+					textoCargando="Pensando…"
+				>
+					<Sparkles class="size-4" /> Recomiéndame
+				</Button>
+			</form>
+		{/if}
+
+		{#if recomendacion}
+			<div
+				class="flex w-full max-w-md flex-col gap-1.5 rounded-xl border border-primary/30 bg-primary/5 p-2.5 text-left"
+				transition:fade={{ duration: 150 }}
+			>
+				<div class="flex items-start gap-2">
+					<Sparkles class="mt-0.5 size-4 shrink-0 text-primary" />
+					<p class="flex-1 text-sm text-pretty">
+						{recomendacion.resumen ?? `Lo que mejor encaja con «${recomendacion.consulta}»`}
+					</p>
+					<button
+						type="button"
+						class="shrink-0 rounded-md p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+						aria-label="Quitar la recomendación y volver al mazo normal"
+						onclick={limpiarRecomendacion}
+					>
+						<X class="size-3.5" />
+					</button>
+				</div>
+
+				<!-- una sola fila que se desliza: en móvil la cabecera no puede comerse la tarjeta -->
+				{#if sugerenciasUtiles.length}
+					<div class="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+						<span class="shrink-0 text-xs text-muted-foreground">Afinar:</span>
+						{#each sugerenciasUtiles as s (s.campo + s.valor)}
+							<button
+								type="button"
+								class="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-primary/30 px-2 py-0.5 text-xs text-primary hover:bg-primary/10"
+								onclick={() => aplicarSugerencia(s.campo, s.valor)}
+							>
+								<Plus class="size-3" />
+								{s.valor}
+							</button>
+						{/each}
+					</div>
+				{/if}
+
+				<div class="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+					<span class="shrink-0 text-xs text-muted-foreground">Pídeme:</span>
+					{#each RETOQUES as retoque (retoque)}
+						<button
+							type="button"
+							disabled={pensando}
+							class="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted/70 hover:text-foreground disabled:opacity-50"
+							onclick={() => pedirRecomendacion(`${recomendacion!.consulta}, ${retoque}`)}
+						>
+							{retoque}
+						</button>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
 		{#if filtrosActivos.length}
 			<div class="flex flex-wrap items-center justify-center gap-1.5">
 				{#each filtrosActivos as filtro (filtro.campo + filtro.valor)}
@@ -374,7 +580,7 @@
 					ajustar en el buscador
 				</a>
 			</div>
-		{:else}
+		{:else if !recomendacion}
 			<a href="/" class="text-xs text-muted-foreground underline-offset-2 hover:underline">
 				¿Buscas algo concreto? Filtra en el buscador y vuelve con «Descubre»
 			</a>
@@ -392,6 +598,7 @@
 				{@const Icono = (familia && FAMILIA_ICON[familia]) || ICONO_NEUTRO}
 				{@const src = !imgFallos[r.id] ? miniatura(r) : null}
 				{@const esTop = i === 0}
+				{@const motivo = motivoDe(r.id)}
 				<article
 					class={`absolute inset-0 flex flex-col overflow-hidden rounded-3xl border bg-card shadow-xl ${
 						esTop ? 'cursor-grab touch-none active:cursor-grabbing' : ''
@@ -439,6 +646,12 @@
 						<h2 class="font-display text-xl leading-snug font-bold text-balance">
 							{limpiarNombre(r.nombre)}
 						</h2>
+						{#if motivo}
+							<p class="flex items-start gap-1.5 rounded-lg bg-primary/10 px-2 py-1.5 text-xs text-primary">
+								<Sparkles class="mt-px size-3 shrink-0" />
+								<span class="text-pretty">{motivo}</span>
+							</p>
+						{/if}
 						{#if r.etapas.length || r.edades.length}
 							<p class="text-xs text-muted-foreground">
 								{[r.etapas.join(' · '), r.edades.slice(0, 3).join(', ')].filter(Boolean).join(' — ')}
@@ -449,7 +662,9 @@
 							<span class="text-xs text-muted-foreground tabular-nums">{r.num_accesos} aperturas</span>
 						</div>
 						{#if r.descripcion}
-							<p class="line-clamp-3 text-sm text-muted-foreground">{r.descripcion}</p>
+							<p class={`text-sm text-muted-foreground ${motivo ? 'line-clamp-2' : 'line-clamp-3'}`}>
+								{r.descripcion}
+							</p>
 						{/if}
 						{#if r.tags.length}
 							<div class="mt-auto flex flex-wrap gap-1 pt-1">
