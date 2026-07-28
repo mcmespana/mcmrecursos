@@ -1,7 +1,6 @@
 # SPEC-012 · Pulido de interfaz: orden, densidad y formularios
 
-> **Estado:** borrador — auditoría hecha, **pendiente de validar contigo** antes de tocar
-> nada más allá de la rebanada 1 (ver §Rebanadas).
+> **Estado:** implementada — las 4 rebanadas hechas y mergeadas a `main`.
 > **Depende de:** SPEC-008 (panel), SPEC-011 (formulario único), `docs/04-diseno.md`
 
 ## Objetivo
@@ -95,7 +94,11 @@ Ninguno. Es interfaz.
    correctitud mucho más gordo que lo estético, no solo la reordenación de columnas. El botón
    «Versión» de cada fila pasa a icono-solo (como ya era «Eliminar»), con `textoCargando=" "`
    para que durante la carga no se amontonen dos iconos en un botón pequeño.
-4. `/admin/config` — pendiente de validar.
+4. **`/admin/config`** (auditada, sin cambios): las 5 pestañas ya siguen el mismo esqueleto
+   (tabla → alta con borde discontinuo → texto explicativo); «Funciones» pone su explicación
+   antes en vez de después, pero tiene sentido ahí porque no es una lista CRUD sino un panel
+   de ajustes — la explicación sirve para interpretar el interruptor, no para cerrar una
+   tabla. No se ha forzado ningún cambio donde ya estaba bien.
 
 ## Bug de carga permanente en `/admin/recursos` y `/admin/revision` (2026-07-28)
 
@@ -158,13 +161,14 @@ nunca volvía a mostrar `aria-busy`; después, tanto el primer como el segundo e
 - [x] Ningún botón/fila de `/admin/recursos` o `/admin/revision` nace «cargando» sin haberse
       enviado nada, y el segundo envío de un botón vuelve a mostrar su estado (antes se
       perdía para siempre tras el primer clic).
-- [ ] `/admin/config` revisado.
-- [ ] Nada de esto cambia lo que se guarda: mismos `name`, mismas acciones.
+- [x] `/admin/config` revisado: mismo esqueleto en las 5 pestañas, sin cambios necesarios.
+- [x] Nada de esto cambia lo que se guarda: mismos `name`, mismas acciones (verificado
+      explícitamente en la rebanada 1; el resto son reordenaciones sin tocar formularios).
 
-## Preguntas abiertas
+## Preguntas abiertas (quedan para si se retoma más pulido)
 
-1. ¿El orden de secciones propuesto es el que tienes en la cabeza, o «De dónde viene» debería
-   ir antes que «Dónde está»?
+1. ¿El orden de secciones del formulario de recurso es el que tienes en la cabeza, o «De
+   dónde viene» debería ir antes que «Dónde está»?
 2. Las notas internas y «Pendiente de clasificar»: ¿son de publicación o merecen su propia
    sección de «uso interno»?
-3. ¿Hay alguna pantalla que te chirríe y no esté en la lista?
+3. ¿Hay alguna pantalla que te chirríe y no esté en esta spec?

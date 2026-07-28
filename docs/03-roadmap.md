@@ -81,17 +81,24 @@ descartó (2026-07-26): es una colección de componentes exclusiva de React/Next
 completo y motivo en `docs/04-diseno.md` §6. Seguir con LayerChart para cualquier
 gráfica nueva.
 
-## Fase 3.7 — Pulido de interfaz (SPEC-012) — ⏸️ rebanada 1 mergeada, resto pendiente
+## Fase 3.7 — Pulido de interfaz (SPEC-012) — ✅ completa, en `main`
 - [x] Auditoría de las pantallas con mucha información y de los formularios: medida en
       navegador y anotada en `docs/specs/SPEC-012-pulido-interfaz.md`
 - [x] Formulario de recurso (el mismo en crear/editar/catalogar) en cinco secciones —Qué es,
       Para quién, Dónde está, De dónde viene, Publicación—; Estado y Visibilidad dejan de
-      parecer un campo más; Edades pasa de 175 px a 144 px sin perder los grupos.
-      **Mergeado a mano por el usuario (PR #18).**
-- [ ] Ficha de recurso, /admin/recursos, /admin/revision y /admin/config (rebanadas 2-4).
-      **No empezar sin que se pida**: el usuario decidió aparcar el resto «para otro
-      momento». Las tres preguntas abiertas de SPEC-012 (orden de secciones, dónde van
-      notas/pendiente-clasificar, qué otra pantalla chirría) siguen sin responder.
+      parecer un campo más; Edades pasa de 175 px a 144 px sin perder los grupos (PR #18)
+- [x] Ficha de recurso: metadatos separados en «Para quién» y «Ficha técnica» (PR #19). De
+      paso, bug real de cascada de Tailwind en `Sheet.Content`: el panel se quedaba a 3/4 de
+      ancho en móvil (contenido cortado) y a 384px en escritorio en vez del `max-w-*` de cada
+      pantalla — afectaba también al panel de edición de /admin/recursos
+- [x] **Bug de correctitud, no solo estético** (PR #20): en /admin/recursos y /admin/revision,
+      `use:enhance={fn(id)}` ponía el estado «ocupado» al montar en vez de en cada envío — 9
+      funciones afectadas, todas las filas nacían «cargando» sin tocar nada, y el segundo
+      envío de cada botón dejaba de mostrar su estado para siempre. Detalle completo en
+      SPEC-012 §«Bug de carga permanente»
+- [x] /admin/config auditado: mismo esqueleto en las 5 pestañas, sin cambios necesarios
+- [ ] Quedan 3 preguntas abiertas en SPEC-012 (orden de secciones del formulario, dónde van
+      notas/pendiente-clasificar, qué otra pantalla chirría) para si se retoma más pulido
 
 ### Próximos pasos
 
@@ -103,8 +110,6 @@ gráfica nueva.
 3. Presets de mazo para Descubre («Adviento», «Para monitores»…).
 4. Más adelante: conversión a PDF desde Drive, subida a Storage y editor visual de
    itinerarios en /admin/config.
-5. Cuando se retome SPEC-012: rebanadas 2-4 (ficha, /admin/recursos, /admin/revision,
-   /admin/config), resolviendo antes las tres preguntas abiertas de la spec.
 
 ## Fase 3.6 — Formatos, aportación abierta y pulido del panel (SPEC-011)
 - [x] Migración 00015: `recurso.formato`, tabla `recurso_archivo`, envío sin cuenta
