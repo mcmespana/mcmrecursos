@@ -76,9 +76,21 @@ Ninguno. Es interfaz.
 
 ## Rebanadas
 
-1. **Formulario de recurso** (hecha en esta sesión): secciones, Estado/Visibilidad
-   destacados, Edades más compacto. Es el que se detectó y el que se repite en tres sitios.
-2. Ficha de recurso — pendiente de validar.
+1. **Formulario de recurso** (hecha): secciones, Estado/Visibilidad destacados, Edades más
+   compacto. Es el que se detectó y el que se repite en tres sitios.
+2. **Ficha de recurso** (hecha): metadatos separados en «Para quién» (Etapa, Edades, Nivel)
+   y «Ficha técnica» (Idioma, Soporte, Ubicación, MCM Local, Autoría, Año, Curso usado) —
+   antes iban en una sola lista plana con el mismo problema del formulario. De paso, un bug
+   real y más gordo: el `Sheet.Content` base (`lib/components/ui/sheet/sheet-content.svelte`)
+   tenía `data-[side=right]:w-3/4` sin condicionar a `sm:`, así que en Tailwind esa variante
+   de atributo se aplica **después** de cualquier `w-full` en la cascada — el panel se
+   quedaba a 3/4 de ancho en móvil (con botones cortados, «Guardar en lista» invisible) **y**
+   además a `max-w-sm` (384px) en vez de al `sm:max-w-lg`/`sm:max-w-xl` que pide cada
+   pantalla, en escritorio también. Afectaba a los dos únicos `Sheet.Content` de la app (la
+   ficha y el panel de edición de `/admin/recursos`) desde siempre, no algo introducido en
+   esta sesión. Arreglado en el componente base: `w-full` sin condición + `sm:w-3/4`, y el
+   `max-w-*` por defecto retirado (cada uso ya trae el suyo). Verificado con Playwright a
+   390/768/1440 px: móvil 100%, ficha 512px (`max-w-lg`), panel de admin 576px (`max-w-xl`).
 3. `/admin/recursos` y `/admin/revision` — pendiente de validar.
 4. `/admin/config` — pendiente de validar.
 
@@ -87,6 +99,9 @@ Ninguno. Es interfaz.
 - [x] El formulario de recurso tiene secciones con título y se lee sin buscar.
 - [x] Estado y Visibilidad no parecen un campo más.
 - [x] Edades ocupa menos alto sin perder los grupos.
+- [x] La ficha separa «para quién» de «ficha técnica» en vez de una lista plana.
+- [x] Los dos `Sheet.Content` de la app ocupan el ancho correcto en móvil y su propio
+      `max-w-*` en escritorio (bug de cascada de Tailwind, no solo estético).
 - [ ] Las cuatro pantallas del punto 3 revisadas una a una.
 - [ ] Nada de esto cambia lo que se guarda: mismos `name`, mismas acciones.
 

@@ -126,17 +126,26 @@
 	});
 	const srcMiniatura = $derived(recurso && !imgFallo ? miniatura(recurso) : null);
 
-	const metadatos = $derived(
+	// Separado en dos: «para quién» es lo primero que se busca en un recurso, y «ficha
+	// técnica» es todo lo demás (procedencia, idioma, soporte…). Antes iba todo en una
+	// sola lista plana sin distinguir qué es audiencia y qué es procedencia.
+	const paraQuien = $derived(
 		recurso
 			? ([
 					['Etapa', recurso.etapas.join(', ')],
 					['Edades', recurso.edades.join(', ')],
-					['Nivel', recurso.nivel],
-					['MCM Local', recurso.mcm_local],
-					['Autoría', recurso.autores.join(', ')],
+					['Nivel', recurso.nivel]
+				].filter(([, v]) => v) as [string, string][])
+			: []
+	);
+	const fichaTecnica = $derived(
+		recurso
+			? ([
 					['Idioma', recurso.idioma],
 					['Soporte', recurso.soporte],
 					['Ubicación', recurso.ubicacion],
+					['MCM Local', recurso.mcm_local],
+					['Autoría', recurso.autores.join(', ')],
 					['Año', recurso.anyo_publicacion?.toString()],
 					['Curso usado', recurso.curso_usado]
 				].filter(([, v]) => v) as [string, string][])
@@ -346,14 +355,35 @@
 					</div>
 				{/if}
 
-				<Separator />
+				{#if paraQuien.length}
+					<Separator />
+					<div class="flex flex-col gap-2">
+						<h4 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+							Para quién
+						</h4>
+						<dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+							{#each paraQuien as [clave, valor] (clave)}
+								<dt class="text-muted-foreground">{clave}</dt>
+								<dd>{valor}</dd>
+							{/each}
+						</dl>
+					</div>
+				{/if}
 
-				<dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-					{#each metadatos as [clave, valor] (clave)}
-						<dt class="text-muted-foreground">{clave}</dt>
-						<dd>{valor}</dd>
-					{/each}
-				</dl>
+				{#if fichaTecnica.length}
+					<Separator />
+					<div class="flex flex-col gap-2">
+						<h4 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+							Ficha técnica
+						</h4>
+						<dl class="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
+							{#each fichaTecnica as [clave, valor] (clave)}
+								<dt class="text-muted-foreground">{clave}</dt>
+								<dd>{valor}</dd>
+							{/each}
+						</dl>
+					</div>
+				{/if}
 
 				{#if versionesAnteriores.length}
 					<Separator />
