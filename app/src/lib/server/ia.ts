@@ -57,6 +57,66 @@ export function iaDisponible(): boolean {
 	return !!env.GEMINI_API_KEY;
 }
 
+export function modeloIa(): string {
+	return env.GEMINI_MODELO || MODELO_DEFECTO;
+}
+
+export type ResultadoJson =
+	| { ok: true; datos: unknown; modelo: string }
+	| { ok: false; error: string };
+
+/**
+ * Una llamada a Gemini que devuelve JSON validado contra `esquema`.
+ *
+ * Es el único sitio que habla con la API: clasificar recursos y recomendar en Descubre
+ * comparten transporte, manejo de errores y salida estructurada. Nunca lanza: los fallos
+ * vuelven como `{ ok: false, error }` para que quien llama decida si degrada o avisa.
+ */
+export async function generarJson(
+	prompt: string,
+	esquema: object,
+	temperatura = 0
+): Promise<ResultadoJson> {
+	const modelo = modeloIa();
+	try {
+		const res = await fetch(
+			`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`,
+			{
+				method: 'POST',
+				headers: {
+					'x-goog-api-key': env.GEMINI_API_KEY as string,
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					contents: [{ parts: [{ text: prompt }] }],
+					generationConfig: {
+						temperature: temperatura,
+						responseMimeType: 'application/json',
+						responseSchema: esquema
+					}
+				})
+			}
+		);
+
+		if (!res.ok) {
+			const detalle = await res.text();
+			return { ok: false, error: `Gemini ${res.status}: ${detalle.slice(0, 300)}` };
+		}
+
+		const data = await res.json();
+		const texto = data?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).join('') ?? '';
+		if (!texto) return { ok: false, error: 'Respuesta vacía de Gemini' };
+
+		try {
+			return { ok: true, datos: JSON.parse(texto), modelo };
+		} catch {
+			return { ok: false, error: 'Gemini no devolvió JSON válido' };
+		}
+	} catch (e) {
+		return { ok: false, error: `Error de red con Gemini: ${(e as Error).message}` };
+	}
+}
+
 const listar = (etiqueta: string, valores: string[]) =>
 	valores.length ? `${etiqueta}: ${valores.join(' | ')}` : `${etiqueta}: (sin lista)`;
 
@@ -143,46 +203,8 @@ export async function clasificarRecurso(
 	vocab: VocabulariosIa
 ): Promise<ResultadoClasificacion> {
 	if (!env.GEMINI_API_KEY) return { disponible: false };
-	const modelo = env.GEMINI_MODELO || MODELO_DEFECTO;
 
-	try {
-		const res = await fetch(
-			`https://generativelanguage.googleapis.com/v1beta/models/${modelo}:generateContent`,
-			{
-				method: 'POST',
-				headers: {
-					'x-goog-api-key': env.GEMINI_API_KEY,
-					'Content-Type': 'application/json'
-				},
-				body: JSON.stringify({
-					contents: [{ parts: [{ text: construirPrompt(entrada, vocab) }] }],
-					generationConfig: {
-						temperature: 0,
-						responseMimeType: 'application/json',
-						responseSchema: ESQUEMA
-					}
-				})
-			}
-		);
-
-		if (!res.ok) {
-			const detalle = await res.text();
-			return { disponible: true, ok: false, error: `Gemini ${res.status}: ${detalle.slice(0, 300)}` };
-		}
-
-		const data = await res.json();
-		const texto = data?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text).join('') ?? '';
-		if (!texto) return { disponible: true, ok: false, error: 'Respuesta vacía de Gemini' };
-
-		let cruda: unknown;
-		try {
-			cruda = JSON.parse(texto);
-		} catch {
-			return { disponible: true, ok: false, error: 'Gemini no devolvió JSON válido' };
-		}
-
-		return { disponible: true, ok: true, propuesta: sanear(cruda, vocab), modelo };
-	} catch (e) {
-		return { disponible: true, ok: false, error: `Error de red con Gemini: ${(e as Error).message}` };
-	}
+	const salida = await generarJson(construirPrompt(entrada, vocab), ESQUEMA);
+	if (!salida.ok) return { disponible: true, ok: false, error: salida.error };
+	return { disponible: true, ok: true, propuesta: sanear(salida.datos, vocab), modelo: salida.modelo };
 }

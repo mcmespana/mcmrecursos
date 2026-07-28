@@ -165,7 +165,11 @@ create policy "clasificacion ve/gestiona revisor" on recursos.clasificacion_ia f
    RPC `buscar_semantica`); embeddings con Voyage (`lib/server/embeddings.ts`); backfill desde
    «Reindexar búsqueda» en `/admin/recursos`; el buscador (`/api/buscar`) mezcla los resultados
    semánticos con los léxicos de Orama y marca el aporte con «por significado».
-4. **«Recomiéndame…» conversacional** en Descubre (pendiente).
+4. **«Recomiéndame…» conversacional** en Descubre (hecho): endpoint `POST /api/recomendar`
+   (embedding Voyage → candidatos por pgvector → **una** llamada a Gemini que ordena y
+   explica), cuadro de texto y motivos por tarjeta en `/descubre`, chips de retoque y
+   consulta compartible en `?ia=`. Interruptor en `/admin/config` → Funciones + fusible
+   automático por fallos (migración 00018, tabla `ajuste`). Detalle en SPEC-007 §fase 2.
 
 ## Criterios de aceptación (borrador)
 

@@ -1,9 +1,15 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { iaDisponible } from '$lib/server/ia';
+import { embeddingsDisponibles } from '$lib/server/embeddings';
+import { forzadoPorEntorno, funcionActiva, limpiarCacheAjustes } from '$lib/server/ajustes';
 
 const ROLES = ['consulta', 'edicion_local', 'editor', 'administrador', 'consulta_externa'];
 const ORIGENES_FACETA = ['columna', 'extra', 'tag', 'autor', 'mcm_local'];
 const TIPOS_FACETA = ['multiselect', 'select', 'boolean', 'rango'];
+
+/** Funciones que se pueden apagar desde aquí (tabla `ajuste`). */
+const AJUSTES = ['descubre_ia'];
 
 async function exigirAdmin(locals: App.Locals) {
 	const { data } = await locals.supabase
@@ -48,7 +54,17 @@ export const load: PageServerLoad = async ({ locals }) => {
 			...a,
 			mcm_local: a.mcm_local?.nombre ?? null
 		})),
-		roles: ROLES
+		roles: ROLES,
+		// estado de las funciones apagables + si sus claves están puestas (solo el sí/no,
+		// nunca el valor de la clave)
+		funciones: {
+			descubreIa: await funcionActiva(locals.supabase, 'descubre_ia', {
+				variableEntorno: 'DESCUBRE_IA'
+			}),
+			descubreIaForzado: forzadoPorEntorno('DESCUBRE_IA'),
+			gemini: iaDisponible(),
+			voyage: embeddingsDisponibles()
+		}
 	};
 };
 
@@ -147,6 +163,26 @@ export const actions: Actions = {
 			.update({ activo: String(f.get('activo')) === 'true' })
 			.eq('id', String(f.get('id') ?? ''));
 		if (error) return fail(500, { error: error.message });
+		return { ok: true };
+	},
+
+	// --- Interruptores de funciones (ajuste) ---
+	ajusteFlag: async ({ request, locals }) => {
+		await exigirAdmin(locals);
+		const f = await request.formData();
+		const clave = String(f.get('clave') ?? '');
+		if (!AJUSTES.includes(clave)) return fail(400, { error: 'Ese ajuste no existe' });
+
+		const { error } = await locals.supabase.from('ajuste').upsert({
+			clave,
+			valor: String(f.get('valor')) === 'true' ? 'on' : 'off',
+			updated_at: new Date().toISOString(),
+			updated_by: locals.user!.id
+		});
+		if (error) return fail(500, { error: error.message });
+
+		// esta instancia se entera ya; las demás, al caducar su caché (segundos)
+		limpiarCacheAjustes(clave);
 		return { ok: true };
 	},
 
