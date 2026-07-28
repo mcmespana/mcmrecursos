@@ -81,24 +81,35 @@ descartó (2026-07-26): es una colección de componentes exclusiva de React/Next
 completo y motivo en `docs/04-diseno.md` §6. Seguir con LayerChart para cualquier
 gráfica nueva.
 
-## Fase 3.7 — Pulido de interfaz (SPEC-012)
+## Fase 3.7 — Pulido de interfaz (SPEC-012) — ⏸️ PENDIENTE, retomar más adelante
 - [x] Auditoría de las pantallas con mucha información y de los formularios: medida en
       navegador y anotada en `docs/specs/SPEC-012-pulido-interfaz.md`
-- [x] Formulario de recurso (el mismo en crear/editar/catalogar) en cinco secciones —Qué es,
+- [~] Formulario de recurso (el mismo en crear/editar/catalogar) en cinco secciones —Qué es,
       Para quién, Dónde está, De dónde viene, Publicación—; Estado y Visibilidad dejan de
-      parecer un campo más; Edades pasa de 175 px a 144 px sin perder los grupos
-- [ ] Ficha de recurso, /admin/recursos, /admin/revision y /admin/config (rebanadas 2-4,
-      pendientes de validar el orden propuesto)
+      parecer un campo más; Edades pasa de 175 px a 144 px sin perder los grupos.
+      **Implementado en PR #18, sin mergear a propósito — lo merge el usuario a mano cuando
+      lo revise.** Si retomas esto sin ese contexto: comprueba primero si el PR sigue abierto
+      o ya se mergeó/cerró antes de tocar nada más de esta fase.
+- [ ] Ficha de recurso, /admin/recursos, /admin/revision y /admin/config (rebanadas 2-4).
+      **No empezar sin que se pida**: el usuario quiere revisar la rebanada 1 antes de seguir
+      y decidió aparcar el resto «para otro momento». Las tres preguntas abiertas de
+      SPEC-012 (orden de secciones, dónde van notas/pendiente-clasificar, qué otra pantalla
+      chirría) siguen sin responder.
 
 ### Próximos pasos
 
-1. Poner `GEMINI_API_KEY` y `VOYAGE_API_KEY` en Vercel y pulsar «Reindexar búsqueda» en
+1. **Mergear (a mano, por el usuario) el PR #18** del formulario en cinco secciones, cuando
+   lo revise — ver Fase 3.7 arriba.
+2. Poner `GEMINI_API_KEY` y `VOYAGE_API_KEY` en Vercel y pulsar «Reindexar búsqueda» en
    /admin/recursos: es lo único que le falta al «Recomiéndame…» para encenderse del todo
    (sin Voyage funciona, pero recomienda peor porque los candidatos salen por palabras).
-2. Pulsar «Detectar formatos» en /admin/recursos para rellenar el formato de lo que ya hay.
-3. Presets de mazo para Descubre («Adviento», «Para monitores»…).
-4. Más adelante: conversión a PDF desde Drive, subida a Storage y editor visual de
+3. Pulsar «Detectar formatos» en /admin/recursos — de momento no aporta gran cosa: el
+   catálogo son 8 recursos `[EJEMPLO]`, cobra sentido cuando entre contenido real por el Sheet.
+4. Presets de mazo para Descubre («Adviento», «Para monitores»…).
+5. Más adelante: conversión a PDF desde Drive, subida a Storage y editor visual de
    itinerarios en /admin/config.
+6. Cuando se retome SPEC-012: rebanadas 2-4 (ficha, /admin/recursos, /admin/revision,
+   /admin/config), resolviendo antes las tres preguntas abiertas de la spec.
 
 ## Fase 3.6 — Formatos, aportación abierta y pulido del panel (SPEC-011)
 - [x] Migración 00015: `recurso.formato`, tabla `recurso_archivo`, envío sin cuenta
