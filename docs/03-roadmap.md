@@ -130,6 +130,14 @@ gráfica nueva.
       Google, PDF, Word, carpeta de Drive… contando también los formatos alternativos
 - [x] Estados de carga en toda la interfaz: `<Button cargando>` con spinner y check de
       confirmación, barra de progreso de navegación y respeto de `prefers-reduced-motion`
+- [x] **Bug corregido (2026-07-28, ver SPEC-012 rebanada 3a)**: en `/admin/recursos` y
+      `/admin/revision`, `use:enhance={fn(id)}` llamaba a `fn` una vez al montar (no en cada
+      envío), y esas funciones ponían el estado «ocupado» *antes* de devolver el manejador en
+      vez de dentro — así que TODAS las filas de la tabla y varios botones nacían ya
+      «cargando» (selects deshabilitados, spinners) desde que se abría la página, y además el
+      segundo envío de cada botón dejaba de mostrar su estado para siempre. Rompía justo lo
+      que dice esta línea del roadmap. `/admin/sync` y las páginas que usan `crearOcupado()`
+      (config, usuarios) no estaban afectadas: ese helper ya lo hacía bien.
 - [ ] **Aparcado, no olvidado**: convertir a PDF los documentos de Drive automáticamente
       (necesita una cuenta de servicio con permiso de escritura; el modelo ya lo admite, basta
       con añadir otro `recurso_archivo` con `formato = 'pdf'`)
