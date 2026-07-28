@@ -49,10 +49,13 @@
 	const cambiandoEstado = new SvelteSet<string>();
 	const versionando = new SvelteSet<string>();
 
+	// `use:enhance={resultadoLote()}` llama a esta función UNA VEZ al montar el formulario, no
+	// en cada envío — por eso el estado «ocupado» se pone dentro de la función que SÍ se
+	// invoca en cada envío real (la que se devuelve aquí), nunca antes del `return`.
 	function resultadoLote() {
-		loteAnalizando = true;
-		return () =>
-			async ({ result }: any) => {
+		return () => {
+			loteAnalizando = true;
+			return async ({ result }: any) => {
 				loteAnalizando = false;
 				if (result.type === 'success' && result.data?.ok) {
 					await invalidateAll();
@@ -68,12 +71,13 @@
 					toast.error('No se pudo analizar el lote', { description: result.data?.error });
 				}
 			};
+		};
 	}
 
 	function resultadoReindexar() {
-		reindexando = true;
-		return () =>
-			async ({ result }: any) => {
+		return () => {
+			reindexando = true;
+			return async ({ result }: any) => {
 				reindexando = false;
 				if (result.type === 'success' && result.data?.ok) {
 					const { procesados, restantes } = result.data;
@@ -88,12 +92,13 @@
 					toast.error('No se pudo reindexar', { description: result.data?.error });
 				}
 			};
+		};
 	}
 
 	function resultadoFormatos() {
-		detectandoFormatos = true;
-		return () =>
-			async ({ result }: any) => {
+		return () => {
+			detectandoFormatos = true;
+			return async ({ result }: any) => {
 				detectandoFormatos = false;
 				if (result.type === 'success' && result.data?.ok) {
 					await invalidateAll();
@@ -107,12 +112,13 @@
 					toast.error('No se pudieron detectar los formatos', { description: result.data?.error });
 				}
 			};
+		};
 	}
 
 	function resultadoClasificar() {
-		analizando = true;
-		return () =>
-			async ({ result }: any) => {
+		return () => {
+			analizando = true;
+			return async ({ result }: any) => {
 				analizando = false;
 				if (result.type === 'success' && result.data?.ok) {
 					sugerencia = result.data.propuesta;
@@ -125,6 +131,7 @@
 					toast.error('No se pudo analizar', { description: result.data?.error });
 				}
 			};
+		};
 	}
 
 	// aplica la sugerencia sobre el formulario (el editor sigue pudiendo ajustar y guardar)
@@ -184,20 +191,21 @@
 	}
 
 	function resultadoEstado(id: string) {
-		cambiandoEstado.add(id);
-		return () =>
-			async ({ result }: any) => {
+		return () => {
+			cambiandoEstado.add(id);
+			return async ({ result }: any) => {
 				cambiandoEstado.delete(id);
 				if (result.type === 'success') await invalidateAll();
 				else toast.error('No se pudo cambiar el estado', { description: result.data?.error });
 			};
+		};
 	}
 
 	// Crear nueva versión: al volver, abre el borrador nuevo para completarlo (SPEC-009)
 	function resultadoNuevaVersion(id: string) {
-		versionando.add(id);
-		return () =>
-			async ({ result }: any) => {
+		return () => {
+			versionando.add(id);
+			return async ({ result }: any) => {
 				versionando.delete(id);
 				if (result.type === 'success') {
 					await invalidateAll();
@@ -212,13 +220,14 @@
 					toast.error('No se pudo crear la versión', { description: result.data?.error });
 				}
 			};
+		};
 	}
 
 	let eliminando = $state(false);
 	function resultadoEliminar() {
-		eliminando = true;
-		return () =>
-			async ({ result }: any) => {
+		return () => {
+			eliminando = true;
+			return async ({ result }: any) => {
 				eliminando = false;
 				if (result.type === 'success') {
 					const nombre = borrando?.nombre ?? 'El recurso';
@@ -230,6 +239,7 @@
 					toast.error('No se pudo eliminar', { description: result.data?.error });
 				}
 			};
+		};
 	}
 
 	async function alGuardar(result: any) {
@@ -398,16 +408,17 @@
 								use:enhance={resultadoNuevaVersion(r.id)}
 								class="inline"
 							>
-								<input type="hidden" name="id" value={r.id} />
+							<input type="hidden" name="id" value={r.id} />
 								<Button
 									type="submit"
 									variant="ghost"
-									size="sm"
+									size="icon-sm"
 									cargando={versionando.has(r.id)}
-									textoCargando="Creando…"
+									textoCargando=" "
+									aria-label="Crear nueva versión"
 									title="Crear nueva versión (duplica y enlaza)"
 								>
-									<GitBranch class="size-3.5" /> Versión
+									<GitBranch class="size-3.5" />
 								</Button>
 							</form>
 							<Button variant="ghost" size="sm" onclick={() => (editando = r)}>

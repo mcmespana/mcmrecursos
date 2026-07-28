@@ -48,10 +48,13 @@
 		};
 	});
 
+	// `use:enhance={resultadoClasificarEnvio()}` llama a esta función una vez al abrir el
+	// panel, no en cada envío — el estado «ocupado» va dentro de la función que SÍ se invoca
+	// en cada envío real (la que se devuelve aquí), nunca antes del `return`.
 	function resultadoClasificarEnvio() {
-		analizandoEnvio = true;
-		return () =>
-			async ({ result }: any) => {
+		return () => {
+			analizandoEnvio = true;
+			return async ({ result }: any) => {
 				analizandoEnvio = false;
 				if (result.type === 'success' && result.data?.ok) {
 					sug = result.data.propuesta;
@@ -64,6 +67,7 @@
 					toast.error('No se pudo analizar', { description: result.data?.error });
 				}
 			};
+		};
 	}
 
 	const fecha = (iso: string) =>
@@ -78,9 +82,9 @@
 	// devolver / descartar: un clic, y el botón deja de aceptar más hasta que responde
 	let cerrando = $state<'devolver' | 'descartar' | null>(null);
 	function resultadoCierre(tipo: 'devolver' | 'descartar') {
-		cerrando = tipo;
-		return () =>
-			async ({ result }: any) => {
+		return () => {
+			cerrando = tipo;
+			return async ({ result }: any) => {
 				cerrando = null;
 				if (result.type === 'success') {
 					devolviendo = null;
@@ -92,6 +96,7 @@
 					});
 				}
 			};
+		};
 	}
 </script>
 

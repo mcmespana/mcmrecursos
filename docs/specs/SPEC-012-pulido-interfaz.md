@@ -91,8 +91,61 @@ Ninguno. Es interfaz.
    esta sesión. Arreglado en el componente base: `w-full` sin condición + `sm:w-3/4`, y el
    `max-w-*` por defecto retirado (cada uso ya trae el suyo). Verificado con Playwright a
    390/768/1440 px: móvil 100%, ficha 512px (`max-w-lg`), panel de admin 576px (`max-w-xl`).
-3. `/admin/recursos` y `/admin/revision` — pendiente de validar.
+3. **`/admin/recursos` y `/admin/revision`** (hecha, ver §bug de carga más abajo): un bug de
+   correctitud mucho más gordo que lo estético, no solo la reordenación de columnas. El botón
+   «Versión» de cada fila pasa a icono-solo (como ya era «Eliminar»), con `textoCargando=" "`
+   para que durante la carga no se amontonen dos iconos en un botón pequeño.
 4. `/admin/config` — pendiente de validar.
+
+## Bug de carga permanente en `/admin/recursos` y `/admin/revision` (2026-07-28)
+
+Al montar la tabla de prueba con datos de mentira para revisar el orden de columnas, TODAS
+las filas aparecían con el select de Estado deshabilitado, `aria-busy="true"` y el botón
+«Versión» mostrando «Creando…» — desde el primer render, sin haber tocado nada. Es el mismo
+síntoma con el que arrancó la sesión («todos los botones... están en estado de carga
+girando»), pero un origen distinto y bastante más extendido que el de `/admin/sync` que se
+arregló al principio.
+
+**Causa:** `use:enhance={resultadoEstado(r.id)}` **llama** a `resultadoEstado(r.id)`
+inmediatamente al evaluar la plantilla (una vez por fila, al montar), no en cada envío. El
+patrón correcto es que esa llamada devuelva la función que SvelteKit invocará en cada envío
+real, y que el «poner ocupado» viva DENTRO de esa función devuelta:
+
+```ts
+// mal — el `= true` se ejecuta una vez, al montar, no en cada envío
+function resultadoEstado(id: string) {
+  cambiandoEstado.add(id);
+  return () => async ({ result }) => { cambiandoEstado.delete(id); ... };
+}
+
+// bien — SvelteKit invoca esta función en cada envío real
+function resultadoEstado(id: string) {
+  return () => {
+    cambiandoEstado.add(id);
+    return async ({ result }) => { cambiandoEstado.delete(id); ... };
+  };
+}
+```
+
+Con el código «mal», pasa esto: (1) al montar, TODAS las filas/botones nacen «ocupados» sin
+haberse enviado nada — selects deshabilitados, spinners falsos; (2) tras el primer envío
+real, el `= true` no se vuelve a ejecutar nunca (vivía fuera de la función que SvelteKit
+invoca en cada envío), así que **a partir del segundo clic el botón deja de mostrar su
+estado de carga para siempre** — rompiendo en silencio justo lo que el roadmap presumía
+tener resuelto (SPEC-011: «todos los botones de acción muestran su estado mientras el
+servidor responde»).
+
+**Alcance:** 7 funciones en `/admin/recursos` (`resultadoLote`, `resultadoReindexar`,
+`resultadoFormatos`, `resultadoClasificar`, `resultadoEstado`, `resultadoNuevaVersion`,
+`resultadoEliminar`) y 2 en `/admin/revision` (`resultadoClasificarEnvio`, `resultadoCierre`).
+**No afectaba** a `/admin/sync`, `/admin/config` ni `/admin/usuarios`: esas usan el helper
+`crearOcupado()` (`lib/acciones.svelte.ts`), que ya tenía el patrón correcto — de ahí que el
+primer bug de la sesión (el de `/admin/sync`) fuera solo de falta de clave por fila, no este.
+
+**Verificado** con Playwright montando la página real con datos de mentira y una ruta
+interceptada con retraso artificial: antes del arreglo, el segundo envío de un mismo botón
+nunca volvía a mostrar `aria-busy`; después, tanto el primer como el segundo envío muestran
+`null → true → null` correctamente.
 
 ## Criterios de aceptación
 
@@ -102,7 +155,10 @@ Ninguno. Es interfaz.
 - [x] La ficha separa «para quién» de «ficha técnica» en vez de una lista plana.
 - [x] Los dos `Sheet.Content` de la app ocupan el ancho correcto en móvil y su propio
       `max-w-*` en escritorio (bug de cascada de Tailwind, no solo estético).
-- [ ] Las cuatro pantallas del punto 3 revisadas una a una.
+- [x] Ningún botón/fila de `/admin/recursos` o `/admin/revision` nace «cargando» sin haberse
+      enviado nada, y el segundo envío de un botón vuelve a mostrar su estado (antes se
+      perdía para siempre tras el primer clic).
+- [ ] `/admin/config` revisado.
 - [ ] Nada de esto cambia lo que se guarda: mismos `name`, mismas acciones.
 
 ## Preguntas abiertas
