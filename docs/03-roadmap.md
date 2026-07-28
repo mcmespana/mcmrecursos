@@ -81,6 +81,15 @@ descartó (2026-07-26): es una colección de componentes exclusiva de React/Next
 completo y motivo en `docs/04-diseno.md` §6. Seguir con LayerChart para cualquier
 gráfica nueva.
 
+## Fase 3.7 — Pulido de interfaz (SPEC-012)
+- [x] Auditoría de las pantallas con mucha información y de los formularios: medida en
+      navegador y anotada en `docs/specs/SPEC-012-pulido-interfaz.md`
+- [x] Formulario de recurso (el mismo en crear/editar/catalogar) en cinco secciones —Qué es,
+      Para quién, Dónde está, De dónde viene, Publicación—; Estado y Visibilidad dejan de
+      parecer un campo más; Edades pasa de 175 px a 144 px sin perder los grupos
+- [ ] Ficha de recurso, /admin/recursos, /admin/revision y /admin/config (rebanadas 2-4,
+      pendientes de validar el orden propuesto)
+
 ### Próximos pasos
 
 1. Poner `GEMINI_API_KEY` y `VOYAGE_API_KEY` en Vercel y pulsar «Reindexar búsqueda» en

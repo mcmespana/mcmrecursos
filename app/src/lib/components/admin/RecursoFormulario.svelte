@@ -90,70 +90,48 @@
 	}
 </script>
 
-<form method="POST" {action} use:enhance={alEnviar} class="flex flex-col gap-5 px-4 pb-6">
+<form method="POST" {action} use:enhance={alEnviar} class="flex flex-col gap-6 px-4 pb-6">
 	{@render ocultos?.()}
 	{@render encabezado?.()}
 
-	<div class="flex flex-col gap-1.5">
-		<label class="text-sm font-medium" for="f-nombre">Nombre *</label>
-		<Input id="f-nombre" name="nombre" value={valores.nombre ?? ''} required />
-	</div>
+	<!-- ═══ 1 · Qué es ═══ -->
+	<section class="flex flex-col gap-3">
+		{@render tituloSeccion('Qué es')}
 
-	<!-- Clasificación primero: es lo que de verdad hace encontrable un recurso -->
-	<div class="flex flex-col gap-4 rounded-xl border border-primary/25 bg-primary/[0.04] p-3">
 		<div class="flex flex-col gap-1.5">
-			<label class="text-sm font-medium" for="f-tags">Temáticas</label>
-			<SelectorTags id="f-tags" bind:valor={tags} existentes={tagsExistentes} nombre="tags" />
+			<label class="text-sm font-medium" for="f-nombre">Nombre *</label>
+			<Input id="f-nombre" name="nombre" value={valores.nombre ?? ''} required />
 		</div>
-		<SelectorMultiple etiqueta="Etapas" opciones={opciones('etapas')} bind:valor={etapas} nombre="etapas" />
-		<SelectorMultiple etiqueta="Edades" opciones={opciones('edades')} bind:valor={edades} nombre="edades" />
-	</div>
 
-	<div class="flex flex-col gap-1.5">
-		<label class="text-sm font-medium" for="f-desc">Descripción</label>
-		<Textarea id="f-desc" name="descripcion" value={valores.descripcion ?? ''} rows={3} />
-	</div>
+		<div class="flex flex-col gap-1.5">
+			<label class="text-sm font-medium" for="f-desc">Descripción</label>
+			<Textarea id="f-desc" name="descripcion" value={valores.descripcion ?? ''} rows={3} />
+		</div>
 
-	<div class="grid gap-3 sm:grid-cols-2">
-		{#each [['tipo', 'Tipo'], ['nivel', 'Nivel'], ['idioma', 'Idioma'], ['soporte', 'Soporte'], ['ubicacion', 'Ubicación'], ['estado', 'Estado'], ['visibilidad', 'Visibilidad']] as [campo, etiqueta] (campo)}
+		{@render desplegable('tipo', 'Tipo')}
+	</section>
+
+	<!-- ═══ 2 · Para quién ═══ (lo que de verdad hace encontrable un recurso) -->
+	<section class="flex flex-col gap-3">
+		{@render tituloSeccion('Para quién')}
+
+		<div class="flex flex-col gap-4 rounded-xl border border-primary/25 bg-primary/[0.04] p-3">
 			<div class="flex flex-col gap-1.5">
-				<label class="text-sm font-medium" for={`f-${campo}`}>{etiqueta}</label>
-				<select
-					id={`f-${campo}`}
-					name={campo}
-					value={valores[campo] ?? (campo === 'estado' ? 'publicado' : campo === 'visibilidad' ? 'publico' : '')}
-					class="h-9 rounded-md border bg-background px-2 text-sm"
-				>
-					{#if campo !== 'estado' && campo !== 'visibilidad'}<option value="">—</option>{/if}
-					{#each opciones(campo) as o (o.valor)}<option value={o.valor}>{o.valor}</option>{/each}
-				</select>
+				<label class="text-sm font-medium" for="f-tags">Temáticas</label>
+				<SelectorTags id="f-tags" bind:valor={tags} existentes={tagsExistentes} nombre="tags" />
 			</div>
-		{/each}
-		<div class="flex flex-col gap-1.5">
-			<label class="text-sm font-medium" for="f-mcm">MCM Local</label>
-			<select
-				id="f-mcm"
-				name="mcm_local_id"
-				value={valores.mcm_local_id ?? ''}
-				class="h-9 rounded-md border bg-background px-2 text-sm"
-			>
-				<option value="">—</option>
-				{#each mcmLocales as m (m.id)}<option value={m.id}>{m.nombre}</option>{/each}
-			</select>
+			<SelectorMultiple etiqueta="Etapas" opciones={opciones('etapas')} bind:valor={etapas} nombre="etapas" />
+			<SelectorMultiple etiqueta="Edades" opciones={opciones('edades')} bind:valor={edades} nombre="edades" />
+			<div class="grid gap-3 sm:grid-cols-2">{@render desplegable('nivel', 'Nivel')}</div>
 		</div>
-		<div class="flex flex-col gap-1.5">
-			<label class="text-sm font-medium" for="f-anyo">Año</label>
-			<Input id="f-anyo" name="anyo_publicacion" type="number" value={valores.anyo_publicacion ?? ''} />
-		</div>
-		<div class="flex flex-col gap-1.5">
-			<label class="text-sm font-medium" for="f-curso">Curso usado</label>
-			<Input id="f-curso" name="curso_usado" placeholder="2024-2025" value={valores.curso_usado ?? ''} />
-		</div>
-	</div>
+	</section>
 
-	<!-- Archivos: el enlace principal y los mismos contenidos en otros formatos (SPEC-011) -->
-	<div class="flex flex-col gap-2">
-		<div class="flex flex-col gap-1.5">
+	<!-- ═══ 3 · Dónde está ═══ -->
+	<section class="flex flex-col gap-3">
+		{@render tituloSeccion('Dónde está')}
+
+		<div class="flex flex-col gap-2">
+			<div class="flex flex-col gap-1.5">
 			<label class="text-sm font-medium" for="f-enlace">Enlace principal</label>
 			<div class="relative">
 				{#if formatoPrincipal}
@@ -224,53 +202,108 @@
 			Por ejemplo el mismo documento en Word y en PDF, o la carpeta de Drive con el material
 			suelto. El icono de cada uno se deduce del enlace.
 		</p>
-	</div>
-
-	<div class="grid gap-3 sm:grid-cols-2">
-		<div class="flex flex-col gap-1.5">
-			<label class="text-sm font-medium" for="f-imagen">Imagen (URL)</label>
-			<Input id="f-imagen" name="imagen" type="url" value={valores.imagen ?? ''} />
 		</div>
-		<div class="flex flex-col gap-1.5">
-			<label class="text-sm font-medium" for="f-imgs">Más imágenes (URL)</label>
-			<Input id="f-imgs" name="enlace_imagenes" type="url" value={valores.enlace_imagenes ?? ''} />
-		</div>
-	</div>
 
-	{#if modo === 'editar'}
-		<div class="flex flex-col gap-1.5">
-			<label class="text-sm font-medium" for="f-version">Es nueva versión de…</label>
-			<select
-				id="f-version"
-				name="version_de"
-				value={valores.version_de ?? ''}
-				class="h-9 rounded-md border bg-background px-2 text-sm"
-			>
-				<option value="">— No es una versión —</option>
-				{#each recursos.filter((r) => r.id !== valores.id) as r (r.id)}
-					<option value={r.id}>{r.id} · {r.nombre.replace(/^\[EJEMPLO\]\s*/, '')}</option>
+		<div class="grid gap-3 sm:grid-cols-2">
+			{@render desplegable('soporte', 'Soporte')}
+			{@render desplegable('ubicacion', 'Ubicación')}
+		</div>
+
+		<div class="grid gap-3 sm:grid-cols-2">
+			<div class="flex flex-col gap-1.5">
+				<label class="text-sm font-medium" for="f-imagen">Portada (URL)</label>
+				<Input id="f-imagen" name="imagen" type="url" value={valores.imagen ?? ''} />
+				<p class="text-xs text-muted-foreground">La miniatura de la tarjeta.</p>
+			</div>
+			<div class="flex flex-col gap-1.5">
+				<label class="text-sm font-medium" for="f-imgs">Galería (URL)</label>
+				<Input id="f-imgs" name="enlace_imagenes" type="url" value={valores.enlace_imagenes ?? ''} />
+				<p class="text-xs text-muted-foreground">Carpeta con más fotos, si la hay.</p>
+			</div>
+		</div>
+	</section>
+
+	<!-- ═══ 4 · De dónde viene ═══ -->
+	<section class="flex flex-col gap-3">
+		{@render tituloSeccion('De dónde viene')}
+
+		<div class="grid gap-3 sm:grid-cols-2">
+			<div class="flex flex-col gap-1.5">
+				<label class="text-sm font-medium" for="f-mcm">MCM Local</label>
+				<select
+					id="f-mcm"
+					name="mcm_local_id"
+					value={valores.mcm_local_id ?? ''}
+					class="h-9 rounded-md border bg-background px-2 text-sm"
+				>
+					<option value="">—</option>
+					{#each mcmLocales as m (m.id)}<option value={m.id}>{m.nombre}</option>{/each}
+				</select>
+			</div>
+			{@render desplegable('idioma', 'Idioma')}
+			<div class="flex flex-col gap-1.5">
+				<label class="text-sm font-medium" for="f-anyo">Año</label>
+				<Input id="f-anyo" name="anyo_publicacion" type="number" value={valores.anyo_publicacion ?? ''} />
+			</div>
+			<div class="flex flex-col gap-1.5">
+				<label class="text-sm font-medium" for="f-curso">Curso usado</label>
+				<Input id="f-curso" name="curso_usado" placeholder="2024-2025" value={valores.curso_usado ?? ''} />
+			</div>
+		</div>
+
+		{#if modo === 'editar'}
+			<div class="flex flex-col gap-1.5">
+				<label class="text-sm font-medium" for="f-version">Es nueva versión de…</label>
+				<select
+					id="f-version"
+					name="version_de"
+					value={valores.version_de ?? ''}
+					class="h-9 rounded-md border bg-background px-2 text-sm"
+				>
+					<option value="">— No es una versión —</option>
+					{#each recursos.filter((r) => r.id !== valores.id) as r (r.id)}
+						<option value={r.id}>{r.id} · {r.nombre.replace(/^\[EJEMPLO\]\s*/, '')}</option>
+					{/each}
+				</select>
+				<p class="text-xs text-muted-foreground">
+					Al publicarse, la versión anterior se ocultará del catálogo y su valoración/uso se heredan
+					a esta.
+				</p>
+			</div>
+		{/if}
+	</section>
+
+	<!-- ═══ 5 · Publicación ═══ (lo último que se decide y lo que tiene consecuencias) -->
+	<section class="flex flex-col gap-3 rounded-xl border bg-muted/30 p-3">
+		{@render tituloSeccion('Publicación')}
+
+		<div class="grid gap-3 sm:grid-cols-2">
+			{@render desplegable('estado', 'Estado')}
+			{@render desplegable('visibilidad', 'Visibilidad')}
+		</div>
+		<p class="text-xs text-muted-foreground">
+			Solo lo <strong>publicado</strong> y <strong>público</strong> se ve en el catálogo; lo
+			privado pide sesión.
+		</p>
+
+		<div class="flex flex-col gap-1.5 border-t pt-3">
+			<span class="text-sm font-medium">Marcas internas</span>
+			<div class="grid gap-x-4 gap-y-2 sm:grid-cols-2">
+				{#each [['datos_personales', 'Contiene datos personales'], ['creado_con_ia', 'Creado con IA'], ['fuera_del_banco', 'Fuera del banco (carpeta local)'], ['pendiente_clasificar', 'Pendiente de clasificar']] as [campo, etiqueta] (campo)}
+					<label class="inline-flex items-center gap-1.5 text-sm">
+						<input type="checkbox" name={campo} checked={!!valores[campo]} class="accent-[var(--primary)]" />
+						{etiqueta}
+					</label>
 				{/each}
-			</select>
-			<p class="text-xs text-muted-foreground">
-				Al publicarse, la versión anterior se ocultará del catálogo y su valoración/uso se heredan
-				a esta.
-			</p>
+			</div>
 		</div>
-	{/if}
 
-	<div class="flex flex-wrap gap-x-4 gap-y-2">
-		{#each [['datos_personales', 'Contiene datos personales'], ['creado_con_ia', 'Creado con IA'], ['fuera_del_banco', 'Fuera del banco (carpeta local)'], ['pendiente_clasificar', 'Pendiente de clasificar']] as [campo, etiqueta] (campo)}
-			<label class="inline-flex items-center gap-1.5 text-sm">
-				<input type="checkbox" name={campo} checked={!!valores[campo]} class="accent-[var(--primary)]" />
-				{etiqueta}
-			</label>
-		{/each}
-	</div>
-
-	<div class="flex flex-col gap-1.5">
-		<label class="text-sm font-medium" for="f-notas">Notas internas</label>
-		<Textarea id="f-notas" name="notas_internas" value={valores.notas_internas ?? ''} rows={2} />
-	</div>
+		<div class="flex flex-col gap-1.5">
+			<label class="text-sm font-medium" for="f-notas">Notas internas</label>
+			<Textarea id="f-notas" name="notas_internas" value={valores.notas_internas ?? ''} rows={2} />
+			<p class="text-xs text-muted-foreground">No se enseñan en el catálogo.</p>
+		</div>
+	</section>
 
 	<div class="flex justify-end">
 		<Button type="submit" size="lg" cargando={guardando} textoCargando="Guardando…">
@@ -278,3 +311,22 @@
 		</Button>
 	</div>
 </form>
+
+{#snippet tituloSeccion(texto: string)}
+	<h3 class="text-xs font-semibold tracking-wide text-muted-foreground uppercase">{texto}</h3>
+{/snippet}
+
+{#snippet desplegable(campo: string, etiqueta: string)}
+	<div class="flex flex-col gap-1.5">
+		<label class="text-sm font-medium" for={`f-${campo}`}>{etiqueta}</label>
+		<select
+			id={`f-${campo}`}
+			name={campo}
+			value={valores[campo] ?? (campo === 'estado' ? 'publicado' : campo === 'visibilidad' ? 'publico' : '')}
+			class="h-9 rounded-md border bg-background px-2 text-sm"
+		>
+			{#if campo !== 'estado' && campo !== 'visibilidad'}<option value="">—</option>{/if}
+			{#each opciones(campo) as o (o.valor)}<option value={o.valor}>{o.valor}</option>{/each}
+		</select>
+	</div>
+{/snippet}

@@ -80,35 +80,43 @@
 		<p class="text-xs text-muted-foreground">{ayuda}</p>
 	{/if}
 
-	{#each grupos as [grupo, valores] (grupo)}
-		<div class="flex flex-wrap items-center gap-1.5">
-			{#if grupo}
-				<button
-					type="button"
-					class="mr-0.5 rounded px-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase hover:text-primary"
-					title={`Marcar o desmarcar ${grupo}`}
-					onclick={() => alternarGrupo(valores)}
-				>
-					{grupo}
-				</button>
-			{/if}
-			{#each valores as v (v)}
-				<button
-					type="button"
-					aria-pressed={puestos.has(v)}
-					class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-sm transition-colors ${
-						puestos.has(v)
-							? 'border-primary bg-primary/12 font-medium text-primary'
-							: 'hover:bg-accent'
-					}`}
-					onclick={() => alternar(v)}
-				>
-					{#if puestos.has(v)}<Check class="size-3" />{/if}
-					{v}
-				</button>
-			{/each}
-		</div>
-	{/each}
+	<!--
+		Los grupos van todos en el mismo contenedor y fluyen: con listas cortas (Etapas) se
+		leen igual, y con las largas (Edades: Primaria/Secundaria/Jóvenes/Adultos) dos grupos
+		comparten fila cuando caben en vez de gastar una línea cada uno. La etiqueta del grupo
+		no se separa nunca de sus valores.
+	-->
+	<div class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+		{#each grupos as [grupo, valores] (grupo)}
+			<div class="flex flex-wrap items-center gap-1.5">
+				{#if grupo}
+					<button
+						type="button"
+						class="rounded px-0.5 text-[11px] font-medium tracking-wide text-muted-foreground uppercase hover:text-primary"
+						title={`Marcar o desmarcar ${grupo}`}
+						onclick={() => alternarGrupo(valores)}
+					>
+						{grupo}
+					</button>
+				{/if}
+				{#each valores as v (v)}
+					<button
+						type="button"
+						aria-pressed={puestos.has(v)}
+						class={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[13px] transition-colors ${
+							puestos.has(v)
+								? 'border-primary bg-primary/12 font-medium text-primary'
+								: 'hover:bg-accent'
+						}`}
+						onclick={() => alternar(v)}
+					>
+						{#if puestos.has(v)}<Check class="size-3" />{/if}
+						{v}
+					</button>
+				{/each}
+			</div>
+		{/each}
+	</div>
 
 	{#if nombre}
 		{#each valor as v (v)}
