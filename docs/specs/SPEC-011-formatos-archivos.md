@@ -20,8 +20,8 @@ Entra:
 - Borrado de recursos desde el panel.
 
 Entra también (2026-07-29): descargar en PDF/Office y hacerse una copia editable de los
-documentos de Google, y el favicon del sitio como miniatura de los recursos que son una web.
-Ver §«URLs de Google» más abajo.
+documentos de Google, el favicon del sitio como miniatura de los recursos que son una web, y la
+**vista previa empotrada**. Ver §«URLs de Google» y §«Vista previa» más abajo.
 
 Queda fuera **por ahora, y está en el roadmap** (Fase 3.6):
 
@@ -151,6 +151,10 @@ enlace al recurso.
       el banco tenga configurada ninguna credencial.
 - [x] Un recurso que es una web enseña el favicon del sitio, y si Google no lo tiene, el icono
       de su tipo.
+- [x] La ficha enseña el recurso empotrado sin salir del banco, con el botón de abrir siempre
+      presente; una web cualquiera no genera marco.
+- [x] La vista previa se puede ocultar y la elección se recuerda en el dispositivo.
+- [x] La cola de revisión enseña lo enviado sin abrir otra pestaña.
 
 ## URLs de Google: descargar y copiar sin API ni credenciales
 
@@ -196,6 +200,54 @@ supports Docs Editors files` con cualquier binario. El camino real es de tres pa
 `files.copy` con `mimeType: application/vnd.google-apps.document` para convertirlo, exportar la
 copia y borrarla — y eso sí necesita un scope de **escritura** en Drive. De ahí que siga
 aparcado: no es la misma cosa que lo anterior aunque el usuario lo viva igual.
+
+## Vista previa empotrada
+
+Hasta ahora, para saber si un recurso era el que buscabas había que abrirlo en otra pestaña.
+Ahora se ve dentro de la ficha. Es un **vistazo**, no un lector: sirve para decidir «sí, esta es
+la sesión», y para leerla entera se abre en su sitio — de ahí que el botón de abrir siga siendo
+la acción principal y aparezca además justo debajo del marco.
+
+| Qué es                            | URL empotrable                                                    |
+| --------------------------------- | ----------------------------------------------------------------- |
+| Documento, hoja, dibujo de Google | `…/{familia}/d/ID/preview`                                        |
+| Presentación                      | `…/presentation/d/ID/embed?start=false&loop=false&delayms=5000`    |
+| Formulario                        | `…/forms/d/e/ID/viewform?embedded=true` (el id va en `/d/e/`)      |
+| Carpeta de Drive                  | `drive.google.com/embeddedfolderview?id=ID#grid`                  |
+| Cualquier archivo de Drive        | `drive.google.com/file/d/ID/preview` (PDF, imagen, vídeo, Office…) |
+| YouTube                           | `youtube-nocookie.com/embed/ID`                                   |
+| Vimeo · Canva                     | `player.vimeo.com/video/ID` · `canva.com/design/ID/view?embed`     |
+
+Se usan las URL que genera el propio «Insertar elemento» de Drive, que son las que Google
+mantiene empotrables. Para **una web cualquiera se devuelve `null` a propósito**: la mayoría
+prohíbe el empotrado con `X-Frame-Options`, y un marco en blanco es peor que ningún marco.
+
+Decisiones que no son evidentes:
+
+- **Viene abierta.** La ficha se abre de una en una y a propósito: ver el recurso es justo lo
+  que se venía a hacer. Quien prefiera no verla la oculta y se recuerda en el dispositivo
+  (`localStorage`, clave `mcm-vista-previa`).
+- **Con la previa abierta, el héroe se reduce a la fila de etiquetas.** La miniatura de un
+  documento de Drive *es* su primera página, o sea exactamente lo que ya se está viendo debajo:
+  mantener las dos era enseñar lo mismo dos veces y comerse la pantalla.
+- **No se intenta detectar si el sitio rechazó el marco.** Un `<iframe>` a otro dominio no se
+  puede inspeccionar y el evento `load` también salta con su página de error, así que cualquier
+  detección sería mentira a medias. En su lugar, el botón de abrir está siempre a mano: si el
+  marco sale en blanco, la salida está debajo.
+- **Sin `referrerpolicy`.** Los visores de Google miran de dónde viene la petición; cortarles el
+  referente sería la forma más tonta de romper esto.
+- **Con `sandbox`, que sí aporta**: sin `allow-top-navigation`, lo empotrado no puede secuestrar
+  la pestaña del banco. `allow-same-origin` es imprescindible (el visor necesita su propio
+  origen para la sesión) y no debilita nada aquí, porque lo empotrado es de otro dominio.
+
+También aparece en la **cola de revisión**, que es donde más falta hacía: se decide si publicar
+lo que alguien ha enviado sin abrir media docena de pestañas. SPEC-008 §1 ya lo daba por hecho.
+
+**Límite de la verificación**: las URL y el montaje están comprobados en navegador (cada formato
+genera el marco esperado, el conmutador y su persistencia funcionan, y una web no genera
+ninguno), pero el empotrado real contra Google no se ha podido probar desde este entorno, que no
+tiene salida a internet. Si algún visor se resistiera, el modo de fallo es un marco en blanco con
+el botón de abrir al lado — nunca un error.
 
 ### Favicon como miniatura de las webs
 

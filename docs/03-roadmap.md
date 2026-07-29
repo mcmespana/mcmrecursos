@@ -167,10 +167,13 @@ gráfica nueva.
 Ordenado por lo que más se va a notar. Las cuatro primeras no son ideas nuevas: son **promesas
 que ya están escritas** en las specs o en el sistema de diseño y siguen sin cumplirse.
 
-- [ ] **Vista previa dentro de la ficha.** Hoy, para saber si un recurso es el que buscas hay
-      que abrirlo en otra pestaña. Drive y los editores de Google sirven `/preview` embebible y
-      YouTube tiene su iframe: se puede ver el documento sin salir del banco. SPEC-008 §1 ya lo
-      daba por hecho en la cola de revisión («vista previa si es Drive/YouTube») y no está
+- [x] **Vista previa dentro de la ficha** (2026-07-29). Documentos, hojas, presentaciones,
+      formularios, carpetas de Drive, cualquier archivo de Drive (PDF, imagen, vídeo, Office),
+      YouTube, Vimeo y Canva se ven empotrados; una web cualquiera no, a propósito (casi todas
+      prohíben el empotrado y un marco en blanco es peor que ninguno). Viene abierta, se puede
+      ocultar y se recuerda; con ella abierta el héroe se reduce a las etiquetas para no enseñar
+      dos veces la misma primera página. También en la cola de revisión, que es donde más falta
+      hacía. Detalle y decisiones en SPEC-011 §«Vista previa»
 - [ ] **View Transition de tarjeta a ficha**, con la miniatura viajando. Lo promete
       `docs/04-diseno.md` §5 («250 ms máx.») y hoy la ficha aparece de golpe
 - [ ] **Selección múltiple y acciones en lote** en /admin/recursos (cambiar estado, añadir una

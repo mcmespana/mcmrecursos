@@ -14,9 +14,11 @@
 		descargasDe,
 		formatoEfectivo,
 		urlCopia,
-		urlFavicon
+		urlFavicon,
+		urlVistaPrevia
 	} from '$lib/catalogo/formatos';
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
+	import VistaPrevia from '$lib/components/VistaPrevia.svelte';
 	import * as Sheet from '$lib/components/ui/sheet';
 	import * as Tooltip from '$lib/components/ui/tooltip';
 	import { Badge } from '$lib/components/ui/badge';
@@ -34,6 +36,7 @@
 		Copy,
 		Download,
 		Eye,
+		ScanEye,
 		FolderSymlink,
 		Heart,
 		History,
@@ -130,6 +133,24 @@
 		return lista;
 	});
 
+	/**
+	 * Vista previa empotrada (SPEC-011). Viene abierta: la ficha se abre de una en una y a
+	 * propósito, así que ver el recurso es justo lo que se venía a hacer. Quien prefiera no
+	 * verla la oculta y se recuerda en este dispositivo.
+	 */
+	const CLAVE_PREVIA = 'mcm-vista-previa';
+	const previa = $derived(recurso ? urlVistaPrevia(recurso.enlace, recurso.formato) : null);
+	const claveFormato = $derived(recurso ? formatoEfectivo(recurso.enlace, recurso.formato) : null);
+	let previaVisible = $state(true);
+	$effect(() => {
+		previaVisible = localStorage.getItem(CLAVE_PREVIA) !== 'oculta';
+	});
+	function alternarPrevia(visible: boolean) {
+		previaVisible = visible;
+		localStorage.setItem(CLAVE_PREVIA, visible ? 'visible' : 'oculta');
+	}
+	const previaAbierta = $derived(!!previa && previaVisible);
+
 	// Descargas por URL y copia editable, solo para documentos de Google (SPEC-011).
 	const descargas = $derived(recurso ? descargasDe(recurso.enlace) : []);
 	const copia = $derived(recurso ? urlCopia(recurso.enlace) : null);
@@ -192,7 +213,23 @@
 <Sheet.Root open={recurso !== null} onOpenChange={(abierto) => !abierto && onclose()}>
 	<Sheet.Content side="right" class="w-full gap-0 overflow-y-auto p-0 sm:max-w-lg">
 		{#if recurso}
-			<!-- héroe -->
+			<!--
+				Héroe. Con la vista previa abierta se reduce a la fila de etiquetas: la miniatura de
+				un documento es su primera página, o sea lo mismo que ya se está viendo debajo.
+			-->
+			{#if previaAbierta}
+				<div class="flex flex-wrap items-center gap-2 px-6 pt-6">
+					{#if recurso.tipo}
+						<Badge class={`border-transparent ${badgeClase}`}>{recurso.tipo}</Badge>
+					{/if}
+					{#if esEjemplo(recurso.nombre)}
+						<Badge variant="outline">Ejemplo</Badge>
+					{/if}
+					{#if recurso.visibilidad === 'privado'}
+						<Badge variant="secondary">Privado</Badge>
+					{/if}
+				</div>
+			{:else}
 			<div class="relative aspect-[16/9] w-full shrink-0 overflow-hidden">
 				{#if srcMiniatura}
 					<img
@@ -230,6 +267,7 @@
 					{/if}
 				</div>
 			</div>
+			{/if}
 
 			<div class="flex flex-col gap-5 p-6">
 				<Sheet.Header class="gap-2 p-0">
@@ -329,6 +367,26 @@
 					</Tooltip.Provider>
 					<GuardarEnLista {supabase} {session} recursoId={recurso.id} {onrequierelogin} />
 				</div>
+
+				<!-- vistazo sin salir del banco (SPEC-011 §Vista previa) -->
+				{#if previa && previaVisible}
+					<VistaPrevia
+						url={previa}
+						formato={claveFormato}
+						{nombre}
+						onabrir={() => onabrir(recurso!)}
+						oncerrar={() => alternarPrevia(false)}
+					/>
+				{:else if previa}
+					<Button
+						variant="outline"
+						size="sm"
+						class="self-start"
+						onclick={() => alternarPrevia(true)}
+					>
+						<ScanEye class="size-3.5" /> Ver una vista previa
+					</Button>
+				{/if}
 
 				<!-- otros formatos del mismo recurso (SPEC-011) -->
 				{#if archivos.length > 1}

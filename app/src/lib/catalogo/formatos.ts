@@ -398,6 +398,79 @@ export function urlCopia(enlace: string | null | undefined): string | null {
 	return doc ? `https://docs.google.com/${doc.familia}/d/${doc.id}/copy` : null;
 }
 
+// ---------------------------------------------------------------------------
+// Vista previa empotrada (SPEC-011 §Vista previa)
+// ---------------------------------------------------------------------------
+
+const idYoutube = (url: string): string | null =>
+	(url.match(/youtu\.be\/([\w-]{6,})/) ??
+		url.match(/[?&]v=([\w-]{6,})/) ??
+		url.match(/youtube\.com\/(?:embed|shorts|live)\/([\w-]{6,})/))?.[1] ?? null;
+
+/**
+ * URL empotrable para echarle un vistazo al recurso sin salir del banco.
+ *
+ * Es para **leer por encima**: ver si la sesión es la que buscas. Para leerla entera se abre
+ * en su sitio, y por eso el botón de abrir nunca desaparece.
+ *
+ * Solo se devuelve URL para los sitios que publican una vista pensada para empotrar (las de
+ * Drive y los editores de Google son las que genera su propio diálogo «Insertar elemento»).
+ * Con una web cualquiera se devuelve null a propósito: la mayoría prohíbe el empotrado con
+ * `X-Frame-Options`, y un marco en blanco es peor que ningún marco.
+ */
+export function urlVistaPrevia(
+	enlace: string | null | undefined,
+	formatoGuardado?: string | null
+): string | null {
+	const url = (enlace ?? '').trim();
+	if (!url) return null;
+	const clave = formatoEfectivo(url, formatoGuardado);
+
+	// editores de Google: su vista de solo lectura
+	const doc = documentoGoogle(url);
+	if (doc) {
+		// en presentaciones se usa `/embed`, que es lo que da su propio «publicar en la web»
+		return doc.familia === 'presentation'
+			? `https://docs.google.com/presentation/d/${doc.id}/embed?start=false&loop=false&delayms=5000`
+			: `https://docs.google.com/${doc.familia}/d/${doc.id}/preview`;
+	}
+
+	// formularios: el id va en `/forms/d/e/…` y no en `/forms/d/…`
+	const form = url.match(/\/forms\/d\/e\/([\w-]{20,})/);
+	if (form) return `https://docs.google.com/forms/d/e/${form[1]}/viewform?embedded=true`;
+
+	// carpeta de Drive: rejilla con el contenido
+	const carpeta = url.match(/\/folders\/([\w-]{15,})/);
+	if (carpeta) return `https://drive.google.com/embeddedfolderview?id=${carpeta[1]}#grid`;
+
+	// cualquier archivo de Drive (PDF, imagen, vídeo, Office…): el visor de Drive
+	const archivo = url.match(/\/file\/d\/([\w-]{20,})/) ?? url.match(/[?&]id=([\w-]{20,})/);
+	if (archivo) return `https://drive.google.com/file/d/${archivo[1]}/preview`;
+
+	if (clave === 'youtube') {
+		const id = idYoutube(url);
+		// nocookie: no deja rastro de publicidad en quien solo venía a mirar
+		return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
+	}
+
+	const vimeo = url.match(/vimeo\.com\/(\d{6,})/);
+	if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+
+	const canva = url.match(/canva\.com\/design\/([\w-]+)/);
+	if (canva) return `https://www.canva.com/design/${canva[1]}/view?embed`;
+
+	return null;
+}
+
+/** Proporción que le sienta mejor a cada vista previa. */
+export function proporcionVistaPrevia(clave: ClaveFormato | null): string {
+	if (clave === 'youtube' || clave === 'video' || clave === 'google-slides' || clave === 'ppt')
+		return 'aspect-video';
+	if (clave === 'drive-carpeta') return 'aspect-[4/3]';
+	// documentos y hojas: se lee mejor alto que ancho
+	return 'aspect-[3/4] sm:aspect-[4/3]';
+}
+
 /**
  * Favicon de un sitio, servido por Google. Se usa como miniatura de respaldo de los recursos
  * que son una web: mejor la marca del sitio que un icono de globo genérico.
