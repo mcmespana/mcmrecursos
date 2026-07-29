@@ -303,3 +303,189 @@ export function formatoEfectivo(
 export function necesitaConsultaDrive(clave: ClaveFormato | null): boolean {
 	return clave === 'drive-archivo';
 }
+
+// ---------------------------------------------------------------------------
+// Descargar y copiar documentos de Google (SPEC-011 §URLs de Google)
+// ---------------------------------------------------------------------------
+
+/**
+ * Los editores de Google exportan por URL, sin API y sin credenciales: basta cambiar el
+ * `/edit` final. Para textos y hojas el formato va en la query (`?format=pdf`); para
+ * presentaciones y dibujos, en la ruta (`/export/pdf`).
+ *
+ * No es una llamada nuestra: es un enlace que abre quien lo pulsa, con SUS permisos. Si el
+ * documento está compartido por enlace —como está todo lo del banco, que para eso se enlaza—
+ * funciona sin haber iniciado sesión. Si estuviera restringido, Google pide cuenta, que es
+ * exactamente lo que ya pasa hoy al abrir el original: el peor caso no empeora.
+ */
+/**
+ * Se ofrecen dos por familia —PDF y el equivalente de Office— porque son los que de verdad se
+ * piden: el PDF para imprimir y repartir, el Office para adaptarlo sin cuenta de Google.
+ * Google admite bastantes más (`odt`, `rtf`, `txt`, `epub`, `csv`, `tsv`, `ods`, `odp`, `svg`,
+ * `png`, `jpg`…); añadir uno es meterlo en esta lista.
+ */
+const FAMILIA_GOOGLE = {
+	document: { ruta: false, formatos: ['pdf', 'docx'] },
+	spreadsheets: { ruta: false, formatos: ['pdf', 'xlsx'] },
+	presentation: { ruta: true, formatos: ['pdf', 'pptx'] },
+	drawings: { ruta: true, formatos: ['pdf', 'png'] }
+} as const;
+
+type FamiliaGoogle = keyof typeof FAMILIA_GOOGLE;
+
+/** Extensión → cómo se llama y con qué icono se pinta en el botón de descarga. */
+const DESCARGA: Record<string, { etiqueta: string; formato: ClaveFormato }> = {
+	pdf: { etiqueta: 'PDF', formato: 'pdf' },
+	docx: { etiqueta: 'Word', formato: 'word' },
+	xlsx: { etiqueta: 'Excel', formato: 'excel' },
+	pptx: { etiqueta: 'PowerPoint', formato: 'ppt' },
+	odt: { etiqueta: 'OpenDocument', formato: 'word' },
+	ods: { etiqueta: 'OpenDocument', formato: 'excel' },
+	odp: { etiqueta: 'OpenDocument', formato: 'ppt' },
+	rtf: { etiqueta: 'RTF', formato: 'word' },
+	csv: { etiqueta: 'CSV', formato: 'excel' },
+	tsv: { etiqueta: 'TSV', formato: 'excel' },
+	txt: { etiqueta: 'Texto', formato: 'texto' },
+	epub: { etiqueta: 'EPUB', formato: 'texto' },
+	png: { etiqueta: 'PNG', formato: 'imagen' },
+	svg: { etiqueta: 'SVG', formato: 'imagen' }
+};
+
+export interface Descarga {
+	/** Extensión (`pdf`, `docx`…), por si hace falta distinguirlas. */
+	extension: string;
+	etiqueta: string;
+	/** Clave de formato, solo para elegir el icono. */
+	formato: ClaveFormato;
+	url: string;
+}
+
+/** Familia de editor de Google y id del documento, si el enlace es de uno. */
+function documentoGoogle(enlace: string | null | undefined): { familia: FamiliaGoogle; id: string } | null {
+	const m = (enlace ?? '').match(
+		/docs\.google\.com\/(document|spreadsheets|presentation|drawings)\/d\/([\w-]{20,})/
+	);
+	return m ? { familia: m[1] as FamiliaGoogle, id: m[2] } : null;
+}
+
+/**
+ * Descargas disponibles para un enlace, en orden de utilidad (PDF primero).
+ * Vacío si el enlace no es un documento de Google: no hay atajo por URL para un .docx que
+ * viva en Drive como fichero suelto (ver SPEC-011).
+ */
+export function descargasDe(enlace: string | null | undefined): Descarga[] {
+	const doc = documentoGoogle(enlace);
+	if (!doc) return [];
+	const { ruta, formatos } = FAMILIA_GOOGLE[doc.familia];
+	const base = `https://docs.google.com/${doc.familia}/d/${doc.id}`;
+	return formatos
+		.filter((ext) => DESCARGA[ext])
+		.map((ext) => ({
+			extension: ext,
+			etiqueta: DESCARGA[ext].etiqueta,
+			formato: DESCARGA[ext].formato,
+			url: ruta ? `${base}/export/${ext}` : `${base}/export?format=${ext}`
+		}));
+}
+
+/**
+ * URL para hacerse una copia editable del documento en el Drive de quien la pulsa.
+ * Google enseña un «¿Quieres hacer una copia?» y solo necesita permiso de LECTURA sobre el
+ * original, así que nadie puede tocar el documento del banco por aquí.
+ */
+export function urlCopia(enlace: string | null | undefined): string | null {
+	const doc = documentoGoogle(enlace);
+	return doc ? `https://docs.google.com/${doc.familia}/d/${doc.id}/copy` : null;
+}
+
+// ---------------------------------------------------------------------------
+// Vista previa empotrada (SPEC-011 §Vista previa)
+// ---------------------------------------------------------------------------
+
+const idYoutube = (url: string): string | null =>
+	(url.match(/youtu\.be\/([\w-]{6,})/) ??
+		url.match(/[?&]v=([\w-]{6,})/) ??
+		url.match(/youtube\.com\/(?:embed|shorts|live)\/([\w-]{6,})/))?.[1] ?? null;
+
+/**
+ * URL empotrable para echarle un vistazo al recurso sin salir del banco.
+ *
+ * Es para **leer por encima**: ver si la sesión es la que buscas. Para leerla entera se abre
+ * en su sitio, y por eso el botón de abrir nunca desaparece.
+ *
+ * Solo se devuelve URL para los sitios que publican una vista pensada para empotrar (las de
+ * Drive y los editores de Google son las que genera su propio diálogo «Insertar elemento»).
+ * Con una web cualquiera se devuelve null a propósito: la mayoría prohíbe el empotrado con
+ * `X-Frame-Options`, y un marco en blanco es peor que ningún marco.
+ */
+export function urlVistaPrevia(
+	enlace: string | null | undefined,
+	formatoGuardado?: string | null
+): string | null {
+	const url = (enlace ?? '').trim();
+	if (!url) return null;
+	const clave = formatoEfectivo(url, formatoGuardado);
+
+	// editores de Google: su vista de solo lectura
+	const doc = documentoGoogle(url);
+	if (doc) {
+		// en presentaciones se usa `/embed`, que es lo que da su propio «publicar en la web»
+		return doc.familia === 'presentation'
+			? `https://docs.google.com/presentation/d/${doc.id}/embed?start=false&loop=false&delayms=5000`
+			: `https://docs.google.com/${doc.familia}/d/${doc.id}/preview`;
+	}
+
+	// formularios: el id va en `/forms/d/e/…` y no en `/forms/d/…`
+	const form = url.match(/\/forms\/d\/e\/([\w-]{20,})/);
+	if (form) return `https://docs.google.com/forms/d/e/${form[1]}/viewform?embedded=true`;
+
+	// carpeta de Drive: rejilla con el contenido
+	const carpeta = url.match(/\/folders\/([\w-]{15,})/);
+	if (carpeta) return `https://drive.google.com/embeddedfolderview?id=${carpeta[1]}#grid`;
+
+	// cualquier archivo de Drive (PDF, imagen, vídeo, Office…): el visor de Drive
+	const archivo = url.match(/\/file\/d\/([\w-]{20,})/) ?? url.match(/[?&]id=([\w-]{20,})/);
+	if (archivo) return `https://drive.google.com/file/d/${archivo[1]}/preview`;
+
+	if (clave === 'youtube') {
+		const id = idYoutube(url);
+		// nocookie: no deja rastro de publicidad en quien solo venía a mirar
+		return id ? `https://www.youtube-nocookie.com/embed/${id}` : null;
+	}
+
+	const vimeo = url.match(/vimeo\.com\/(\d{6,})/);
+	if (vimeo) return `https://player.vimeo.com/video/${vimeo[1]}`;
+
+	const canva = url.match(/canva\.com\/design\/([\w-]+)/);
+	if (canva) return `https://www.canva.com/design/${canva[1]}/view?embed`;
+
+	return null;
+}
+
+/** Proporción que le sienta mejor a cada vista previa. */
+export function proporcionVistaPrevia(clave: ClaveFormato | null): string {
+	if (clave === 'youtube' || clave === 'video' || clave === 'google-slides' || clave === 'ppt')
+		return 'aspect-video';
+	if (clave === 'drive-carpeta') return 'aspect-[4/3]';
+	// documentos y hojas: se lee mejor alto que ancho
+	return 'aspect-[3/4] sm:aspect-[4/3]';
+}
+
+/**
+ * Favicon de un sitio, servido por Google. Se usa como miniatura de respaldo de los recursos
+ * que son una web: mejor la marca del sitio que un icono de globo genérico.
+ */
+export function urlFavicon(enlace: string | null | undefined, tamano = 64): string | null {
+	const url = (enlace ?? '').trim();
+	if (!url) return null;
+	let host: string;
+	try {
+		host = new URL(url).origin;
+	} catch {
+		return null;
+	}
+	return (
+		'https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON' +
+		`&fallback_opts=TYPE,SIZE,URL&size=${tamano}&url=${encodeURIComponent(host)}`
+	);
+}

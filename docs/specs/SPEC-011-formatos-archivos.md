@@ -19,11 +19,15 @@ Entra:
 - Envío de recursos sin sesión iniciada, con clasificación opcional.
 - Borrado de recursos desde el panel.
 
+Entra también (2026-07-29): descargar en PDF/Office y hacerse una copia editable de los
+documentos de Google, el favicon del sitio como miniatura de los recursos que son una web, y la
+**vista previa empotrada**. Ver §«URLs de Google» y §«Vista previa» más abajo.
+
 Queda fuera **por ahora, y está en el roadmap** (Fase 3.6):
 
-- Convertir documentos de Drive a PDF automáticamente. Se hará cuando exista la cuenta de
-  servicio con permiso de escritura; el modelo ya lo admite (basta añadir otro
-  `recurso_archivo` con `formato = 'pdf'`).
+- Convertir a PDF un **.docx/.xlsx/.pptx que viva en Drive como fichero suelto**. Esto sí
+  necesita cuenta de servicio con permiso de escritura, y no es un capricho: ver §«El caso del
+  Word en Drive».
 - Subida de archivos a Supabase Storage desde `/enviar`: se siguen guardando enlaces. Quien
   aporta suele tener el material ya en su Drive, y el enlace evita duplicar el fichero y tener
   que decidir su destino final.
@@ -143,6 +147,118 @@ enlace al recurso.
       aparecen en la cuenta.
 - [x] Un recurso se puede eliminar desde el panel, con confirmación.
 - [x] Detectar formatos en lote no marca los recursos como editados en web.
+- [x] Un documento de Google ofrece «PDF», «Word/Excel/PowerPoint» y «Hacer una copia» sin que
+      el banco tenga configurada ninguna credencial.
+- [x] Un recurso que es una web enseña el favicon del sitio, y si Google no lo tiene, el icono
+      de su tipo.
+- [x] La ficha enseña el recurso empotrado sin salir del banco, con el botón de abrir siempre
+      presente; una web cualquiera no genera marco.
+- [x] La vista previa se puede ocultar y la elección se recuerda en el dispositivo.
+- [x] La cola de revisión enseña lo enviado sin abrir otra pestaña.
+
+## URLs de Google: descargar y copiar sin API ni credenciales
+
+Los editores de Google exportan **por URL**. No hace falta la API de Drive, ni cuenta de
+servicio, ni permiso de escritura: basta sustituir el `/edit` final del enlace. Y como el enlace
+lo abre quien lo pulsa, se resuelve con SUS permisos.
+
+| Familia            | Cómo va el formato | URL                                          |
+| ------------------ | ------------------ | -------------------------------------------- |
+| Documento (Docs)   | en la **query**    | `…/document/d/ID/export?format=pdf`          |
+| Hoja (Sheets)      | en la **query**    | `…/spreadsheets/d/ID/export?format=xlsx`     |
+| Presentación       | en la **ruta**     | `…/presentation/d/ID/export/pdf`             |
+| Dibujo             | en la **ruta**     | `…/drawings/d/ID/export/png`                 |
+| Copia editable     | —                  | `…/document/d/ID/copy`                       |
+
+**Verificado el 2026-07-29** contra documentos públicos de Google, sin ninguna credencial:
+`export?format=pdf` de una hoja devuelve `application/pdf` (53 KB), `?format=xlsx` devuelve el
+mime de Office y `?format=csv` un `text/csv`; en presentaciones funcionan **las dos** formas
+(`/export/pdf` y `?format=pdf`) y devuelven el PDF real. Se usa la de la ruta, que es la
+documentada para presentaciones.
+
+Se ofrecen dos formatos por familia (PDF + el equivalente de Office) porque son los que se
+piden de verdad: el PDF para imprimir y repartir, el Office para adaptarlo sin cuenta de
+Google. Google admite bastantes más y añadir uno es meterlo en `FAMILIA_GOOGLE`
+(`catalogo/formatos.ts`).
+
+`/copy` abre el «¿Quieres hacer una copia?» de Google y solo necesita permiso de **lectura**
+sobre el original, así que nadie puede modificar el documento del banco por esta vía. (Existe
+también `/template/preview`, que enseña el documento con un botón «Usar plantilla»; se descarta
+porque en Google Sites exige compartir con permiso de **edición**, y no compensa manejar dos
+mecanismos con reglas distintas.)
+
+**Requisito y modo de fallo.** El documento tiene que estar compartido por enlace, que es como
+ya está todo lo del banco: si no lo estuviera, Google pide cuenta — exactamente lo que pasa hoy
+al pulsar «Abrir recurso». El peor caso no empeora, así que no hay nada que validar antes de
+mostrar el botón.
+
+### El caso del Word en Drive
+
+Un `.docx` subido a Drive **no** tiene atajo por URL, y la API tampoco ayuda de forma directa:
+`files.export` solo admite ficheros de los editores de Google y responde `403 Export only
+supports Docs Editors files` con cualquier binario. El camino real es de tres pasos —
+`files.copy` con `mimeType: application/vnd.google-apps.document` para convertirlo, exportar la
+copia y borrarla — y eso sí necesita un scope de **escritura** en Drive. De ahí que siga
+aparcado: no es la misma cosa que lo anterior aunque el usuario lo viva igual.
+
+## Vista previa empotrada
+
+Hasta ahora, para saber si un recurso era el que buscabas había que abrirlo en otra pestaña.
+Ahora se ve dentro de la ficha. Es un **vistazo**, no un lector: sirve para decidir «sí, esta es
+la sesión», y para leerla entera se abre en su sitio — de ahí que el botón de abrir siga siendo
+la acción principal y aparezca además justo debajo del marco.
+
+| Qué es                            | URL empotrable                                                    |
+| --------------------------------- | ----------------------------------------------------------------- |
+| Documento, hoja, dibujo de Google | `…/{familia}/d/ID/preview`                                        |
+| Presentación                      | `…/presentation/d/ID/embed?start=false&loop=false&delayms=5000`    |
+| Formulario                        | `…/forms/d/e/ID/viewform?embedded=true` (el id va en `/d/e/`)      |
+| Carpeta de Drive                  | `drive.google.com/embeddedfolderview?id=ID#grid`                  |
+| Cualquier archivo de Drive        | `drive.google.com/file/d/ID/preview` (PDF, imagen, vídeo, Office…) |
+| YouTube                           | `youtube-nocookie.com/embed/ID`                                   |
+| Vimeo · Canva                     | `player.vimeo.com/video/ID` · `canva.com/design/ID/view?embed`     |
+
+Se usan las URL que genera el propio «Insertar elemento» de Drive, que son las que Google
+mantiene empotrables. Para **una web cualquiera se devuelve `null` a propósito**: la mayoría
+prohíbe el empotrado con `X-Frame-Options`, y un marco en blanco es peor que ningún marco.
+
+Decisiones que no son evidentes:
+
+- **Viene abierta.** La ficha se abre de una en una y a propósito: ver el recurso es justo lo
+  que se venía a hacer. Quien prefiera no verla la oculta y se recuerda en el dispositivo
+  (`localStorage`, clave `mcm-vista-previa`).
+- **Con la previa abierta, el héroe se reduce a la fila de etiquetas.** La miniatura de un
+  documento de Drive *es* su primera página, o sea exactamente lo que ya se está viendo debajo:
+  mantener las dos era enseñar lo mismo dos veces y comerse la pantalla.
+- **No se intenta detectar si el sitio rechazó el marco.** Un `<iframe>` a otro dominio no se
+  puede inspeccionar y el evento `load` también salta con su página de error, así que cualquier
+  detección sería mentira a medias. En su lugar, el botón de abrir está siempre a mano: si el
+  marco sale en blanco, la salida está debajo.
+- **Sin `referrerpolicy`.** Los visores de Google miran de dónde viene la petición; cortarles el
+  referente sería la forma más tonta de romper esto.
+- **Con `sandbox`, que sí aporta**: sin `allow-top-navigation`, lo empotrado no puede secuestrar
+  la pestaña del banco. `allow-same-origin` es imprescindible (el visor necesita su propio
+  origen para la sesión) y no debilita nada aquí, porque lo empotrado es de otro dominio.
+
+También aparece en la **cola de revisión**, que es donde más falta hacía: se decide si publicar
+lo que alguien ha enviado sin abrir media docena de pestañas. SPEC-008 §1 ya lo daba por hecho.
+
+**Límite de la verificación**: las URL y el montaje están comprobados en navegador (cada formato
+genera el marco esperado, el conmutador y su persistencia funcionan, y una web no genera
+ninguno), pero el empotrado real contra Google no se ha podido probar desde este entorno, que no
+tiene salida a internet. Si algún visor se resistiera, el modo de fallo es un marco en blanco con
+el botón de abrir al lado — nunca un error.
+
+### Favicon como miniatura de las webs
+
+`https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&size=64&url=ORIGEN`
+devuelve el favicon del sitio. Se usa como respaldo de miniatura en los recursos de formato
+`web`: la marca del sitio se reconoce mucho mejor que un globo genérico. Para dominios que
+Google no tiene indexados responde **404 con un PNG de respaldo**, y como el navegador dispara
+`error` en un `<img>` con estado no-2xx, cae solo en el icono del tipo. Degradación gratis.
+
+(La miniatura de Drive —`drive.google.com/thumbnail?id=ID&sz=w640`— ya se usaba desde SPEC-002
+en `miniatura()`; admite además `&sz=wANCHO-hALTO` si algún día interesa fijar el alto.)
 
 ## Faceta «Formato» en el buscador (migración 00017)
 
@@ -162,4 +278,5 @@ contra el doble envío (la primera es la idempotencia del servidor).
 
 ## Preguntas abiertas
 
-Ninguna pendiente.
+- ¿Interesa ofrecer más formatos de descarga (ODT/ODS/ODP, EPUB, CSV) o con PDF + Office se
+  cubre lo que la gente pide? Ampliarlo es una línea en `FAMILIA_GOOGLE`.

@@ -7,6 +7,8 @@
 	import * as Avatar from '$lib/components/ui/avatar';
 	import RecursoFormulario from '$lib/components/admin/RecursoFormulario.svelte';
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
+	import VistaPrevia from '$lib/components/VistaPrevia.svelte';
+	import { formatoEfectivo, urlVistaPrevia } from '$lib/catalogo/formatos';
 	import { toast } from 'svelte-sonner';
 	import { Bot, ExternalLink, Inbox, Sparkles, UserRound, Undo2 } from '@lucide/svelte';
 
@@ -72,6 +74,10 @@
 
 	const fecha = (iso: string) =>
 		new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+
+	// Revisar sin abrir seis pestañas: se ve lo enviado dentro del propio diálogo (SPEC-008 §1).
+	const previa = $derived(revisando ? urlVistaPrevia(revisando.enlace) : null);
+	const claveFormato = $derived(revisando ? formatoEfectivo(revisando.enlace) : null);
 
 	async function alPublicar(result: any) {
 		revisando = null;
@@ -208,7 +214,16 @@
 				</Dialog.Description>
 			</Dialog.Header>
 
-			<!-- Autoclasificación (SPEC-010): lee el enlace/Drive y prerrellena el formulario -->
+			{#if previa}
+					<VistaPrevia
+						url={previa}
+						formato={claveFormato}
+						nombre={revisando.titulo}
+						onabrir={() => window.open(revisando.enlace, '_blank', 'noopener,noreferrer')}
+					/>
+				{/if}
+
+				<!-- Autoclasificación (SPEC-010): lee el enlace/Drive y prerrellena el formulario -->
 			<form method="POST" action="?/clasificar" use:enhance={resultadoClasificarEnvio()}>
 				<input type="hidden" name="envio_id" value={revisando.id} />
 				<div
