@@ -108,8 +108,10 @@ gráfica nueva.
 2. Pulsar «Detectar formatos» en /admin/recursos — de momento no aporta gran cosa: el
    catálogo son 8 recursos `[EJEMPLO]`, cobra sentido cuando entre contenido real por el Sheet.
 3. Presets de mazo para Descubre («Adviento», «Para monitores»…).
-4. Más adelante: conversión a PDF desde Drive, subida a Storage y editor visual de
-   itinerarios en /admin/config.
+4. Elegir por dónde seguir de la Fase 3.7 (UI/UX). Mi orden: vista previa en la ficha,
+   acciones en lote en el panel y estado vacío que sugiera qué filtro quitar.
+5. Más adelante: conversión a PDF de los Office sueltos de Drive, subida a Storage y editor
+   visual de itinerarios en /admin/config.
 
 ## Fase 3.6 — Formatos, aportación abierta y pulido del panel (SPEC-011)
 - [x] Migración 00015: `recurso.formato`, tabla `recurso_archivo`, envío sin cuenta
@@ -143,12 +145,60 @@ gráfica nueva.
       segundo envío de cada botón dejaba de mostrar su estado para siempre. Rompía justo lo
       que dice esta línea del roadmap. `/admin/sync` y las páginas que usan `crearOcupado()`
       (config, usuarios) no estaban afectadas: ese helper ya lo hacía bien.
-- [ ] **Aparcado, no olvidado**: convertir a PDF los documentos de Drive automáticamente
-      (necesita una cuenta de servicio con permiso de escritura; el modelo ya lo admite, basta
-      con añadir otro `recurso_archivo` con `formato = 'pdf'`)
+- [x] **Descargar y copiar documentos de Google** (2026-07-29). Resulta que NO hacía falta
+      cuenta de servicio ni permiso de escritura, como decía aquí antes: los editores de Google
+      exportan por URL cambiando el `/edit` final. La ficha ofrece «PDF», «Word/Excel/
+      PowerPoint» y «Hacer una copia» (que crea una copia editable en el Drive de quien la
+      pulsa, con permiso de solo lectura sobre el original). Verificado contra documentos
+      públicos de Google sin ninguna credencial — tabla de URLs y modos de fallo en SPEC-011
+      §«URLs de Google»
+- [x] Favicon del sitio como miniatura de respaldo de los recursos que son una web, en vez del
+      globo genérico (otra URL mágica de Google; cae al icono del tipo si no lo tiene indexado)
+- [ ] **Aparcado, esto sí de verdad**: convertir a PDF un `.docx`/`.xlsx`/`.pptx` que viva en
+      Drive como fichero suelto. No hay atajo por URL y `files.export` responde `403 Export
+      only supports Docs Editors files` con binarios: hay que copiar-convirtiendo con
+      `files.copy`, exportar y borrar la copia, y eso necesita scope de escritura en Drive
 - [ ] **Aparcado, no olvidado**: subir archivos a Supabase Storage desde /enviar. Hoy solo se
       guardan enlaces y de momento se queda así — quien aporta suele tener el material ya en
       su Drive, y el enlace evita duplicar el fichero y decidir su destino final
+
+## Fase 3.7 — UI/UX: la siguiente vuelta 🎨
+
+Ordenado por lo que más se va a notar. Las cuatro primeras no son ideas nuevas: son **promesas
+que ya están escritas** en las specs o en el sistema de diseño y siguen sin cumplirse.
+
+- [ ] **Vista previa dentro de la ficha.** Hoy, para saber si un recurso es el que buscas hay
+      que abrirlo en otra pestaña. Drive y los editores de Google sirven `/preview` embebible y
+      YouTube tiene su iframe: se puede ver el documento sin salir del banco. SPEC-008 §1 ya lo
+      daba por hecho en la cola de revisión («vista previa si es Drive/YouTube») y no está
+- [ ] **View Transition de tarjeta a ficha**, con la miniatura viajando. Lo promete
+      `docs/04-diseno.md` §5 («250 ms máx.») y hoy la ficha aparece de golpe
+- [ ] **Selección múltiple y acciones en lote** en /admin/recursos (cambiar estado, añadir una
+      temática, asignar MCM local a varios de una vez). SPEC-008 §2 lo especifica; no existe.
+      Es lo que convierte una tarde de catalogación en diez minutos
+- [ ] **Estado vacío que sugiera qué quitar.** `docs/04-diseno.md` §7 pide literalmente «Sin
+      resultados con estos 4 filtros — prueba quitando *Vídeo*»; hoy el mensaje es genérico. El
+      dato para calcularlo ya está: `countsPorFaceta` sabe qué filtro cuesta más resultados
+- [ ] **Paleta de comandos (⌘K)**: ir a un recurso, aplicar un filtro o saltar de sección desde
+      el teclado. El componente `command` de shadcn está instalado y sin usar desde el día uno
+- [ ] **Copiar el enlace del recurso** desde la ficha, con el check de confirmación del botón.
+      Hoy toca ir a la barra del navegador
+- [ ] **Deshacer** en lo destructivo: quitar un favorito, descartar un envío, eliminar un
+      recurso. Un toast con «Deshacer» y retardo real antes de ejecutar vale más que un diálogo
+      de confirmación, que se acaba pulsando en automático
+- [ ] **Rendimiento con catálogo de verdad.** Hoy se cargan TODOS los recursos y se indexan en
+      Orama en el cliente: con 8 sobra, con 800 que entren por el Sheet hay que paginar o
+      virtualizar el grid y medirlo. Es lo primero que va a doler cuando haya contenido real
+- [ ] **Accesibilidad de la tarjeta**: hay un botón absoluto que cubre la tarjeta entera con el
+      corazón por encima — revisar orden de tabulación y qué anuncia el lector de pantalla. Y
+      `aria-live` en el recuento de resultados, que ahora cambia en silencio
+- [ ] **Repaso de móvil**: la ficha es un panel lateral; comprobar el gesto de cierre y que
+      todos los targets lleguen a los 44 px que exige `docs/04-diseno.md` §7
+- [ ] «Vistos hace poco» en la portada (localStorage) e insignia «nuevo» para lo publicado en
+      los últimos días, con orden «recién añadidos»
+- [ ] Exportar una lista guardada a PDF o CSV — encaja con el «Llevártelo» de la ficha
+- [ ] Miniatura para las carpetas de Drive, que hoy no tienen ninguna (necesita API para sacar
+      el primer archivo de dentro)
 
 ## Fase 3.5 — Descubre (el tinder de recursos) 🎴
 - [x] Modo swipe sin IA (SPEC-007 v1): `/descubre` con mazo desde los filtros del buscador,

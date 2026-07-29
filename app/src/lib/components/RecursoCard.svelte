@@ -10,7 +10,7 @@
 		esEjemplo,
 		miniatura
 	} from '$lib/catalogo/tipos';
-	import { FORMATOS, formatoEfectivo } from '$lib/catalogo/formatos';
+	import { FORMATOS, formatoEfectivo, urlFavicon } from '$lib/catalogo/formatos';
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import Estrellas from '$lib/components/Estrellas.svelte';
@@ -35,6 +35,9 @@
 	const Icono = $derived(iconoDeTipo(recurso.tipo, familia));
 	const nombre = $derived(limpiarNombre(recurso.nombre));
 	const formato = $derived(formatoEfectivo(recurso.enlace, recurso.formato));
+	// una web sin miniatura se reconoce mucho mejor por su favicon que por un globo genérico
+	const favicon = $derived(formato === 'web' ? urlFavicon(recurso.enlace, 128) : null);
+	let faviconFallo = $state(false);
 	let imgFallo = $state(false);
 	const srcMiniatura = $derived(!imgFallo ? miniatura(recurso) : null);
 </script>
@@ -61,10 +64,20 @@
 			/>
 		{:else}
 			<div class={`flex size-full items-center justify-center bg-gradient-to-br ${fondoClase}`}>
-				<Icono
-					class="size-12 text-foreground/15 transition-transform duration-300 group-hover:scale-110"
-					strokeWidth={1.5}
-				/>
+				{#if favicon && !faviconFallo}
+					<img
+						src={favicon}
+						alt=""
+						class="size-10 rounded-lg bg-background/70 p-2 shadow-sm transition-transform duration-300 group-hover:scale-110"
+						loading="lazy"
+						onerror={() => (faviconFallo = true)}
+					/>
+				{:else}
+					<Icono
+						class="size-12 text-foreground/15 transition-transform duration-300 group-hover:scale-110"
+						strokeWidth={1.5}
+					/>
+				{/if}
 			</div>
 		{/if}
 

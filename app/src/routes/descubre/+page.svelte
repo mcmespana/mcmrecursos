@@ -160,6 +160,11 @@
 		}
 	}
 
+	/** Descargas y copias abren su propio enlace: aquí solo se cuenta el acceso. */
+	function registrarAcceso(r: RecursoCatalogo) {
+		data.supabase.rpc('registrar_acceso', { rid: r.id });
+	}
+
 	function abrirRecurso(r: RecursoCatalogo, enlace?: string) {
 		const destino = enlace ?? r.enlace;
 		if (!destino) return;
@@ -767,6 +772,7 @@
 	onusado={toggleUsado}
 	onvalorar={valorar}
 	onabrir={abrirRecurso}
+	onacceso={registrarAcceso}
 />
 
 <LoginDialog bind:open={loginAbierto} onentrar={entrarConGoogle} />

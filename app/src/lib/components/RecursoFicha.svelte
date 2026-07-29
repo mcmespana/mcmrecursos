@@ -9,7 +9,13 @@
 		limpiarNombre,
 		esEjemplo
 	} from '$lib/catalogo/tipos';
-	import { FORMATOS, formatoEfectivo } from '$lib/catalogo/formatos';
+	import {
+		FORMATOS,
+		descargasDe,
+		formatoEfectivo,
+		urlCopia,
+		urlFavicon
+	} from '$lib/catalogo/formatos';
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
 	import * as Sheet from '$lib/components/ui/sheet';
 	import * as Tooltip from '$lib/components/ui/tooltip';
@@ -25,6 +31,8 @@
 		Check,
 		ChevronLeft,
 		ChevronRight,
+		Copy,
+		Download,
 		Eye,
 		FolderSymlink,
 		Heart,
@@ -53,7 +61,8 @@
 		onfavorito,
 		onusado,
 		onvalorar,
-		onabrir
+		onabrir,
+		onacceso
 	}: {
 		supabase: SupabaseClient<any, 'recursos'>;
 		session: Session | null;
@@ -80,6 +89,8 @@
 		onusado: (r: RecursoCatalogo) => void;
 		onvalorar: (r: RecursoCatalogo, estrellas: number) => void;
 		onabrir: (r: RecursoCatalogo, enlace?: string) => void;
+		/** Registra un acceso sin navegar: para descargas y copias, que ya abren su propio enlace. */
+		onacceso?: (r: RecursoCatalogo) => void;
 	} = $props();
 
 	const puedeAnterior = $derived(indice > 0);
@@ -119,10 +130,23 @@
 		return lista;
 	});
 
+	// Descargas por URL y copia editable, solo para documentos de Google (SPEC-011).
+	const descargas = $derived(recurso ? descargasDe(recurso.enlace) : []);
+	const copia = $derived(recurso ? urlCopia(recurso.enlace) : null);
+
+	// Si el recurso es una web sin miniatura, su favicon dice más que un globo genérico.
+	const favicon = $derived(
+		recurso && formatoEfectivo(recurso.enlace, recurso.formato) === 'web'
+			? urlFavicon(recurso.enlace, 128)
+			: null
+	);
+
 	let imgFallo = $state(false);
+	let faviconFallo = $state(false);
 	$effect(() => {
 		void recurso?.id;
 		imgFallo = false;
+		faviconFallo = false;
 	});
 	const srcMiniatura = $derived(recurso && !imgFallo ? miniatura(recurso) : null);
 
@@ -179,7 +203,16 @@
 					/>
 				{:else}
 					<div class={`flex size-full items-center justify-center bg-gradient-to-br ${fondoClase}`}>
-						<Icono class="size-20 text-foreground/12" strokeWidth={1.25} />
+						{#if favicon && !faviconFallo}
+							<img
+								src={favicon}
+								alt=""
+								class="size-16 rounded-xl bg-background/70 p-3 shadow-sm"
+								onerror={() => (faviconFallo = true)}
+							/>
+						{:else}
+							<Icono class="size-20 text-foreground/12" strokeWidth={1.25} />
+						{/if}
 					</div>
 				{/if}
 				<div
@@ -315,6 +348,52 @@
 								</button>
 							{/each}
 						</div>
+					</div>
+				{/if}
+
+				<!--
+					Llevárselo: descargar en otro formato o hacerse una copia editable. Los editores
+					de Google lo dan por URL, sin API ni credenciales (SPEC-011 §URLs de Google), así
+					que estos son enlaces normales: se abren con los permisos de quien los pulsa.
+				-->
+				{#if descargas.length}
+					<div class="flex flex-col gap-1.5">
+						<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+							Llevártelo
+						</p>
+						<div class="flex flex-wrap gap-2">
+							{#each descargas as descarga (descarga.extension)}
+								<a
+									href={descarga.url}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="inline-flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm transition-colors hover:bg-accent"
+									title={`Descargar en ${descarga.etiqueta}`}
+									onclick={() => onacceso?.(recurso!)}
+								>
+									<Download class="size-3.5 text-muted-foreground" />
+									<IconoFormato formato={descarga.formato} class="size-4" />
+									{descarga.etiqueta}
+								</a>
+							{/each}
+							{#if copia}
+								<a
+									href={copia}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/5 px-2.5 py-1.5 text-sm text-primary transition-colors hover:bg-primary/10"
+									title="Crea una copia en tu Drive para adaptarlo; el original del banco no se toca"
+									onclick={() => onacceso?.(recurso!)}
+								>
+									<Copy class="size-3.5" />
+									Hacer una copia
+								</a>
+							{/if}
+						</div>
+						<p class="text-xs text-muted-foreground">
+							La copia se crea en tu Drive y la puedes editar a tu gusto: el original del banco
+							queda intacto.
+						</p>
 					</div>
 				{/if}
 
