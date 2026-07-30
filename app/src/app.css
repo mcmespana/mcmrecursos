@@ -141,6 +141,33 @@
 		text-wrap: balance;
 	}
 
+	/*
+	   Targets táctiles de 44 px (docs/04-diseno.md §7) sin engordar el dibujo: un pseudo-elemento
+	   invisible y centrado amplía la zona que responde al dedo. Solo se activa en punteros gruesos
+	   —móvil y tableta—, que es donde el problema existe; con ratón, un icono de 32 px se acierta
+	   perfectamente y ampliar la zona solo robaría clics a lo que tiene al lado.
+
+	   `.toque` para botones colocados en el flujo normal; `.toque-encima` para los que ya son
+	   `absolute` (el corazón de la tarjeta), donde tocar el `position` los descolocaría.
+	*/
+	@media (pointer: coarse) {
+		.toque {
+			position: relative;
+		}
+		.toque::after,
+		.toque-encima::after {
+			content: '';
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			width: 100%;
+			height: 100%;
+			min-width: 44px;
+			min-height: 44px;
+			translate: -50% -50%;
+		}
+	}
+
 	/* View Transition de tarjeta a ficha (docs/04-diseno.md §5): 250 ms como máximo, y el
 	   recorte al rectángulo de destino para que la miniatura no se desborde al volar. */
 	@media (prefers-reduced-motion: no-preference) {

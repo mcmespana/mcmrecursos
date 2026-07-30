@@ -347,9 +347,9 @@
 					<td class="px-2 text-right">
 						<button
 							type="button"
-							aria-label={fav ? 'Quitar de favoritos' : 'Guardar en favoritos'}
+							aria-label={`${fav ? 'Quitar de favoritos' : 'Guardar en favoritos'}: ${limpiarNombre(r.nombre)}`}
 							aria-pressed={fav}
-							class={`rounded-full p-1.5 transition-colors active:scale-90 ${
+							class={`toque rounded-full p-1.5 transition-colors active:scale-90 ${
 								fav ? 'text-destructive' : 'text-muted-foreground/50 hover:text-destructive'
 							}`}
 							onclick={(e) => {

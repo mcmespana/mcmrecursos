@@ -5,13 +5,18 @@
 	import { toast } from 'svelte-sonner';
 	import { Globe, HardDrive, ListChecks, Lock, Trash2 } from '@lucide/svelte';
 	import { browser } from '$app/environment';
+	import { SvelteSet } from 'svelte/reactivity';
 	import { socialLocal } from '$lib/social/local.svelte';
 	import { crearOcupado } from '$lib/acciones.svelte';
+	import { accionRetardada, avisoDeshacible } from '$lib/deshacer';
 
 	let { data } = $props();
 
 	// evita el doble clic mientras la petición está en vuelo
 	const ocupado = crearOcupado();
+	// listas borradas hace un instante: fuera de la pantalla ya, en la base de datos aún no
+	const borradas = new SvelteSet<string>();
+	const listas = $derived(data.listas.filter((l: any) => !borradas.has(l.id)));
 	$effect(() => {
 		if (browser) socialLocal.cargar();
 	});
@@ -39,13 +44,34 @@
 		});
 	}
 
-	async function borrar(lista: { id: string; nombre: string }) {
-		if (ocupado.activo) return;
-		if (!confirm(`¿Borrar la lista «${lista.nombre}»? Los recursos no se tocan.`)) return;
-		await ocupado.envolver(async () => {
-			const { error } = await data.supabase.from('lista').delete().eq('id', lista.id);
-			if (error) toast.error('No se pudo borrar');
-			else await invalidateAll();
+	/**
+	 * Sin cuenta las listas viven en este dispositivo: borrar es reescribir el `localStorage`, así
+	 * que no hay nada que retardar — se borra y el «Deshacer» la devuelve a su sitio.
+	 */
+	function borrarLocal(lista: { id: string; nombre: string; recursos: string[] }) {
+		socialLocal.borrarLista(lista.id);
+		avisoDeshacible({
+			mensaje: `Lista «${lista.nombre}» borrada`,
+			deshacer: () => socialLocal.restaurarLista({ ...lista })
+		});
+	}
+
+	/** Borrar sin `confirm()`: la lista desaparece al momento y hay siete segundos para deshacerlo. */
+	function borrar(lista: { id: string; nombre: string }) {
+		if (borradas.has(lista.id)) return;
+		borradas.add(lista.id);
+		accionRetardada({
+			mensaje: `Lista «${lista.nombre}» borrada`,
+			descripcion: 'Los recursos no se tocan.',
+			ejecutar: async () => {
+				const { error } = await data.supabase.from('lista').delete().eq('id', lista.id);
+				return error?.message ?? null;
+			},
+			ondeshacer: () => borradas.delete(lista.id),
+			onhecho: async () => {
+				await invalidateAll();
+				borradas.delete(lista.id);
+			}
 		});
 	}
 </script>
@@ -78,8 +104,8 @@
 							variant="ghost"
 							size="icon"
 							class="text-muted-foreground hover:text-destructive"
-							aria-label="Borrar lista"
-							onclick={() => socialLocal.borrarLista(lista.id)}
+							aria-label={`Borrar la lista ${lista.nombre}`}
+							onclick={() => borrarLocal(lista)}
 						>
 							<Trash2 class="size-4" />
 						</Button>
@@ -91,7 +117,7 @@
 				Guarda cualquier recurso en una lista desde su ficha — sin necesidad de cuenta.
 			</p>
 		{/if}
-	{:else if !data.listas.length}
+	{:else if !listas.length}
 		<div class="flex flex-col items-start gap-3 rounded-xl border border-dashed p-8">
 			<ListChecks class="size-6 text-muted-foreground" />
 			<p class="text-sm text-muted-foreground text-pretty">
@@ -102,7 +128,7 @@
 		</div>
 	{:else}
 		<ul class="flex flex-col gap-3">
-			{#each data.listas as lista (lista.id)}
+			{#each listas as lista (lista.id)}
 				<li
 					class="flex items-center gap-3 rounded-xl border bg-card p-4 transition-colors hover:bg-accent/40"
 				>

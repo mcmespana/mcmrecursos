@@ -42,7 +42,7 @@
 		{#if oncerrar}
 			<button
 				type="button"
-				class="ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+				class="toque ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 				onclick={oncerrar}
 			>
 				<X class="size-3" /> Ocultar

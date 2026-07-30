@@ -16,6 +16,8 @@
 		textoIndexable,
 		type Seleccion
 	} from '$lib/catalogo/filtros';
+	import { limpiarNombre } from '$lib/catalogo/tipos';
+	import { avisoDeshacible } from '$lib/deshacer';
 	import RecursoCard from '$lib/components/RecursoCard.svelte';
 	import RecursoTabla from '$lib/components/RecursoTabla.svelte';
 	import FacetaFiltro from '$lib/components/FacetaFiltro.svelte';
@@ -190,9 +192,22 @@
 		if (error) toast.error('No se pudo iniciar sesión', { description: error.message });
 	}
 
+	/**
+	 * Quitar un favorito es de un clic y no avisa de nada: el corazón se apaga y, si no era eso lo
+	 * que querías, hay que acordarse de cuál era. El aviso con «Deshacer» lo arregla sin retardar
+	 * nada — un favorito ya es reversible, así que aquí basta con la acción contraria.
+	 */
+	const avisarQuitado = (r: RecursoCatalogo) =>
+		avisoDeshacible({
+			mensaje: 'Quitado de tus favoritos',
+			descripcion: limpiarNombre(r.nombre),
+			deshacer: () => toggleFavorito(r)
+		});
+
 	async function toggleFavorito(r: RecursoCatalogo) {
 		if (!data.session) {
 			socialLocal.toggleFavorito(r.id);
+			if (!socialLocal.favoritos.has(r.id)) avisarQuitado(r);
 			return;
 		}
 		const tenia = favoritos.has(r.id);
@@ -208,6 +223,7 @@
 			else favoritos.delete(r.id);
 			toast.error('No se pudo guardar el favorito');
 		} else {
+			if (tenia) avisarQuitado(r);
 			refrescarCatalogo();
 		}
 	}
@@ -434,9 +450,22 @@
 
 	<!-- chips activos + recuento -->
 	<div class="flex flex-wrap items-center gap-2">
-		<p class="text-sm text-muted-foreground tabular-nums">
+		<!--
+			`aria-live`: el recuento cambia al teclear y al tocar una faceta, y sin esto quien no ve
+			la rejilla no se enteraba de que su filtro había dejado 3 resultados o ninguno.
+		-->
+		<p
+			class="text-sm text-muted-foreground tabular-nums"
+			role="status"
+			aria-live="polite"
+			aria-atomic="true"
+		>
 			{resultados.length}
 			{resultados.length === 1 ? 'recurso' : 'recursos'}
+			<span class="sr-only">
+				{resultados.length === 1 ? 'encontrado' : 'encontrados'}
+				{filtrosActivos.length || q.trim() ? 'con la búsqueda actual' : 'en el banco'}
+			</span>
 		</p>
 		{#if aporteSemantico}
 			<span
@@ -451,7 +480,8 @@
 			<button
 				type="button"
 				transition:fade={{ duration: 120 }}
-				class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+				class="toque inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+				aria-label={`Quitar el filtro ${filtro.valor}`}
 				onclick={() =>
 					(seleccion = {
 						...seleccion,
@@ -474,7 +504,7 @@
 				type="button"
 				aria-pressed={vista === 'galeria'}
 				title="Vista galería"
-				class={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+				class={`toque inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
 					vista === 'galeria' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'
 				}`}
 				onclick={() => (vista = 'galeria')}
@@ -486,7 +516,7 @@
 				type="button"
 				aria-pressed={vista === 'tabla'}
 				title="Vista tabla"
-				class={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+				class={`toque inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
 					vista === 'tabla' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'
 				}`}
 				onclick={() => (vista = 'tabla')}

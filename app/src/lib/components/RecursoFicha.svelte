@@ -448,7 +448,7 @@
 							{#each archivos.slice(1) as archivo (archivo.enlace)}
 								<button
 									type="button"
-									class="inline-flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm transition-colors hover:bg-accent"
+									class="toque inline-flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm transition-colors hover:bg-accent"
 									onclick={() => onabrir(recurso!, archivo.enlace)}
 								>
 									<IconoFormato enlace={archivo.enlace} formato={archivo.formato} class="size-4" />
@@ -475,7 +475,7 @@
 									href={descarga.url}
 									target="_blank"
 									rel="noopener noreferrer"
-									class="inline-flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm transition-colors hover:bg-accent"
+									class="toque inline-flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm transition-colors hover:bg-accent"
 									title={`Descargar en ${descarga.etiqueta}`}
 									onclick={() => onacceso?.(recurso!)}
 								>
@@ -489,7 +489,7 @@
 									href={copia}
 									target="_blank"
 									rel="noopener noreferrer"
-									class="inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/5 px-2.5 py-1.5 text-sm text-primary transition-colors hover:bg-primary/10"
+									class="toque inline-flex items-center gap-1.5 rounded-lg border border-primary/40 bg-primary/5 px-2.5 py-1.5 text-sm text-primary transition-colors hover:bg-primary/10"
 									title="Crea una copia en tu Drive para adaptarlo; el original del banco no se toca"
 									onclick={() => onacceso?.(recurso!)}
 								>

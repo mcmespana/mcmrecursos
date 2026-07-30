@@ -115,6 +115,21 @@ Que el botón deje de aceptar clics no es solo estética: es lo que impide manda
 dos veces. Y `prefers-reduced-motion: reduce` apaga todas las animaciones en `app.css`, así que
 el estado se sigue viendo aunque no se mueva nada.
 
+**Deshacer antes que confirmar** — un «¿estás seguro?» cobra el peaje a todo el mundo para
+evitar el error de uno, y encima no salva del error que de verdad se comete: pulsar en la fila
+de al lado, que se confirma igual de rápido. El patrón por defecto en lo destructivo es el
+contrario (`$lib/deshacer.ts`):
+
+| Caso | Patrón |
+| --- | --- |
+| Irreversible (borrar un recurso, una lista, descartar un envío) | `accionRetardada`: la pantalla reacciona ya y la acción espera 7 s. Durante la cuenta atrás **la base de datos está intacta** |
+| Ya reversible (quitar un favorito, un «lo he usado») | `avisoDeshacible`: se ejecuta al momento y «Deshacer» hace la contraria |
+| Con efecto fuera de la app (devolver un envío: sale un correo) | se ejecuta y se avisa, sin retardo — no se puede desenviar un correo |
+
+Se sigue confirmando solo cuando la acción no tiene marcha atrás **ni ventana**: lo que sale de
+la app. Y si te vas de la página con una cuenta atrás en marcha, se lanza: dejarla morir haría
+que la pantalla y la base de datos contaran cosas distintas.
+
 ## 6. Dataviz (panel de stats, fase 4)
 
 Método del skill dataviz: la forma primero (top = barras horizontales con data-ends
@@ -168,6 +183,26 @@ técnico concreto (no solo "dicen que es mejor").
 - Targets táctiles ≥ 44 px en móvil; textos de sistema en castellano claro ("Publicado",
   no "OK"); errores con acción ("Sin resultados con estos 4 filtros — prueba quitando *Vídeo*").
 - Imágenes de recurso siempre con `alt` (nombre + tipo).
+
+**Cómo se cumplen los 44 px** — clases `.toque` (botones en el flujo) y `.toque-encima` (los que
+ya son `absolute`, como el corazón de la tarjeta) en `app.css`: un pseudo-elemento invisible y
+centrado amplía la zona sensible sin engordar el dibujo, y **solo** dentro de
+`@media (pointer: coarse)`. Con ratón, un icono de 32 px se acierta sin problema y ampliar la
+zona solo le robaría clics a lo que tiene al lado.
+
+**Lo demás que se aplica hoy** (verificado en navegador):
+
+- Enlace «Saltar al contenido» al principio del layout: la cabecera trae paleta, Descubre,
+  enviar, tema y cuenta, y sin él hay que tabular por todo eso en cada página.
+- `aria-live="polite"` en los recuentos que cambian solos (resultados del catálogo, pendientes
+  de la cola), con el texto completo para quien escucha: «1 recurso encontrado con la búsqueda
+  actual», no «1».
+- Nombres accesibles que distinguen: la tarjeta anuncia nombre **y tipo**, y el corazón dice de
+  qué recurso es. En una rejilla, veinte «Guardar en favoritos» iguales no sirven de nada.
+- Nada de `hover` como única vía: lo que solo aparece al pasar el ratón se muestra siempre por
+  debajo de `sm`, porque en táctil el `hover` no existe.
+- Las estrellas son un `radiogroup` con una sola parada de tabulación y flechas para elegir, que
+  es lo que un lector de pantalla espera de un grupo de radios.
 
 ## 8. Anti-defaults (lo que NO haremos)
 
