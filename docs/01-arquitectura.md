@@ -30,6 +30,16 @@ View Transitions API para tarjeta→ficha.
 cacheado) y toda búsqueda/faceta es a 0 ms. Orama trae facetas con contadores y, a futuro,
 búsqueda vectorial/híbrida (fase IA sin cambiar de motor).
 
+**Medido con 800 y 2.000 recursos (SPEC-013, 2026-07-30):** la decisión aguanta, con tres
+condiciones que no eran evidentes. Una, el catálogo se carga en **`+page.server.ts`**, no en un
+`load` universal: con uno universal viajaba dos veces por visita en frío, porque el `load` del
+layout crea el cliente de Supabase y por eso corre en los dos lados, arrastrando a los hijos. Dos,
+se pinta una **ventana** de tarjetas (48, creciendo al llegar al final): el catálogo entero en el
+DOM hacía que abrir una ficha tardase 14 s con 2.000 recursos, porque la View Transition fotografía
+el documento dos veces. Tres, el **índice se construye al escribir la primera letra**, no al cargar.
+Lo que sigue creciendo en línea recta es el payload; el umbral para mover la búsqueda al servidor
+(~3.000 recursos) y el orden de los pasos están en SPEC-013.
+
 ### AD-4 · Supabase como backend
 Postgres + Auth Google + Storage + RLS en tier free. Los roles y la protección de campos
 se implementan con RLS y vistas (columnas protegidas solo para autenticados/autorizados).

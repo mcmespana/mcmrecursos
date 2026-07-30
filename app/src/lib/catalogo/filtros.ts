@@ -41,6 +41,29 @@ const EXTRACTORES: Record<string, (r: RecursoCatalogo) => string[]> = {
 	anyo_publicacion: (r) => (r.anyo_publicacion != null ? [String(r.anyo_publicacion)] : [])
 };
 
+/**
+ * Envuelve un extractor para que cada recurso se calcule UNA vez.
+ *
+ * Los valores de faceta de un recurso se piden muchísimo: al filtrar, y otra vez al contar cada
+ * faceta (que además filtra el catálogo por cada una de las demás). Con 800 recursos y 7 facetas
+ * eso son decenas de miles de llamadas por cada tecla pulsada, y algunas no son baratas — la de
+ * `formato` desmonta URLs con expresiones regulares y lo hace una vez por archivo.
+ *
+ * La caché es un `WeakMap` sobre el propio recurso: cuando el `load` trae objetos nuevos, la
+ * memoria vieja se recoge sola sin tener que invalidar nada a mano.
+ */
+function memoizar(valores: (r: RecursoCatalogo) => string[]): (r: RecursoCatalogo) => string[] {
+	const cache = new WeakMap<RecursoCatalogo, string[]>();
+	return (r) => {
+		let v = cache.get(r);
+		if (!v) {
+			v = valores(r);
+			cache.set(r, v);
+		}
+		return v;
+	};
+}
+
 /** Respaldo si la tabla `faceta` no devuelve nada (p. ej. sin conexión en build). */
 export const FACETAS: FacetaDef[] = [
 	{ campo: 'tipo', etiqueta: 'Tipo', valores: EXTRACTORES.tipo },
@@ -65,17 +88,18 @@ export function construirFacetas(config: FacetaConfig[], conSesion: boolean): Fa
 		.filter((f) => f.visible && (conSesion || !f.protegida))
 		.filter((f) => f.tipo === 'multiselect' || f.tipo === 'select')
 		.sort((a, b) => a.orden - b.orden || a.etiqueta.localeCompare(b.etiqueta, 'es'));
-	if (!visibles.length) return FACETAS;
+	if (!visibles.length) return FACETAS.map((f) => ({ ...f, valores: memoizar(f.valores) }));
 	return visibles.map((f) => ({
 		campo: f.campo,
 		etiqueta: f.etiqueta,
-		valores:
+		valores: memoizar(
 			EXTRACTORES[f.campo] ??
-			((r) => {
-				const v = (r as unknown as Record<string, unknown>)[f.campo];
-				if (v == null || v === '') return [];
-				return Array.isArray(v) ? v.map(String) : [String(v)];
-			})
+				((r) => {
+					const v = (r as unknown as Record<string, unknown>)[f.campo];
+					if (v == null || v === '') return [];
+					return Array.isArray(v) ? v.map(String) : [String(v)];
+				})
+		)
 	}));
 }
 

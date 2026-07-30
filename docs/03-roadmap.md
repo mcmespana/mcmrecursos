@@ -223,9 +223,30 @@ que ya están escritas** en las specs o en el sistema de diseño y siguen sin cu
       - `lanzarAccion` (en `$lib/acciones.svelte.ts`) llama a una acción de formulario de
         SvelteKit sin `<form>`, que es lo que hace falta cuando el envío ocurre 7 s después del
         clic y ya no hay evento del que colgarse
-- [ ] **Rendimiento con catálogo de verdad.** Hoy se cargan TODOS los recursos y se indexan en
-      Orama en el cliente: con 8 sobra, con 800 que entren por el Sheet hay que paginar o
-      virtualizar el grid y medirlo. Es lo primero que va a doler cuando haya contenido real
+- [x] **Rendimiento con catálogo de verdad** (2026-07-30, SPEC-013). Medido con un PostgREST de
+      mentira que sirve catálogos de 800 y 2.000 recursos, sobre el build de producción y con SSR.
+      Cuatro cosas estaban mal, la peor de todas invisible:
+      - **El catálogo viajaba dos veces en cada visita en frío**: serializado en el HTML del SSR y
+        otra vez en JSON al hidratar. El culpable no era el `load` de la página sino el del layout,
+        que crea el cliente de Supabase y por eso corre en los dos lados — y cuando un `load` padre
+        se reejecuta, los hijos también. Ahora se carga en `+page.server.ts`: **de 5,1 MB de HTML +
+        4 peticiones REST a 1,0 MB y ninguna**
+      - **Se pintaba el catálogo entero**: 2.000 recursos eran 60.000 nodos y 136 MB, y sobre todo
+        **abrir una ficha tardaba 14 segundos**, porque la View Transition fotografía el documento
+        completo dos veces. Ahora se pintan 48 tarjetas y crece al llegar al final: **126 ms**, y el
+        DOM ya no depende del tamaño del catálogo (1.681 nodos con 800 y con 2.000)
+      - **El índice de búsqueda se construía al cargar** —sin que nadie hubiera buscado nada— y se
+        rehacía entero cada vez que se guardaba un favorito. Ahora se construye al escribir la
+        primera letra y se reutiliza
+      - **Los valores de faceta se recalculaban decenas de miles de veces por tecla** (contar una
+        faceta implica filtrar por todas las demás). Memoizados con un `WeakMap`
+      - De paso: la paleta de comandos pedía el catálogo entero al servidor en la primera ⌘K aunque
+        lo tuvieras delante, y pintaba una entrada por recurso. Ahora reutiliza lo que ya está en
+        memoria y enseña como mucho 40 coincidencias
+      - Limpiar la búsqueda con 2.000 recursos: de **2.927 ms a 77 ms**. Bloqueo del hilo principal
+        al cargar: de **2.345 ms a 104 ms**
+      - Lo que sigue creciendo en línea recta es el payload (el catálogo entero viaja en el HTML).
+        SPEC-013 fija el umbral —~3.000 recursos— y qué hacer entonces, por orden
 - [x] **Accesibilidad y targets táctiles** (2026-07-30):
       - **Bug real de móvil**: el corazón de la tarjeta era `opacity-0` hasta el `hover`, y en
         una pantalla táctil no hay `hover` — o sea que en móvil no había forma de guardar un

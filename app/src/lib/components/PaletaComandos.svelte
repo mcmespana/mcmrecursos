@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import * as Command from '$lib/components/ui/command';
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
 	import { iconoDeTipo } from '$lib/catalogo/tipos';
@@ -33,12 +34,30 @@
 
 	let abierta = $state(false);
 	let consulta = $state('');
-	let recursos = $state<RecursoBreve[]>([]);
+	let pedidos = $state<RecursoBreve[]>([]);
 	let cargando = $state(false);
 	let cargados = false;
 
+	/**
+	 * En la portada y en Descubre el catálogo ya está en memoria: la paleta lo reutiliza en vez de
+	 * pedirlo otra vez. Antes se traía el catálogo COMPLETO en la primera ⌘K aunque estuvieras
+	 * mirándolo — con 2.000 recursos, medio mega de más por abrir un buscador.
+	 */
+	const delCatalogo = $derived(
+		((page.data.recursos ?? []) as any[])
+			.filter((r) => r.estado === 'publicado' && r.es_vigente !== false)
+			.map((r) => ({
+				id: r.id,
+				nombre: r.nombre,
+				tipo: r.tipo,
+				enlace: r.enlace,
+				formato: r.formato
+			})) as RecursoBreve[]
+	);
+	const recursos = $derived(delCatalogo.length ? delCatalogo : pedidos);
+
 	async function cargarRecursos() {
-		if (cargados) return;
+		if (cargados || delCatalogo.length) return;
 		cargados = true;
 		cargando = true;
 		const { data } = await supabase
@@ -46,7 +65,7 @@
 			.select('id, nombre, tipo, enlace, formato')
 			.eq('estado', 'publicado')
 			.order('nombre');
-		recursos = (data ?? []) as RecursoBreve[];
+		pedidos = (data ?? []) as RecursoBreve[];
 		cargando = false;
 	}
 
@@ -88,6 +107,34 @@
 		if (!q) return 1;
 		return normalizarConsulta([valor, ...(palabras ?? [])].join(' ')).includes(q) ? 1 : 0;
 	}
+
+	/**
+	 * Lo que se pinta de la lista de recursos. La primitiva filtra lo que le llegue, pero pintar
+	 * 2.000 entradas al abrir la paleta son 16.000 nodos de DOM y una espera tonta: nadie lee más
+	 * de una pantalla de resultados. Sin nada escrito se enseñan unas pocas como aperitivo, y al
+	 * escribir se recortan con la MISMA comparación que usa `filtro` — así todo lo que se le pasa
+	 * a la primitiva encaja siempre, y sigue resaltando y navegando con el teclado como antes.
+	 */
+	const TOPE = 40;
+	const listados = $derived.by(() => {
+		const q = normalizarConsulta(consulta);
+		if (!q) return recursos.slice(0, 8);
+		const salida: RecursoBreve[] = [];
+		for (const r of recursos) {
+			if (normalizarConsulta(`${r.nombre} ${r.tipo ?? ''}`).includes(q)) salida.push(r);
+			if (salida.length >= TOPE) break;
+		}
+		return salida;
+	});
+	const totalCoincidencias = $derived.by(() => {
+		const q = normalizarConsulta(consulta);
+		if (!q) return recursos.length;
+		let n = 0;
+		for (const r of recursos) {
+			if (normalizarConsulta(`${r.nombre} ${r.tipo ?? ''}`).includes(q)) n++;
+		}
+		return n;
+	});
 
 	const SECCIONES = [
 		{ ruta: '/', etiqueta: 'Buscar en el banco', icono: Search, claves: ['catalogo', 'inicio'] },
@@ -148,9 +195,13 @@
 
 		<Command.Empty>Nada con «{consulta}». Prueba con otra palabra.</Command.Empty>
 
-		{#if recursos.length}
-			<Command.Group heading="Recursos">
-				{#each recursos as r (r.id)}
+		{#if listados.length}
+			<Command.Group
+				heading={consulta.trim()
+					? `Recursos (${listados.length} de ${totalCoincidencias})`
+					: 'Recursos'}
+			>
+				{#each listados as r (r.id)}
 					{@const Icono = iconoDeTipo(r.tipo, null)}
 					{@const titulo = r.nombre.replace(/^\[EJEMPLO\]\s*/, '')}
 					<Command.Item
