@@ -24,6 +24,7 @@
 	import AvisoLocal from '$lib/components/AvisoLocal.svelte';
 	import { socialLocal } from '$lib/social/local.svelte';
 	import { refrescarCatalogo } from '$lib/catalogo/refresco';
+	import { crearTransicionFicha } from '$lib/transicion.svelte';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
 	import { LayoutGrid, Rows3, Search, Sparkles, X } from '@lucide/svelte';
@@ -66,6 +67,30 @@
 	let abierto = $state<RecursoCatalogo | null>(
 		data.recursos.find((r) => r.id === paramsIniciales.get('r')) ?? null
 	);
+
+	/**
+	 * Puente entre la URL y la ficha abierta.
+	 *
+	 * Hasta ahora `?r=` solo se leía al inicializar, así que un `?r=` que llegara DESPUÉS no
+	 * abría nada: ni desde la paleta de comandos, ni pegando un enlace en la misma pestaña, ni
+	 * con el botón atrás. Se veía cambiar la URL y no pasaba nada más.
+	 *
+	 * El centinela `ultimoIdEnUrl` es deliberadamente un `let` normal, no estado reactivo: así
+	 * este efecto depende SOLO de la URL y no de `abierto`. Si dependiera de `abierto` se pelearía
+	 * con el efecto que escribe la URL más abajo — cerrar la ficha vaciaba `abierto`, el efecto
+	 * volvía a leer el `?r=` que aún no se había limpiado y la reabría al instante.
+	 */
+	let ultimoIdEnUrl = paramsIniciales.get('r') ?? '';
+	$effect(() => {
+		const id = page.url.searchParams.get('r') ?? '';
+		if (id === ultimoIdEnUrl) return;
+		ultimoIdEnUrl = id;
+		if (!id) return;
+		const encontrado = data.recursos.find((r) => r.id === id);
+		if (encontrado) abierto = encontrado;
+	});
+
+	const mostrarFicha = (r: RecursoCatalogo | null) => (abierto = r);
 
 	let idsTexto = $state<Set<string> | null>(null);
 	$effect(() => {
@@ -140,6 +165,10 @@
 		for (const id of data.social.usos) usos.add(id);
 		for (const [id, n] of data.social.valoraciones) valoraciones.set(id, n);
 	});
+
+	// la miniatura de la tarjeta viaja hasta la cabecera de la ficha (docs/04-diseno.md §5)
+	const transicion = crearTransicionFicha();
+	const abrirFicha = (r: RecursoCatalogo) => transicion.abrir(r.id, () => mostrarFicha(r));
 
 	let loginAbierto = $state(false);
 	$effect(() => {
@@ -317,6 +346,13 @@
 	});
 
 	// --- URL compartible ---
+	/**
+	 * Lo último que escribimos nosotros. Antes se comparaba contra `page.url.search`, pero
+	 * `page.url` NO se actualiza con `replaceState`: se quedaba con el valor de la carga inicial,
+	 * y por eso al cerrar la ficha el `?r=` se quedaba pegado en la barra del navegador para
+	 * siempre (bug de antes). Comparando con lo nuestro, la URL sí se limpia.
+	 */
+	let ultimaUrlEscrita = browser ? page.url.search : '';
 	$effect(() => {
 		if (!browser) return;
 		const params = new URLSearchParams();
@@ -328,7 +364,10 @@
 		if (abierto) params.set('r', abierto.id);
 		const cadena = params.toString();
 		const destino = cadena ? `?${cadena}` : page.url.pathname;
-		if (`${page.url.search}` !== (cadena ? `?${cadena}` : '')) {
+		const busqueda = cadena ? `?${cadena}` : '';
+		if (ultimaUrlEscrita !== busqueda) {
+			ultimaUrlEscrita = busqueda;
+			ultimoIdEnUrl = params.get('r') ?? '';
 			replaceState(destino, {});
 		}
 	});
@@ -342,7 +381,7 @@
 		if (!abierto) return;
 		const i = resultados.findIndex((r) => r.id === abierto!.id);
 		const destino = resultados[i + direccion];
-		if (destino) abierto = destino;
+		if (destino) mostrarFicha(destino);
 	}
 </script>
 
@@ -465,7 +504,7 @@
 				recursos={resultados}
 				{tipoFamilia}
 				{esFavorito}
-				onopen={(r) => (abierto = r)}
+				onopen={abrirFicha}
 				onfavorito={toggleFavorito}
 			/>
 		{:else}
@@ -476,7 +515,8 @@
 							{recurso}
 							familia={recurso.tipo ? (tipoFamilia.get(recurso.tipo) ?? null) : null}
 							favorito={esFavorito(recurso.id)}
-							onopen={(r) => (abierto = r)}
+							nombreTransicion={transicion.tarjeta(recurso.id)}
+						onopen={abrirFicha}
 							onfavorito={toggleFavorito}
 						/>
 					</div>
@@ -510,9 +550,10 @@
 	total={resultados.length}
 	versionActual={versionActualAbierto}
 	versionesAnteriores={versionesAnterioresAbierto}
-	onclose={() => (abierto = null)}
+	onclose={() => mostrarFicha(null)}
 	onnavegar={navegarFicha}
-	onabrirrelacionado={(r) => (abierto = r)}
+	nombreTransicion={transicion.ficha(abierto?.id)}
+	onabrirrelacionado={mostrarFicha}
 	onfavorito={toggleFavorito}
 	onusado={toggleUsado}
 	onvalorar={valorar}

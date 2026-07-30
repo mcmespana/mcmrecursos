@@ -21,6 +21,7 @@
 	} from '@lucide/svelte';
 	import OnboardingMcm from '$lib/components/OnboardingMcm.svelte';
 	import BarraProgreso from '$lib/components/BarraProgreso.svelte';
+	import PaletaComandos from '$lib/components/PaletaComandos.svelte';
 	import { browser } from '$app/environment';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { socialLocal } from '$lib/social/local.svelte';
@@ -157,6 +158,11 @@
 				<span class="text-primary">MCM</span>
 			</a>
 			<div class="ml-auto flex items-center gap-2">
+				<PaletaComandos
+					supabase={data.supabase}
+					puedeAdministrar={!!data.perfil &&
+						['edicion_local', 'editor', 'administrador'].includes(data.perfil.rol)}
+				/>
 				<Button variant="ghost" size="sm" href="/descubre">
 					<Sparkles class="size-4" /> <span class="hidden sm:inline">Descubre</span>
 				</Button>

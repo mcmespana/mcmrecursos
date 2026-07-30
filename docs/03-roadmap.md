@@ -100,6 +100,21 @@ gráfica nueva.
 - [ ] Quedan 3 preguntas abiertas en SPEC-012 (orden de secciones del formulario, dónde van
       notas/pendiente-clasificar, qué otra pantalla chirría) para si se retoma más pulido
 
+### Dos bugs de antes que salieron al hacer esto (2026-07-30)
+
+Ninguno los había causado la Fase 3.7; se comprobó volviendo a `main` limpio antes de tocar
+nada. Los dos afectaban a algo que sí es nuevo, así que se arreglaron aquí:
+
+- **La ficha no se cerraba con Escape.** La primitiva del panel no lo hacía, así que solo se
+  salía con el ratón. Ahora `RecursoFicha` lo maneja donde ya escuchaba las flechas.
+- **La URL se quedaba con el `?r=` pegado al cerrar la ficha.** `page.url` NO se actualiza con
+  `replaceState`, y el efecto que sincroniza la URL se comparaba justo contra `page.url.search`:
+  veía el valor de la carga inicial y decidía que no había nada que escribir. Ahora se compara
+  con lo último que escribimos nosotros. El mismo motivo explicaba por qué la paleta cambiaba la
+  URL sin abrir nada: `?r=` solo se leía al inicializar, y ahora hay un puente que escucha las
+  navegaciones de verdad (paleta, enlace pegado, botón atrás) sin pelearse con nuestras propias
+  escrituras.
+
 ### Próximos pasos
 
 1. Poner `GEMINI_API_KEY` y `VOYAGE_API_KEY` en Vercel y pulsar «Reindexar búsqueda» en
@@ -174,18 +189,23 @@ que ya están escritas** en las specs o en el sistema de diseño y siguen sin cu
       ocultar y se recuerda; con ella abierta el héroe se reduce a las etiquetas para no enseñar
       dos veces la misma primera página. También en la cola de revisión, que es donde más falta
       hacía. Detalle y decisiones en SPEC-011 §«Vista previa»
-- [ ] **View Transition de tarjeta a ficha**, con la miniatura viajando. Lo promete
-      `docs/04-diseno.md` §5 («250 ms máx.») y hoy la ficha aparece de golpe
+- [x] **View Transition de tarjeta a ficha** (2026-07-30), con la miniatura viajando, como
+      prometía `docs/04-diseno.md` §5. El nombre de transición se pasa de mano en mano (tarjeta →
+      ficha) porque tiene que ser único en cada instante; aterriza en el héroe, o en el marco de
+      la vista previa si el héroe está colapsado, para que nunca quede desparejado. Sin la API o
+      con `prefers-reduced-motion`, la ficha se abre sin más
 - [ ] **Selección múltiple y acciones en lote** en /admin/recursos (cambiar estado, añadir una
       temática, asignar MCM local a varios de una vez). SPEC-008 §2 lo especifica; no existe.
       Es lo que convierte una tarde de catalogación en diez minutos
 - [ ] **Estado vacío que sugiera qué quitar.** `docs/04-diseno.md` §7 pide literalmente «Sin
       resultados con estos 4 filtros — prueba quitando *Vídeo*»; hoy el mensaje es genérico. El
       dato para calcularlo ya está: `countsPorFaceta` sabe qué filtro cuesta más resultados
-- [ ] **Paleta de comandos (⌘K)**: ir a un recurso, aplicar un filtro o saltar de sección desde
-      el teclado. El componente `command` de shadcn está instalado y sin usar desde el día uno
-- [ ] **Copiar el enlace del recurso** desde la ficha, con el check de confirmación del botón.
-      Hoy toca ir a la barra del navegador
+- [x] **Paleta de comandos (⌘K)** (2026-07-30): ⌘K, Ctrl+K o `/` desde cualquier pantalla, con
+      disparador visible en la cabecera para que el atajo no sea un secreto. Busca sin acentos
+      («oracion» encuentra «Oración»), agrupa en Recursos / Ir a / Acciones y pide el catálogo la
+      primera vez que se abre, no al cargar la app
+- [x] **Copiar el enlace del recurso** desde la ficha (2026-07-30), con el check de
+      confirmación del botón
 - [ ] **Deshacer** en lo destructivo: quitar un favorito, descartar un envío, eliminar un
       recurso. Un toast con «Deshacer» y retardo real antes de ejecutar vale más que un diálogo
       de confirmación, que se acaba pulsando en automático

@@ -20,12 +20,15 @@
 		recurso,
 		familia,
 		favorito,
+		nombreTransicion = null,
 		onopen,
 		onfavorito
 	}: {
 		recurso: RecursoCatalogo;
 		familia: string | null;
 		favorito: boolean;
+		/** `view-transition-name` de la miniatura mientras se abre la ficha (SPEC-012 §Movimiento). */
+		nombreTransicion?: string | null;
 		onopen: (r: RecursoCatalogo) => void;
 		onfavorito: (r: RecursoCatalogo) => void;
 	} = $props();
@@ -53,7 +56,10 @@
 		<span class="sr-only">Ver ficha de {nombre}</span>
 	</button>
 
-	<div class="relative aspect-[2/1] w-full overflow-hidden">
+	<div
+		class="relative aspect-[2/1] w-full overflow-hidden"
+		style={nombreTransicion ? `view-transition-name: ${nombreTransicion}` : undefined}
+	>
 		{#if srcMiniatura}
 			<img
 				src={srcMiniatura}

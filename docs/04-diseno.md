@@ -88,10 +88,17 @@ tiñe su trigger de primary.
 Poco y orquestado; todo bajo `prefers-reduced-motion`.
 
 - Reordenado de resultados: `animate:flip` ~220 ms ease-out — la firma de la app.
-- Tarjeta → ficha: View Transition (la miniatura viaja). 250 ms máx.
+- Tarjeta → ficha: View Transition (la miniatura viaja). 240 ms, `cubic-bezier(.32,.72,0,1)`.
+  Implementada en `lib/transicion.svelte.ts`: el `view-transition-name` tiene que ser único en
+  cada instante, así que se pasa de la tarjeta a la ficha dentro de la propia transición y se
+  retira al acabar. Aterriza en el héroe de la ficha o, si está colapsado por la vista previa,
+  en el marco de la previa — nunca queda desparejado, que es lo que abortaría la transición.
 - Micro: corazón con pop de escala (spring), estrellas que se rellenan en cascada 40 ms,
   contadores que cuentan (solo en stats-héroe).
 - Nada de parallax, nada de reveals por scroll en la herramienta.
+
+**Paleta de comandos** — ⌘K / Ctrl+K / `/`, con disparador visible en la cabecera: un atajo sin
+pista visible no existe. Agrupa Recursos, «Ir a» y Acciones, y el pie recuerda ↑↓ / ↵ / esc.
 
 **Estados de acción** — toda acción que hable con el servidor tiene que verse. El vocabulario
 es siempre el mismo, para que se aprenda una vez:
