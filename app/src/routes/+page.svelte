@@ -40,15 +40,32 @@
 	// siguen accesibles por enlace directo, listas y desde la ficha de la vigente.
 	const recursosVigentes = $derived(data.recursos.filter((r) => r.es_vigente));
 
-	// --- índice de texto (Orama), reconstruido si cambia el catálogo ---
-	const db: Orama<{ id: 'string'; texto: 'string' }> = $derived.by(() => {
-		const indice = create({ schema: { id: 'string', texto: 'string' } as const });
+	/**
+	 * Índice de texto (Orama). Se construye la PRIMERA VEZ QUE ALGUIEN ESCRIBE, no al cargar.
+	 *
+	 * Antes era un `$derived.by` sobre el catálogo, así que se indexaba en cuanto se abría la
+	 * página —cuando nadie ha buscado nada todavía— y se volvía a indexar entero en cada
+	 * `invalidateAll()`, o sea cada vez que se guardaba un favorito. Con 800 recursos eso son
+	 * cientos de milisegundos de hilo principal bloqueado, gratis y a cambio de nada.
+	 *
+	 * La firma es la lista de ids: si el catálogo cambia de recursos, el índice se rehace. Un
+	 * recurso editado con el mismo id no cambia la firma, y no pasa nada — al recargar la página
+	 * el índice nace de cero, y editar es cosa del panel, no del buscador.
+	 */
+	const firmaCatalogo = $derived(recursosVigentes.map((r) => r.id).join('|'));
+	let indice: Orama<{ id: 'string'; texto: 'string' }> | null = null;
+	let firmaIndexada = '';
+	function indiceDeTexto() {
+		if (indice && firmaIndexada === firmaCatalogo) return indice;
+		const nuevo = create({ schema: { id: 'string', texto: 'string' } as const });
 		insertMultiple(
-			indice,
+			nuevo,
 			recursosVigentes.map((r) => ({ id: r.id, texto: textoIndexable(r) }))
 		);
-		return indice;
-	});
+		indice = nuevo;
+		firmaIndexada = firmaCatalogo;
+		return nuevo;
+	}
 
 	// --- estado de búsqueda (inicializado desde la URL) ---
 	const paramsIniciales = page.url.searchParams;
@@ -103,7 +120,7 @@
 		}
 		let vigente = true;
 		Promise.resolve(
-			search(db, { term: consulta, properties: ['texto'], limit: 2000, tolerance: 1 })
+			search(indiceDeTexto(), { term: consulta, properties: ['texto'], limit: 2000, tolerance: 1 })
 		).then((res) => {
 			if (vigente) idsTexto = new Set(res.hits.map((h) => h.document.id as string));
 		});
@@ -294,6 +311,46 @@
 
 	// --- derivados de catálogo ---
 	const resultados = $derived(filtrar(recursosVigentes, facetas, seleccion, idsBusqueda));
+
+	/**
+	 * Cuántas tarjetas hay pintadas. El catálogo entero sigue en memoria —la búsqueda y las
+	 * facetas son instantáneas porque no van al servidor— pero pintarlo entero es otra cosa: con
+	 * 800 recursos eran 24.000 nodos de DOM, 54 MB de memoria y casi 2 s para abrir una ficha,
+	 * porque una View Transition tiene que fotografiar todo eso dos veces. Se pinta una ventana y
+	 * crece al llegar al final de la página, que es cuando de verdad hacen falta más.
+	 */
+	const PASO = 48;
+	let ventana = $state(PASO);
+	const mostrados = $derived(resultados.slice(0, ventana));
+	const quedanPorVer = $derived(Math.max(0, resultados.length - mostrados.length));
+
+	// Al cambiar lo que se busca, la ventana vuelve al principio. Depende de los filtros, NO de
+	// `resultados`: si dependiera de la lista, cualquier refresco de contadores (un favorito
+	// guardado) te devolvería al principio del catálogo sin haber tocado nada.
+	$effect(() => {
+		void q;
+		void seleccion;
+		ventana = PASO;
+	});
+
+	// El centinela vive al final de la rejilla: cuando se asoma, se pinta la siguiente tanda. El
+	// margen de 800 px hace que la tanda esté lista antes de que se llegue al hueco.
+	let centinela = $state<HTMLElement | null>(null);
+	$effect(() => {
+		// `ventana` es dependencia a propósito: un IntersectionObserver solo avisa cuando algo
+		// CRUZA el umbral, así que si el centinela sigue a la vista después de pintar la tanda no
+		// volvería a avisar y la lista se quedaría a medias. Recrearlo vuelve a comprobarlo.
+		void ventana;
+		if (!centinela || typeof IntersectionObserver === 'undefined') return;
+		const observador = new IntersectionObserver(
+			(entradas) => {
+				if (entradas.some((e) => e.isIntersecting)) ventana += PASO;
+			},
+			{ rootMargin: '800px' }
+		);
+		observador.observe(centinela);
+		return () => observador.disconnect();
+	});
 	const filtrosActivos = $derived(
 		facetas.flatMap((f) => (seleccion[f.campo] ?? []).map((valor) => ({ campo: f.campo, valor })))
 	);
@@ -539,7 +596,7 @@
 			/>
 		{:else}
 			<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-				{#each resultados as recurso (recurso.id)}
+				{#each mostrados as recurso (recurso.id)}
 					<div animate:flip={{ duration: 220 }}>
 						<RecursoCard
 							{recurso}
@@ -552,6 +609,19 @@
 					</div>
 				{/each}
 			</div>
+
+			<!--
+				Botón además del centinela, no en su lugar: el observador no salta si el hueco nunca
+				entra en pantalla (ventana muy alta, zoom grande) y sin botón la lista se quedaría
+				muda. Además da algo que pulsar a quien navega con teclado.
+			-->
+			{#if quedanPorVer}
+				<div bind:this={centinela} class="flex flex-col items-center gap-2 py-4">
+					<Button variant="outline" onclick={() => (ventana += PASO)}>
+						Ver más recursos <span class="text-muted-foreground tabular-nums">({quedanPorVer})</span>
+					</Button>
+				</div>
+			{/if}
 		{/if}
 	{:else}
 		<div class="flex flex-col items-center gap-3 py-20 text-center">

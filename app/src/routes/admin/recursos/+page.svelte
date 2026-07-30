@@ -215,6 +215,21 @@
 		orden = { campo, asc: orden.campo === campo ? !orden.asc : true };
 	}
 
+	/**
+	 * La tabla pinta por tandas, igual que la del catálogo: 2.000 filas con sus selects y sus
+	 * formularios son decenas de miles de nodos de DOM y el panel se arrastra. La ventana se aplica
+	 * después de filtrar y ordenar, para que buscar y ordenar sigan mirando todo el catálogo.
+	 */
+	const PASO = 100;
+	let ventana = $state(PASO);
+	const visibles = $derived(filtrados.slice(0, ventana));
+	const quedan = $derived(Math.max(0, filtrados.length - visibles.length));
+	$effect(() => {
+		void filtroTexto;
+		void filtroEstado;
+		ventana = PASO;
+	});
+
 	function resultadoEstado(id: string) {
 		return () => {
 			cambiandoEstado.add(id);
@@ -345,7 +360,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each filtrados as r (r.id)}
+				{#each visibles as r (r.id)}
 					{@const ocupada = cambiandoEstado.has(r.id) || versionando.has(r.id)}
 					<tr
 						class={`h-11 border-t transition-all hover:bg-accent/40 ${ocupada ? 'animate-pulse opacity-60' : ''}`}
@@ -447,6 +462,16 @@
 				{:else}
 					<tr><td colspan="9" class="px-3 py-8 text-center text-muted-foreground">Sin resultados</td></tr>
 				{/each}
+				{#if quedan}
+					<tr class="border-t">
+						<td colspan="9" class="px-3 py-2 text-center">
+							<Button variant="ghost" size="sm" onclick={() => (ventana += PASO)}>
+								Ver {Math.min(PASO, quedan)} más
+								<span class="text-muted-foreground tabular-nums">({quedan})</span>
+							</Button>
+						</td>
+					</tr>
+				{/if}
 			</tbody>
 		</table>
 	</div>

@@ -155,6 +155,22 @@
 	});
 
 	let imgFallos = $state<Record<string, boolean>>({});
+
+	/**
+	 * La tabla también pinta por tandas, y por el mismo motivo que la rejilla. Aquí la ventana va
+	 * DESPUÉS de ordenar, no antes: si se recortara primero, «ordenar por valoración» ordenaría
+	 * solo las cien primeras filas y mentiría.
+	 */
+	const PASO = 100;
+	let ventana = $state(PASO);
+	const filas = $derived(ordenados.slice(0, ventana));
+	const quedan = $derived(Math.max(0, ordenados.length - filas.length));
+
+	// vuelta al principio cuando cambia la lista que llega (otra búsqueda, otro filtro)
+	$effect(() => {
+		void recursos;
+		ventana = PASO;
+	});
 </script>
 
 {#snippet cabecera(id: string, etiqueta: string, numerica?: boolean)}
@@ -251,7 +267,7 @@
 			</tr>
 		</thead>
 		<tbody>
-			{#each ordenados as r (r.id)}
+			{#each filas as r (r.id)}
 				{@const familia = r.tipo ? (tipoFamilia.get(r.tipo) ?? null) : null}
 				{@const fav = esFavorito(r.id)}
 				<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
@@ -364,4 +380,12 @@
 			{/each}
 		</tbody>
 	</table>
+	{#if quedan}
+		<div class="flex items-center justify-center border-t p-2">
+			<Button variant="ghost" size="sm" onclick={() => (ventana += PASO)}>
+				Ver {Math.min(PASO, quedan)} filas más
+				<span class="text-muted-foreground tabular-nums">({quedan})</span>
+			</Button>
+		</div>
+	{/if}
 </div>
