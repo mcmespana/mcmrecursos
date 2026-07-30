@@ -19,6 +19,7 @@
 		url,
 		formato = null,
 		nombre = 'el recurso',
+		nombreTransicion = null,
 		onabrir,
 		oncerrar
 	}: {
@@ -26,6 +27,8 @@
 		url: string;
 		formato?: ClaveFormato | null;
 		nombre?: string;
+		/** `view-transition-name` del marco, para que la miniatura de la tarjeta aterrice aquí. */
+		nombreTransicion?: string | null;
 		onabrir: () => void;
 		oncerrar?: () => void;
 	} = $props();
@@ -47,7 +50,10 @@
 		{/if}
 	</div>
 
-	<div class={`w-full overflow-hidden rounded-xl border bg-muted/40 ${proporcion}`}>
+	<div
+		class={`w-full overflow-hidden rounded-xl border bg-muted/40 ${proporcion}`}
+		style={nombreTransicion ? `view-transition-name: ${nombreTransicion}` : undefined}
+	>
 		<!--
 			Sin `referrerpolicy`: los visores de Google miran de dónde viene la petición, y
 			cortarles el referente es la forma más tonta de romper justo esto. Con el `sandbox`,

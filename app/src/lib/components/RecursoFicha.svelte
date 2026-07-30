@@ -18,6 +18,7 @@
 		urlVistaPrevia
 	} from '$lib/catalogo/formatos';
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
+	import { toast } from 'svelte-sonner';
 	import VistaPrevia from '$lib/components/VistaPrevia.svelte';
 	import * as Sheet from '$lib/components/ui/sheet';
 	import * as Tooltip from '$lib/components/ui/tooltip';
@@ -36,6 +37,7 @@
 		Copy,
 		Download,
 		Eye,
+		Link2,
 		ScanEye,
 		FolderSymlink,
 		Heart,
@@ -58,6 +60,7 @@
 		total = 0,
 		versionActual = null,
 		versionesAnteriores = [],
+		nombreTransicion = null,
 		onclose,
 		onnavegar,
 		onabrirrelacionado,
@@ -85,6 +88,12 @@
 		versionActual?: RecursoCatalogo | null;
 		/** versiones anteriores del linaje (si este es el vigente). */
 		versionesAnteriores?: RecursoCatalogo[];
+		/**
+		 * `view-transition-name` que trae la miniatura de la tarjeta. Aterriza en el héroe, o en
+		 * el marco de la vista previa cuando el héroe está colapsado: así el nombre nunca queda
+		 * desparejado, que es lo que aborta una View Transition.
+		 */
+		nombreTransicion?: string | null;
 		onclose: () => void;
 		onnavegar: (direccion: 1 | -1) => void;
 		onabrirrelacionado: (r: RecursoCatalogo) => void;
@@ -162,6 +171,19 @@
 			: null
 	);
 
+	// Copiar el enlace de la ficha: hasta ahora había que ir a la barra del navegador.
+	let copiado = $state(false);
+	async function copiarEnlace() {
+		if (!recurso) return;
+		try {
+			await navigator.clipboard.writeText(`${location.origin}/?r=${recurso.id}`);
+			copiado = true;
+			setTimeout(() => (copiado = false), 1600);
+		} catch {
+			toast.error('Tu navegador no ha dejado copiar el enlace');
+		}
+	}
+
 	let imgFallo = $state(false);
 	let faviconFallo = $state(false);
 	$effect(() => {
@@ -200,6 +222,13 @@
 	function teclas(e: KeyboardEvent) {
 		const objetivo = e.target as HTMLElement;
 		if (objetivo?.closest('input, textarea, select, [contenteditable]')) return;
+		// Escape cerrando a mano: la primitiva del panel no lo hacía, y una ficha de la que solo
+		// se sale con el ratón es una trampa (bug de antes, no de la View Transition).
+		if (e.key === 'Escape') {
+			e.preventDefault();
+			onclose();
+			return;
+		}
 		if (e.key === 'ArrowRight' && puedeSiguiente) onnavegar(1);
 		if (e.key === 'ArrowLeft' && puedeAnterior) onnavegar(-1);
 	}
@@ -230,7 +259,10 @@
 					{/if}
 				</div>
 			{:else}
-			<div class="relative aspect-[16/9] w-full shrink-0 overflow-hidden">
+			<div
+				class="relative aspect-[16/9] w-full shrink-0 overflow-hidden"
+				style={nombreTransicion ? `view-transition-name: ${nombreTransicion}` : undefined}
+			>
 				{#if srcMiniatura}
 					<img
 						src={srcMiniatura}
@@ -364,6 +396,23 @@
 							</Tooltip.Trigger>
 							<Tooltip.Content>{usado ? 'Lo has usado' : 'Marcar «lo he usado»'}</Tooltip.Content>
 						</Tooltip.Root>
+						<Tooltip.Root>
+							<Tooltip.Trigger>
+								{#snippet child({ props })}
+									<Button
+										{...props}
+										variant="outline"
+										size="lg"
+										hecho={copiado}
+										aria-label="Copiar el enlace de este recurso"
+										onclick={copiarEnlace}
+									>
+										{#if !copiado}<Link2 class="size-4" />{/if}
+									</Button>
+								{/snippet}
+							</Tooltip.Trigger>
+							<Tooltip.Content>{copiado ? '¡Copiado!' : 'Copiar enlace del recurso'}</Tooltip.Content>
+						</Tooltip.Root>
 					</Tooltip.Provider>
 					<GuardarEnLista {supabase} {session} recursoId={recurso.id} {onrequierelogin} />
 				</div>
@@ -374,6 +423,7 @@
 						url={previa}
 						formato={claveFormato}
 						{nombre}
+						{nombreTransicion}
 						onabrir={() => onabrir(recurso!)}
 						oncerrar={() => alternarPrevia(false)}
 					/>

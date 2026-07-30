@@ -141,6 +141,20 @@
 		text-wrap: balance;
 	}
 
+	/* View Transition de tarjeta a ficha (docs/04-diseno.md §5): 250 ms como máximo, y el
+	   recorte al rectángulo de destino para que la miniatura no se desborde al volar. */
+	@media (prefers-reduced-motion: no-preference) {
+		::view-transition-group(*) {
+			animation-duration: 240ms;
+			animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+		}
+		::view-transition-old(*),
+		::view-transition-new(*) {
+			animation-duration: 240ms;
+			overflow: clip;
+		}
+	}
+
 	/* Movimiento bajo demanda (docs/04-diseno.md §5): quien pide menos animación, recibe
 	   menos animación — incluidas las de Tailwind y las transiciones de Svelte. */
 	@media (prefers-reduced-motion: reduce) {
