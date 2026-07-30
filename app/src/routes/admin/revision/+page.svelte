@@ -1,6 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
+	import { SvelteSet } from 'svelte/reactivity';
+	import { lanzarAccion } from '$lib/acciones.svelte';
+	import { accionRetardada } from '$lib/deshacer';
 	import { Button } from '$lib/components/ui/button';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -10,12 +13,36 @@
 	import VistaPrevia from '$lib/components/VistaPrevia.svelte';
 	import { formatoEfectivo, urlVistaPrevia } from '$lib/catalogo/formatos';
 	import { toast } from 'svelte-sonner';
-	import { Bot, ExternalLink, Inbox, Sparkles, UserRound, Undo2 } from '@lucide/svelte';
+	import { Bot, ExternalLink, Inbox, Sparkles, Trash2, UserRound, Undo2 } from '@lucide/svelte';
 
 	let { data } = $props();
 
 	let revisando = $state<any>(null);
 	let devolviendo = $state<any>(null);
+
+	/**
+	 * Envíos descartados hace un instante: fuera de la bandeja al momento, pero todavía intactos
+	 * en la base de datos hasta que se agote la cuenta atrás del «Deshacer».
+	 */
+	const descartados = new SvelteSet<string>();
+	const visibles = $derived(data.envios.filter((e: any) => !descartados.has(e.id)));
+
+	function descartar(envio: any) {
+		if (descartados.has(envio.id)) return;
+		descartados.add(envio.id);
+		if (devolviendo?.id === envio.id) devolviendo = null;
+		if (revisando?.id === envio.id) revisando = null;
+		accionRetardada({
+			mensaje: `«${envio.titulo}» descartado`,
+			descripcion: 'No se avisa a quien lo envió.',
+			ejecutar: () => lanzarAccion('?/descartar', { envio_id: envio.id }),
+			ondeshacer: () => descartados.delete(envio.id),
+			onhecho: async () => {
+				await invalidateAll();
+				descartados.delete(envio.id);
+			}
+		});
+	}
 
 	// --- Autoclasificación del envío (SPEC-010) ---
 	let sug = $state<any>(null);
@@ -85,17 +112,18 @@
 		toast.success(`Publicado como ${result.data?.recurso_id}`);
 	}
 
-	// devolver / descartar: un clic, y el botón deja de aceptar más hasta que responde
-	let cerrando = $state<'devolver' | 'descartar' | null>(null);
-	function resultadoCierre(tipo: 'devolver' | 'descartar') {
+	// devolver: un clic, y el botón deja de aceptar más hasta que responde (sale un correo, así
+	// que esto no se retarda: se ejecuta y se avisa)
+	let devolviendoAhora = $state(false);
+	function resultadoCierre() {
 		return () => {
-			cerrando = tipo;
+			devolviendoAhora = true;
 			return async ({ result }: any) => {
-				cerrando = null;
+				devolviendoAhora = false;
 				if (result.type === 'success') {
 					devolviendo = null;
 					await invalidateAll();
-					toast.success(tipo === 'devolver' ? 'Devuelto al remitente' : 'Envío descartado');
+					toast.success('Devuelto al remitente');
 				} else {
 					toast.error('No se pudo completar', {
 						description: result.data?.error ?? 'Inténtalo de nuevo'
@@ -111,20 +139,20 @@
 <div class="flex flex-col gap-5">
 	<div class="flex items-center justify-between">
 		<h1 class="font-display text-2xl font-bold">Cola de revisión</h1>
-		<p class="text-sm text-muted-foreground tabular-nums">
-			{data.envios.length}
-			{data.envios.length === 1 ? 'pendiente' : 'pendientes'}
+		<p class="text-sm text-muted-foreground tabular-nums" aria-live="polite" aria-atomic="true">
+			{visibles.length}
+			{visibles.length === 1 ? 'pendiente' : 'pendientes'}
 		</p>
 	</div>
 
-	{#if !data.envios.length}
+	{#if !visibles.length}
 		<div class="flex flex-col items-start gap-2 rounded-xl border border-dashed p-8">
 			<Inbox class="size-6 text-muted-foreground" />
 			<p class="text-sm text-muted-foreground">Bandeja limpia. No hay envíos pendientes. 🎉</p>
 		</div>
 	{:else}
 		<ul class="flex flex-col gap-2">
-			{#each data.envios as envio (envio.id)}
+			{#each visibles as envio (envio.id)}
 				{@const clasif = envio.clasificacion ?? {}}
 				<li class="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4">
 					<Avatar.Root class="size-8">
@@ -184,6 +212,16 @@
 					{/if}
 					<Button variant="outline" size="sm" onclick={() => (devolviendo = envio)}>
 						<Undo2 class="size-3.5" /> Devolver
+					</Button>
+					<!-- descartar sin diálogo: sale de la bandeja ya, y hay siete segundos para deshacerlo -->
+					<Button
+						variant="ghost"
+						size="sm"
+						class="toque text-muted-foreground hover:text-destructive"
+						title="Descartar sin avisar al remitente"
+						onclick={() => descartar(envio)}
+					>
+						<Trash2 class="size-3.5" /> Descartar
 					</Button>
 					<Button size="sm" onclick={() => (revisando = envio)}>Revisar y publicar</Button>
 				</li>
@@ -300,37 +338,26 @@
 				id="form-devolver"
 				method="POST"
 				action="?/devolver"
-				use:enhance={resultadoCierre('devolver')}
+				use:enhance={resultadoCierre()}
 				class="flex flex-col gap-3"
 			>
 				<input type="hidden" name="envio_id" value={devolviendo.id} />
 				<Textarea name="motivo" placeholder="Qué falta o qué hay que cambiar…" rows={3} required />
 			</form>
-			<form
-				id="form-descartar"
-				method="POST"
-				action="?/descartar"
-				use:enhance={resultadoCierre('descartar')}
-			>
-				<input type="hidden" name="envio_id" value={devolviendo.id} />
-			</form>
 			<Dialog.Footer class="gap-2">
 				<Button
-					type="submit"
-					form="form-descartar"
 					variant="ghost"
 					class="text-muted-foreground"
-					disabled={cerrando !== null}
-					cargando={cerrando === 'descartar'}
-					textoCargando="Descartando…"
+					disabled={devolviendoAhora}
+					onclick={() => descartar(devolviendo)}
 				>
-					Descartar
+					Descartar sin avisar
 				</Button>
 				<Button
 					type="submit"
 					form="form-devolver"
-					disabled={cerrando !== null}
-					cargando={cerrando === 'devolver'}
+					disabled={devolviendoAhora}
+					cargando={devolviendoAhora}
 					textoCargando="Devolviendo…"
 				>
 					Devolver con motivo

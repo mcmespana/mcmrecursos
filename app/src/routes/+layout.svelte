@@ -146,6 +146,16 @@
 {/if}
 
 <div class="flex min-h-svh flex-col">
+	<!--
+		Saltar al contenido: la cabecera trae paleta, Descubre, enviar, tema y cuenta, y sin este
+		enlace hay que tabular por todo eso en cada página antes de llegar al catálogo.
+	-->
+	<a
+		href="#contenido"
+		class="sr-only rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50"
+	>
+		Saltar al contenido
+	</a>
 	<header class="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
 		<div class="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-3 px-4 sm:px-6">
 			<a href="/" class="flex items-center gap-2 font-display text-lg font-bold">
@@ -169,7 +179,13 @@
 				<Button variant="ghost" size="sm" href="/enviar" class="hidden sm:inline-flex">
 					<Send class="size-4" /> Enviar recurso
 				</Button>
-				<Button variant="ghost" size="icon" onclick={toggleMode} aria-label="Cambiar tema">
+				<Button
+					variant="ghost"
+					size="icon"
+					class="toque"
+					onclick={toggleMode}
+					aria-label="Cambiar entre tema claro y oscuro"
+				>
 					<Sun class="size-4 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
 					<Moon
 						class="absolute size-4 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0"
@@ -219,7 +235,7 @@
 		</div>
 	</header>
 
-	<div class="flex-1">
+	<div id="contenido" class="flex-1">
 		{@render children()}
 	</div>
 

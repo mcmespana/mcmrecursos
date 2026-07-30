@@ -112,6 +112,13 @@ class SocialLocal {
 		this.guardar();
 	}
 
+	/** Devuelve al sitio una lista recién borrada: es el «Deshacer» del aviso (`$lib/deshacer`). */
+	restaurarLista(lista: ListaLocal) {
+		if (this.listas.some((l) => l.id === lista.id)) return;
+		this.listas = [...this.listas, lista];
+		this.guardar();
+	}
+
 	limpiar() {
 		this.favoritos.clear();
 		this.usos.clear();

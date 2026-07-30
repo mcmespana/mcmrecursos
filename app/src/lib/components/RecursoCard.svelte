@@ -48,12 +48,19 @@
 <article
 	class="group relative flex h-full flex-col overflow-hidden rounded-xl border bg-card shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5"
 >
+	<!--
+		La tarjeta entera se abre con un botón que la cubre, y el corazón va por encima (z-20). El
+		nombre accesible lleva también el tipo: en la rejilla hay decenas de «Ver ficha de…» seguidos
+		y con solo el título no siempre se sabe qué se va a abrir.
+	-->
 	<button
 		type="button"
 		class="absolute inset-0 z-10 rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
 		onclick={() => onopen(recurso)}
 	>
-		<span class="sr-only">Ver ficha de {nombre}</span>
+		<span class="sr-only">
+			Ver ficha de {nombre}{recurso.tipo ? `, ${recurso.tipo}` : ''}
+		</span>
 	</button>
 
 	<div
@@ -124,15 +131,19 @@
 			</Badge>
 		{/if}
 
-		<!-- corazón rápido -->
+		<!--
+			Corazón rápido. Se muestra siempre en pantallas pequeñas: sin ratón no hay `hover`, así
+			que en móvil el `opacity-0` lo dejaba invisible y no había forma de guardar un favorito
+			sin abrir la ficha. `toque-encima` le da los 44 px de zona sensible sin engordarlo.
+		-->
 		<button
 			type="button"
-			aria-label={favorito ? 'Quitar de favoritos' : 'Guardar en favoritos'}
+			aria-label={`${favorito ? 'Quitar de favoritos' : 'Guardar en favoritos'}: ${nombre}`}
 			aria-pressed={favorito}
-			class={`absolute top-2 right-2 z-20 flex size-8 items-center justify-center rounded-full shadow-sm backdrop-blur transition-all active:scale-90 ${
+			class={`toque-encima absolute top-2 right-2 z-20 flex size-8 items-center justify-center rounded-full shadow-sm backdrop-blur transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none ${
 				favorito
 					? 'bg-destructive/90 text-white'
-					: 'bg-background/80 text-muted-foreground opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 hover:text-destructive'
+					: 'bg-background/80 text-muted-foreground opacity-100 hover:text-destructive sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100'
 			}`}
 			onclick={(e) => {
 				e.stopPropagation();

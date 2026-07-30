@@ -206,17 +206,47 @@ que ya están escritas** en las specs o en el sistema de diseño y siguen sin cu
       primera vez que se abre, no al cargar la app
 - [x] **Copiar el enlace del recurso** desde la ficha (2026-07-30), con el check de
       confirmación del botón
-- [ ] **Deshacer** en lo destructivo: quitar un favorito, descartar un envío, eliminar un
-      recurso. Un toast con «Deshacer» y retardo real antes de ejecutar vale más que un diálogo
-      de confirmación, que se acaba pulsando en automático
+- [x] **Deshacer en lo destructivo** (2026-07-30). `$lib/deshacer.ts` con dos patrones y la
+      regla de cuándo usar cada uno:
+      - `accionRetardada` — la pantalla reacciona al instante y la acción espera 7 s con un
+        «Deshacer» a mano. Durante la cuenta atrás **no ha pasado nada en la base de datos**:
+        no hay que revertir un borrado, es que aún no se ha borrado. Eso es más seguro que un
+        diálogo, que ejecuta en cuanto lo confirmas. Usado en descartar un envío (nuevo botón
+        directo en la fila, sin pasar por el diálogo de devolver), eliminar un recurso —donde
+        sustituye al diálogo de confirmación— y borrar una lista, que usaba un `confirm()` del
+        navegador
+      - `avisoDeshacible` — para lo que ya era reversible de por sí (quitar un favorito): la
+        acción se ejecuta al momento y «Deshacer» hace la contraria. Retardar ahí no aporta nada
+      - Si te vas de la página con una cuenta atrás en marcha, se lanza (`pagehide` +
+        `keepalive` en `lanzarAccion`): abandonarla dejaría la pantalla diciendo una cosa y la
+        base de datos otra
+      - `lanzarAccion` (en `$lib/acciones.svelte.ts`) llama a una acción de formulario de
+        SvelteKit sin `<form>`, que es lo que hace falta cuando el envío ocurre 7 s después del
+        clic y ya no hay evento del que colgarse
 - [ ] **Rendimiento con catálogo de verdad.** Hoy se cargan TODOS los recursos y se indexan en
       Orama en el cliente: con 8 sobra, con 800 que entren por el Sheet hay que paginar o
       virtualizar el grid y medirlo. Es lo primero que va a doler cuando haya contenido real
-- [ ] **Accesibilidad de la tarjeta**: hay un botón absoluto que cubre la tarjeta entera con el
-      corazón por encima — revisar orden de tabulación y qué anuncia el lector de pantalla. Y
-      `aria-live` en el recuento de resultados, que ahora cambia en silencio
-- [ ] **Repaso de móvil**: la ficha es un panel lateral; comprobar el gesto de cierre y que
-      todos los targets lleguen a los 44 px que exige `docs/04-diseno.md` §7
+- [x] **Accesibilidad y targets táctiles** (2026-07-30):
+      - **Bug real de móvil**: el corazón de la tarjeta era `opacity-0` hasta el `hover`, y en
+        una pantalla táctil no hay `hover` — o sea que en móvil no había forma de guardar un
+        favorito desde la rejilla. Ahora se ve siempre por debajo de `sm`
+      - `aria-live` en el recuento de resultados del catálogo y en el de la cola de revisión,
+        que cambiaban en silencio. Con un texto entero para quien escucha: «1 recurso encontrado
+        con la búsqueda actual»
+      - El botón que cubre la tarjeta anuncia también el tipo («Ver ficha de X, Sesión de
+        grupo»): en la rejilla hay decenas de «Ver ficha de…» seguidos. El corazón dice de qué
+        recurso es, en la tarjeta y en la tabla
+      - Enlace «Saltar al contenido» en el layout: antes había que tabular por paleta, Descubre,
+        enviar, tema y cuenta en cada página
+      - Las estrellas de valoración son un `radiogroup` de verdad: una sola parada de tabulación
+        y las flechas cambian la nota (antes eran 5 paradas con `role="radio"` y sin flechas)
+      - Clases `.toque` / `.toque-encima` en `app.css`: un pseudo-elemento invisible lleva la
+        zona sensible a los 44 px que pide `docs/04-diseno.md` §7 **sin engordar el dibujo**, y
+        solo con `(pointer: coarse)` — con ratón, ampliar la zona solo robaría clics a lo de al
+        lado. Aplicado a corazones, chips de filtro, conmutador galería/tabla, botón de buscar
+        de móvil, tema, formatos y descargas de la ficha
+- [ ] **Repaso de móvil**: la ficha es un panel lateral; comprobar el gesto de cierre. Y el
+      corazón del mazo de /descubre no avisa al quitar un favorito, a diferencia del catálogo
 - [ ] «Vistos hace poco» en la portada (localStorage) e insignia «nuevo» para lo publicado en
       los últimos días, con orden «recién añadidos»
 - [ ] Exportar una lista guardada a PDF o CSV — encaja con el «Llevártelo» de la ficha

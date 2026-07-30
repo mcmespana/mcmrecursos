@@ -5,10 +5,11 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import * as Sheet from '$lib/components/ui/sheet';
-	import * as Dialog from '$lib/components/ui/dialog';
 	import RecursoFormulario from '$lib/components/admin/RecursoFormulario.svelte';
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
 	import { toast } from 'svelte-sonner';
+	import { lanzarAccion } from '$lib/acciones.svelte';
+	import { accionRetardada } from '$lib/deshacer';
 	import { normalizarConsulta } from '$lib/catalogo/filtros';
 	import {
 		ArrowDownUp,
@@ -32,7 +33,31 @@
 	/** Recurso abierto en el panel lateral; `'nuevo'` = alta desde cero. */
 	let editando = $state<any>(null);
 	let creando = $state(false);
-	let borrando = $state<any>(null);
+
+	/**
+	 * Recursos que acaban de eliminarse: fuera de la tabla al momento, pero intactos en la base
+	 * de datos hasta que se agote la cuenta atrás. Antes esto era un diálogo de confirmación, que
+	 * cobra el peaje a todo el mundo y no salva de lo único que pasa de verdad — pulsar en la
+	 * fila de al lado (docs/04-diseno.md §5).
+	 */
+	const eliminados = new SvelteSet<string>();
+
+	function eliminar(r: any) {
+		if (!r || eliminados.has(r.id)) return;
+		eliminados.add(r.id);
+		if (editando?.id === r.id) cerrarPanel();
+		accionRetardada({
+			mensaje: `«${r.nombre}» eliminado`,
+			descripcion:
+				'Se va con sus temáticas, archivos, valoraciones y favoritos. Si solo querías que dejara de verse, deshaz y ponlo en «retirado».',
+			ejecutar: () => lanzarAccion('?/eliminar', { id: r.id }),
+			ondeshacer: () => eliminados.delete(r.id),
+			onhecho: async () => {
+				await invalidateAll();
+				eliminados.delete(r.id);
+			}
+		});
+	}
 
 	// --- Autoclasificación con IA (SPEC-010) ---
 	let analizando = $state(false);
@@ -169,7 +194,7 @@
 	};
 
 	const filtrados = $derived.by(() => {
-		let lista = data.recursos;
+		let lista = data.recursos.filter((r: any) => !eliminados.has(r.id));
 		if (filtroEstado) lista = lista.filter((r) => r.estado === filtroEstado);
 		const q = normalizarConsulta(filtroTexto);
 		if (q) {
@@ -223,25 +248,6 @@
 		};
 	}
 
-	let eliminando = $state(false);
-	function resultadoEliminar() {
-		return () => {
-			eliminando = true;
-			return async ({ result }: any) => {
-				eliminando = false;
-				if (result.type === 'success') {
-					const nombre = borrando?.nombre ?? 'El recurso';
-					borrando = null;
-					editando = null;
-					await invalidateAll();
-					toast.success(`«${nombre}» eliminado`);
-				} else {
-					toast.error('No se pudo eliminar', { description: result.data?.error });
-				}
-			};
-		};
-	}
-
 	async function alGuardar(result: any) {
 		const creado = creando;
 		editando = null;
@@ -265,7 +271,9 @@
 <div class="flex flex-col gap-4">
 	<div class="flex flex-wrap items-center gap-3">
 		<h1 class="font-display text-2xl font-bold">Recursos</h1>
-		<p class="text-sm text-muted-foreground tabular-nums">{filtrados.length} de {data.recursos.length}</p>
+		<p class="text-sm text-muted-foreground tabular-nums" aria-live="polite" aria-atomic="true">
+			{filtrados.length} de {data.recursos.length - eliminados.size}
+		</p>
 		<div class="ml-auto flex flex-wrap items-center gap-2">
 			<Button size="sm" class="h-8 gap-1.5" onclick={() => (creando = true)}>
 				<Plus class="size-3.5" /> Nuevo recurso
@@ -427,9 +435,10 @@
 							<Button
 								variant="ghost"
 								size="icon-sm"
-								class="text-muted-foreground hover:text-destructive"
+								class="toque text-muted-foreground hover:text-destructive"
 								aria-label={`Eliminar ${r.nombre}`}
-								onclick={() => (borrando = r)}
+								title="Eliminar (con siete segundos para deshacerlo)"
+								onclick={() => eliminar(r)}
 							>
 								<Trash2 class="size-3.5" />
 							</Button>
@@ -543,44 +552,10 @@
 			</RecursoFormulario>
 
 			<div class="flex justify-start px-4 pb-6">
-				<Button
-					variant="destructive"
-					size="sm"
-					onclick={() => (borrando = editando)}
-				>
+				<Button variant="destructive" size="sm" onclick={() => eliminar(editando)}>
 					<Trash2 class="size-3.5" /> Eliminar recurso
 				</Button>
 			</div>
 		{/if}
 	</Sheet.Content>
 </Sheet.Root>
-
-<!-- borrado: irreversible, así que se confirma -->
-<Dialog.Root open={borrando !== null} onOpenChange={(o) => !o && (borrando = null)}>
-	<Dialog.Content class="sm:max-w-md">
-		{#if borrando}
-			<Dialog.Header>
-				<Dialog.Title class="font-display">Eliminar «{borrando.nombre}»</Dialog.Title>
-				<Dialog.Description>
-					Se borra del banco junto con sus temáticas, archivos, valoraciones, favoritos y
-					comentarios. No se puede deshacer. Si solo quieres que deje de verse, cambia su estado a
-					<strong>retirado</strong>.
-				</Dialog.Description>
-			</Dialog.Header>
-			<form method="POST" action="?/eliminar" use:enhance={resultadoEliminar()}>
-				<input type="hidden" name="id" value={borrando.id} />
-				<Dialog.Footer class="gap-2">
-					<Button type="button" variant="ghost" onclick={() => (borrando = null)}>Cancelar</Button>
-					<Button
-						type="submit"
-						variant="destructive"
-						cargando={eliminando}
-						textoCargando="Eliminando…"
-					>
-						Eliminar definitivamente
-					</Button>
-				</Dialog.Footer>
-			</form>
-		{/if}
-	</Dialog.Content>
-</Dialog.Root>

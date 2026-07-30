@@ -126,8 +126,8 @@
 </button>
 <button
 	type="button"
-	class="text-muted-foreground hover:text-foreground sm:hidden"
-	aria-label="Buscar"
+	class="toque flex items-center justify-center text-muted-foreground hover:text-foreground sm:hidden"
+	aria-label="Buscar en el banco"
 	onclick={() => alternar(true)}
 >
 	<Search class="size-4" />
