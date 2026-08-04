@@ -14,14 +14,16 @@ import { SvelteSet } from 'svelte/reactivity';
  * destino en lugar de morir con el documento.
  *
  * @param accion ruta de la acción, tal cual se pondría en el `action` del formulario: `?/eliminar`.
+ * @param campos pares clave-valor, o un `URLSearchParams` ya montado cuando hace falta repetir
+ *   una clave (las acciones en lote mandan un `ids` por recurso, como haría un formulario).
  * @returns el mensaje de error si falló, o `null` si fue bien.
  */
 export async function lanzarAccion(
 	accion: string,
-	campos: Record<string, string>
+	campos: Record<string, string> | URLSearchParams
 ): Promise<string | null> {
-	const cuerpo = new URLSearchParams();
-	for (const [clave, valor] of Object.entries(campos)) cuerpo.append(clave, valor);
+	const cuerpo =
+		campos instanceof URLSearchParams ? campos : new URLSearchParams(Object.entries(campos));
 
 	const respuesta = await fetch(accion, {
 		method: 'POST',

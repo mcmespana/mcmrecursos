@@ -194,12 +194,17 @@ que ya están escritas** en las specs o en el sistema de diseño y siguen sin cu
       ficha) porque tiene que ser único en cada instante; aterriza en el héroe, o en el marco de
       la vista previa si el héroe está colapsado, para que nunca quede desparejado. Sin la API o
       con `prefers-reduced-motion`, la ficha se abre sin más
-- [ ] **Selección múltiple y acciones en lote** en /admin/recursos (cambiar estado, añadir una
-      temática, asignar MCM local a varios de una vez). SPEC-008 §2 lo especifica; no existe.
-      Es lo que convierte una tarde de catalogación en diez minutos
-- [ ] **Estado vacío que sugiera qué quitar.** `docs/04-diseno.md` §7 pide literalmente «Sin
-      resultados con estos 4 filtros — prueba quitando *Vídeo*»; hoy el mensaje es genérico. El
-      dato para calcularlo ya está: `countsPorFaceta` sabe qué filtro cuesta más resultados
+- [x] **Selección múltiple y acciones en lote** en /admin/recursos (2026-07-30, SPEC-008 §2).
+      Casilla por fila, rango con shift, y la de la cabecera marca **todo lo filtrado**, no solo la
+      tanda pintada. Barra pegada abajo con cambiar estado, asignar o quitar MCM local, añadir o
+      quitar temática (creándola si no existe, por slug, para no duplicar «Adviento») y eliminar con
+      cuenta atrás. Cada operación es una sola sentencia `in('id', ids)`: se aplica a todos o a
+      ninguno. Lo marcado que deja de pasar el filtro no recibe la acción
+- [x] **Estado vacío que sugiere qué quitar** (2026-07-30). Con cero resultados se prueba a quitar
+      cada filtro **y la consulta** por separado, y se ofrecen los que devuelven algo, empezando por
+      el que más desbloquea: «Prueba quitando esto: × «zzzqqq» 36 recursos». El título nombra al
+      culpable («Sin resultados con «adviento» y este filtro»), y si quitar uno solo no basta, lo
+      dice en vez de sugerir en falso
 - [x] **Paleta de comandos (⌘K)** (2026-07-30): ⌘K, Ctrl+K o `/` desde cualquier pantalla, con
       disparador visible en la cabecera para que el atajo no sea un secreto. Busca sin acentos
       («oracion» encuentra «Oración»), agrupa en Recursos / Ir a / Acciones y pide el catálogo la
@@ -247,6 +252,12 @@ que ya están escritas** en las specs o en el sistema de diseño y siguen sin cu
         al cargar: de **2.345 ms a 104 ms**
       - Lo que sigue creciendo en línea recta es el payload (el catálogo entero viaja en el HTML).
         SPEC-013 fija el umbral —~3.000 recursos— y qué hacer entonces, por orden
+      - **Segunda vuelta, el JavaScript** (2026-07-30): la paleta de comandos viajaba en el paquete
+        del layout, o sea que su primitiva se descargaba en TODAS las páginas para todo el mundo; y
+        el motor de búsqueda venía con la portada aunque nadie buscase. Los dos se cargan ahora con
+        `import()` cuando hacen falta: el layout baja de 82 a 70 KB comprimidos y la portada de 32 a
+        12, o sea **114 → 82 KB de JavaScript en una primera visita**. La paleta, además, pintaba una
+        entrada por recurso (16.000 nodos con 2.000); ahora enseña como mucho 40 coincidencias
 - [x] **Accesibilidad y targets táctiles** (2026-07-30):
       - **Bug real de móvil**: el corazón de la tarjeta era `opacity-0` hasta el `hover`, y en
         una pantalla táctil no hay `hover` — o sea que en móvil no había forma de guardar un

@@ -5,7 +5,7 @@
 	import { browser } from '$app/environment';
 	import { replaceState } from '$app/navigation';
 	import { page } from '$app/state';
-	import { create, insertMultiple, search, type Orama } from '@orama/orama';
+	import type { Orama } from '@orama/orama';
 	import { toast } from 'svelte-sonner';
 	import type { RecursoCatalogo } from '$lib/catalogo/tipos';
 	import {
@@ -51,20 +51,26 @@
 	 * La firma es la lista de ids: si el catálogo cambia de recursos, el índice se rehace. Un
 	 * recurso editado con el mismo id no cambia la firma, y no pasa nada — al recargar la página
 	 * el índice nace de cero, y editar es cosa del panel, no del buscador.
+	 *
+	 * El motor también llega tarde: `@orama/orama` se carga con `import()` la primera vez que hace
+	 * falta, así que quien entra a mirar la rejilla no descarga el buscador entero para nada.
 	 */
 	const firmaCatalogo = $derived(recursosVigentes.map((r) => r.id).join('|'));
 	let indice: Orama<{ id: 'string'; texto: 'string' }> | null = null;
 	let firmaIndexada = '';
-	function indiceDeTexto() {
-		if (indice && firmaIndexada === firmaCatalogo) return indice;
-		const nuevo = create({ schema: { id: 'string', texto: 'string' } as const });
-		insertMultiple(
+	let orama: typeof import('@orama/orama') | null = null;
+
+	async function indiceDeTexto() {
+		orama ??= await import('@orama/orama');
+		if (indice && firmaIndexada === firmaCatalogo) return { orama, indice };
+		const nuevo = orama.create({ schema: { id: 'string', texto: 'string' } as const });
+		orama.insertMultiple(
 			nuevo,
 			recursosVigentes.map((r) => ({ id: r.id, texto: textoIndexable(r) }))
 		);
 		indice = nuevo;
 		firmaIndexada = firmaCatalogo;
-		return nuevo;
+		return { orama, indice: nuevo };
 	}
 
 	// --- estado de búsqueda (inicializado desde la URL) ---
@@ -119,11 +125,13 @@
 			return;
 		}
 		let vigente = true;
-		Promise.resolve(
-			search(indiceDeTexto(), { term: consulta, properties: ['texto'], limit: 2000, tolerance: 1 })
-		).then((res) => {
-			if (vigente) idsTexto = new Set(res.hits.map((h) => h.document.id as string));
-		});
+		indiceDeTexto()
+			.then(({ orama: motor, indice: db }) =>
+				motor.search(db, { term: consulta, properties: ['texto'], limit: 2000, tolerance: 1 })
+			)
+			.then((res) => {
+				if (vigente) idsTexto = new Set(res.hits.map((h) => h.document.id as string));
+			});
 		return () => {
 			vigente = false;
 		};
@@ -445,6 +453,45 @@
 		}
 	});
 
+	/**
+	 * Estado vacío que sabe qué sobra (docs/04-diseno.md §7 lo pedía con estas palabras: «Sin
+	 * resultados con estos 4 filtros — prueba quitando *Vídeo*»).
+	 *
+	 * Se prueba a quitar cada filtro por separado —y también la búsqueda de texto— y se ofrecen los
+	 * que devuelven algo, empezando por el que más desbloquea. Un mensaje genérico deja el trabajo
+	 * de adivinar a quien busca, y son cuatro filtros y una consulta: no es evidente cuál es el que
+	 * sobra. Solo se calcula cuando hay cero resultados, así que no cuesta nada el resto del tiempo.
+	 */
+	const culpables = $derived.by(() => {
+		if (resultados.length) return [];
+		const opciones: { etiqueta: string; cuantos: number; quitar: () => void }[] = [];
+
+		if (q.trim()) {
+			const cuantos = filtrar(recursosVigentes, facetas, seleccion, null).length;
+			if (cuantos) opciones.push({ etiqueta: `«${q.trim()}»`, cuantos, quitar: () => (q = '') });
+		}
+		for (const { campo, valor } of filtrosActivos) {
+			const sinEse = { ...seleccion, [campo]: seleccion[campo].filter((v) => v !== valor) };
+			const cuantos = filtrar(recursosVigentes, facetas, sinEse, idsBusqueda).length;
+			if (cuantos) {
+				opciones.push({
+					etiqueta: valor,
+					cuantos,
+					quitar: () => (seleccion = sinEse)
+				});
+			}
+		}
+		return opciones.sort((a, b) => b.cuantos - a.cuantos).slice(0, 3);
+	});
+
+	// para el título del estado vacío: una consulta larga se recorta para no partir la frase
+	const consultaCorta = $derived(
+		q.trim().length > 24 ? `${q.trim().slice(0, 24)}…` : q.trim()
+	);
+	const cuantosFiltros = $derived(
+		filtrosActivos.length === 1 ? 'este filtro' : `estos ${filtrosActivos.length} filtros`
+	);
+
 	function limpiarTodo() {
 		q = '';
 		seleccion = Object.fromEntries(facetas.map((f) => [f.campo, []]));
@@ -625,12 +672,43 @@
 		{/if}
 	{:else}
 		<div class="flex flex-col items-center gap-3 py-20 text-center">
-			<p class="font-display text-xl font-semibold">Sin resultados</p>
-			<p class="max-w-sm text-sm text-muted-foreground text-pretty">
-				No hay recursos con esa combinación. Prueba a quitar algún filtro o a buscar con otra
-				palabra.
+			<!-- el título nombra lo que ha dejado la pantalla vacía: la consulta, los filtros o los dos -->
+			<p class="font-display text-xl font-semibold text-balance">
+				Sin resultados
+				{#if consultaCorta && filtrosActivos.length}
+					con «{consultaCorta}» y {cuantosFiltros}
+				{:else if consultaCorta}
+					con «{consultaCorta}»
+				{:else if filtrosActivos.length}
+					con {cuantosFiltros}
+				{/if}
 			</p>
-			<Button variant="outline" size="sm" onclick={limpiarTodo}>Limpiar búsqueda</Button>
+			{#if culpables.length}
+				<p class="max-w-sm text-sm text-muted-foreground text-pretty">
+					{culpables.length === 1 ? 'Prueba quitando esto:' : 'Prueba quitando alguno de estos:'}
+				</p>
+				<div class="flex flex-wrap items-center justify-center gap-2">
+					{#each culpables as culpable (culpable.etiqueta)}
+						<Button variant="outline" size="sm" onclick={culpable.quitar}>
+							<X class="size-3.5" />
+							{culpable.etiqueta}
+							<span class="text-muted-foreground tabular-nums">
+								{culpable.cuantos}
+								{culpable.cuantos === 1 ? 'recurso' : 'recursos'}
+							</span>
+						</Button>
+					{/each}
+				</div>
+			{:else}
+				<p class="max-w-sm text-sm text-muted-foreground text-pretty">
+					{filtrosActivos.length || q.trim()
+						? 'Quitar un solo filtro no basta: hay que aflojar más de uno.'
+						: 'El banco está vacío por ahora.'}
+				</p>
+			{/if}
+			{#if filtrosActivos.length || q.trim()}
+				<Button variant="ghost" size="sm" onclick={limpiarTodo}>Limpiar todo</Button>
+			{/if}
 		</div>
 	{/if}
 </main>

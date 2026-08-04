@@ -181,7 +181,9 @@ técnico concreto (no solo "dicen que es mejor").
 - Foco visible siempre (`--ring` teal, offset 2 px); toda la búsqueda operable por teclado;
   facetas con roles ARIA de combobox/listbox (los da Bits UI).
 - Targets táctiles ≥ 44 px en móvil; textos de sistema en castellano claro ("Publicado",
-  no "OK"); errores con acción ("Sin resultados con estos 4 filtros — prueba quitando *Vídeo*").
+  no "OK"); errores con acción. **Hecho** (2026-07-30): el estado vacío del catálogo prueba a quitar
+  cada filtro y la consulta por separado y ofrece los que devuelven algo, el que más primero, con el
+  número que desbloquea cada uno. Si quitar uno solo no basta, lo dice en vez de sugerir en falso.
 - Imágenes de recurso siempre con `alt` (nombre + tipo).
 
 **Cómo se cumplen los 44 px** — clases `.toque` (botones en el flujo) y `.toque-encima` (los que

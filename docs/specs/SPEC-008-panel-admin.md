@@ -74,7 +74,21 @@ campo quedan preparados).
 **La vista tabla densa de SPEC-006, aquí:** filas de 44 px, columnas configurables y
 ordenables (nombre, tipo, estado, MCM, año, valoración, accesos, última edición),
 los mismos filtros/facetas del buscador + filtro por estado, búsqueda de texto.
-Selección múltiple → acciones en lote (cambiar estado, añadir tag, asignar MCM local).
+**Acciones en lote** (implementadas 2026-07-30). Casilla por fila, casilla en la cabecera que marca
+**todo lo filtrado** —no solo la tanda pintada— y rango con shift desde la última fila tocada. Al
+marcar algo aparece una barra pegada abajo con: cambiar estado, asignar (o quitar) MCM local, añadir
+o quitar una temática, y eliminar. Detalles que importan:
+
+- La selección se guarda **por id**, no por objeto: el `load` trae objetos nuevos en cada refresco y
+  una selección por referencia se perdería al guardar cualquier cosa.
+- Lo marcado que deja de pasar el filtro **no recibe la acción**: si marcas tres, buscas otra cosa y
+  pulsas «eliminar», no puede caer sobre recursos que ya no ves.
+- Cada operación es **una sola sentencia** con `in('id', ids)` (o `upsert` de la tabla puente para
+  las temáticas): se aplica a todos o a ninguno, sin quedarse a medias. La temática se busca o se
+  crea por slug, igual que en el formulario, para no acabar con tres «Adviento».
+- El borrado en lote va con cuenta atrás y «Deshacer», como el de una fila (`$lib/deshacer.ts`).
+- La mecánica de marcar vive en `$lib/seleccion.svelte.ts`, fuera del componente, para poder
+  probarla sin sesión de administrador.
 
 **Formulario de recurso** (sheet lateral ancho o página según viewport):
 - **Uno solo para los tres caminos**: alta manual («Nuevo recurso»), edición y catalogar-y-
@@ -92,8 +106,11 @@ Selección múltiple → acciones en lote (cambiar estado, añadir tag, asignar 
 - **Archivos**: enlace principal + los formatos alternativos del mismo recurso, con el icono
   deducido de cada enlace (SPEC-011).
 - Selects alimentados por `lista_valor`; solo `nombre` y `estado` obligatorios.
-- **Eliminar recurso**: botón en el formulario y en cada fila, con diálogo de confirmación que
-  recuerda que «retirado» es la alternativa no destructiva.
+- **Eliminar recurso**: botón en el formulario y en cada fila. Desde 2026-07-30 **sin diálogo de
+  confirmación**: la fila desaparece al momento y hay siete segundos de «Deshacer» (durante los
+  cuales no se ha borrado nada en la base de datos, así que es más seguro que confirmar). El aviso
+  recuerda que «retirado» es la alternativa no destructiva. El porqué del cambio de patrón está en
+  `docs/04-diseno.md` §5.
 - `edicion_local` solo puede abrir en edición recursos de su MCM (RLS ya lo garantiza;
   la UI además lo muestra en solo-lectura con aviso).
 - Al guardar: `recurso.editado_web_at = now()` (columna nueva, ver §6).
