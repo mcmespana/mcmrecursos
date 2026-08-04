@@ -10,6 +10,7 @@
 	import { toast } from 'svelte-sonner';
 	import { lanzarAccion } from '$lib/acciones.svelte';
 	import { accionRetardada } from '$lib/deshacer';
+	import { crearSeleccion } from '$lib/seleccion.svelte';
 	import { normalizarConsulta } from '$lib/catalogo/filtros';
 	import {
 		ArrowDownUp,
@@ -21,7 +22,8 @@
 		Plus,
 		ScanSearch,
 		Sparkles,
-		Trash2
+		Trash2,
+		X
 	} from '@lucide/svelte';
 
 	let { data } = $props();
@@ -230,6 +232,85 @@
 		ventana = PASO;
 	});
 
+	// --- selección y acciones en lote (SPEC-008 §2) ---
+	/**
+	 * Cuando entran treinta sesiones del mismo campamento por el Sheet, todas quieren el mismo MCM
+	 * local, la misma temática y el mismo estado. Hacerlo de una en una son treinta paneles
+	 * abiertos y cerrados; esto es un rato de tarde contra diez minutos.
+	 *
+	 * La mecánica de marcar (rango con shift, «marcar todo lo filtrado») vive en
+	 * `$lib/seleccion.svelte.ts` para poder probarla sin sesión de administrador.
+	 */
+	const seleccion = crearSeleccion<any>({
+		visibles: () => visibles,
+		todos: () => filtrados,
+		idDe: (r) => r.id
+	});
+	const seleccionados = $derived(seleccion.seleccionados);
+
+	let loteEstado = $state('');
+	let loteMcm = $state('');
+	let loteTag = $state('');
+	let loteEnMarcha = $state<string | null>(null);
+
+	const NOMBRE_OPERACION: Record<string, string> = {
+		estado: 'Estado cambiado',
+		mcm_local: 'MCM local asignado',
+		tag: 'Temática añadida',
+		quitar_tag: 'Temática quitada'
+	};
+
+	/** Manda una operación en lote y refresca. No incluye el borrado, que va con cuenta atrás. */
+	async function aplicarLote(operacion: string, valor: string) {
+		const ids = seleccionados.map((r: any) => r.id);
+		if (!ids.length || loteEnMarcha) return;
+		loteEnMarcha = operacion;
+		const cuerpo = new URLSearchParams();
+		for (const id of ids) cuerpo.append('ids', id);
+		cuerpo.append('operacion', operacion);
+		cuerpo.append('valor', valor);
+		try {
+			const error = await lanzarAccion('?/lote', cuerpo);
+			if (error) {
+				toast.error('No se pudo aplicar', { description: error });
+				return;
+			}
+			await invalidateAll();
+			toast.success(`${NOMBRE_OPERACION[operacion] ?? 'Hecho'} en ${ids.length} recursos`);
+			seleccion.limpiar();
+			loteEstado = '';
+			loteMcm = '';
+			loteTag = '';
+		} finally {
+			loteEnMarcha = null;
+		}
+	}
+
+	/** Borrado en lote: fuera de la tabla al momento y siete segundos para deshacerlo. */
+	function eliminarLote() {
+		const filas = seleccionados.slice();
+		if (!filas.length) return;
+		for (const r of filas) eliminados.add(r.id);
+		seleccion.limpiar();
+		if (editando && filas.some((r: any) => r.id === editando.id)) cerrarPanel();
+		const cuerpo = new URLSearchParams();
+		for (const r of filas) cuerpo.append('ids', r.id);
+		cuerpo.append('operacion', 'eliminar');
+		accionRetardada({
+			mensaje: `${filas.length} recursos eliminados`,
+			descripcion:
+				'Se van con sus temáticas, archivos, valoraciones y favoritos. Si solo querías que dejaran de verse, deshaz y ponlos en «retirado».',
+			ejecutar: () => lanzarAccion('?/lote', cuerpo),
+			ondeshacer: () => {
+				for (const r of filas) eliminados.delete(r.id);
+			},
+			onhecho: async () => {
+				await invalidateAll();
+				for (const r of filas) eliminados.delete(r.id);
+			}
+		});
+	}
+
 	function resultadoEstado(id: string) {
 		return () => {
 			cambiandoEstado.add(id);
@@ -344,6 +425,17 @@
 		<table class="w-full min-w-[960px] text-sm">
 			<thead class="bg-muted/50 text-left text-xs text-muted-foreground uppercase">
 				<tr>
+					<th class="w-9 px-3 py-2">
+						<input
+							type="checkbox"
+							class="size-4 accent-primary"
+							checked={seleccion.todosMarcados}
+							indeterminate={seleccionados.length > 0 && !seleccion.todosMarcados}
+							onchange={() => seleccion.alternarTodos()}
+							aria-label={`Seleccionar los ${filtrados.length} recursos filtrados`}
+							title={`Seleccionar los ${filtrados.length} recursos filtrados`}
+						/>
+					</th>
 					{#each [['id', 'ID'], ['nombre', 'Nombre'], ['tipo', 'Tipo'], ['formato', 'Formato'], ['mcm_local', 'MCM'], ['estado', 'Estado'], ['anyo_publicacion', 'Año'], ['updated_at', 'Actualizado']] as [campo, etiqueta] (campo)}
 						<th class="px-3 py-2">
 							<button
@@ -360,12 +452,23 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each visibles as r (r.id)}
+				{#each visibles as r, i (r.id)}
 					{@const ocupada = cambiandoEstado.has(r.id) || versionando.has(r.id)}
+					{@const marcada = seleccion.tiene(r.id)}
 					<tr
-						class={`h-11 border-t transition-all hover:bg-accent/40 ${ocupada ? 'animate-pulse opacity-60' : ''}`}
+						class={`h-11 border-t transition-all hover:bg-accent/40 ${ocupada ? 'animate-pulse opacity-60' : ''} ${marcada ? 'bg-primary/5' : ''}`}
 						aria-busy={ocupada || undefined}
 					>
+						<td class="px-3">
+							<!-- con shift se marca el rango desde la última fila tocada -->
+							<input
+								type="checkbox"
+								class="size-4 accent-primary"
+								checked={marcada}
+								onclick={(e) => seleccion.fila(i, e)}
+								aria-label={`Seleccionar ${r.nombre}`}
+							/>
+						</td>
 						<td class="px-3 font-mono text-xs text-muted-foreground">{r.id}</td>
 						<td class="max-w-72 px-3">
 							<span class="flex items-center gap-1.5">
@@ -460,11 +563,11 @@
 						</td>
 					</tr>
 				{:else}
-					<tr><td colspan="9" class="px-3 py-8 text-center text-muted-foreground">Sin resultados</td></tr>
+					<tr><td colspan="10" class="px-3 py-8 text-center text-muted-foreground">Sin resultados</td></tr>
 				{/each}
 				{#if quedan}
 					<tr class="border-t">
-						<td colspan="9" class="px-3 py-2 text-center">
+						<td colspan="10" class="px-3 py-2 text-center">
 							<Button variant="ghost" size="sm" onclick={() => (ventana += PASO)}>
 								Ver {Math.min(PASO, quedan)} más
 								<span class="text-muted-foreground tabular-nums">({quedan})</span>
@@ -476,6 +579,114 @@
 		</table>
 	</div>
 </div>
+
+<!--
+	Barra de lote. Aparece pegada abajo solo cuando hay algo marcado: ocupar sitio con una barra
+	vacía todo el rato sería peor que no tenerla. Los tres selects aplican al soltarlos —un paso, no
+	dos— y el borrado va con cuenta atrás, como el de una fila.
+-->
+{#if seleccionados.length}
+	<div
+		class="sticky bottom-4 z-30 mx-auto flex w-fit max-w-full flex-wrap items-center gap-2 rounded-xl border bg-card/95 p-2 shadow-lg backdrop-blur"
+		role="group"
+		aria-label="Acciones sobre lo seleccionado"
+	>
+		<p class="px-2 text-sm font-medium tabular-nums">
+			{seleccionados.length}
+			{seleccionados.length === 1 ? 'seleccionado' : 'seleccionados'}
+		</p>
+
+		<select
+			bind:value={loteEstado}
+			disabled={loteEnMarcha !== null}
+			class="h-8 rounded-md border bg-background px-2 text-sm"
+			aria-label="Cambiar el estado de lo seleccionado"
+			onchange={() => loteEstado && aplicarLote('estado', loteEstado)}
+		>
+			<option value="">Cambiar estado…</option>
+			{#each opciones('estado') as o (o.valor)}<option value={o.valor}>{o.valor}</option>{/each}
+		</select>
+
+		<select
+			bind:value={loteMcm}
+			disabled={loteEnMarcha !== null}
+			class="h-8 rounded-md border bg-background px-2 text-sm"
+			aria-label="Asignar MCM local a lo seleccionado"
+			onchange={() => loteMcm && aplicarLote('mcm_local', loteMcm === '__ninguno' ? '' : loteMcm)}
+		>
+			<option value="">Asignar MCM local…</option>
+			{#each data.mcmLocales as m (m.id)}<option value={m.id}>{m.nombre}</option>{/each}
+			<option value="__ninguno">— quitar el MCM local —</option>
+		</select>
+
+		<!-- temática: lista de las que ya existen (ordenadas por uso) y hueco para una nueva -->
+		<div class="flex items-center gap-1">
+			<input
+				list="tags-lote"
+				bind:value={loteTag}
+				placeholder="Temática…"
+				class="h-8 w-40 rounded-md border bg-background px-2 text-sm"
+				aria-label="Temática para añadir o quitar en lote"
+				onkeydown={(e) => {
+					if (e.key === 'Enter' && loteTag.trim()) {
+						e.preventDefault();
+						aplicarLote('tag', loteTag.trim());
+					}
+				}}
+			/>
+			<datalist id="tags-lote">
+				{#each data.tags as t (t)}<option value={t}></option>{/each}
+			</datalist>
+			<Button
+				variant="outline"
+				size="sm"
+				class="h-8"
+				disabled={!loteTag.trim() || loteEnMarcha !== null}
+				cargando={loteEnMarcha === 'tag'}
+				textoCargando="Añadiendo…"
+				onclick={() => aplicarLote('tag', loteTag.trim())}
+			>
+				<Plus class="size-3.5" /> Añadir
+			</Button>
+			<Button
+				variant="ghost"
+				size="sm"
+				class="h-8 text-muted-foreground"
+				disabled={!loteTag.trim() || loteEnMarcha !== null}
+				cargando={loteEnMarcha === 'quitar_tag'}
+				textoCargando="Quitando…"
+				title="Quitar esta temática de lo seleccionado"
+				onclick={() => aplicarLote('quitar_tag', loteTag.trim())}
+			>
+				Quitar
+			</Button>
+		</div>
+
+		<span class="mx-1 h-6 w-px bg-border"></span>
+
+		<Button
+			variant="ghost"
+			size="sm"
+			class="toque h-8 text-muted-foreground hover:text-destructive"
+			disabled={loteEnMarcha !== null}
+			title="Eliminar lo seleccionado (con siete segundos para deshacerlo)"
+			onclick={eliminarLote}
+		>
+			<Trash2 class="size-3.5" /> Eliminar
+		</Button>
+		<Button
+			variant="ghost"
+			size="icon-sm"
+			class="toque"
+			aria-label="Quitar la selección"
+			title="Quitar la selección"
+			onclick={() => seleccion.limpiar()}
+			disabled={loteEnMarcha !== null}
+		>
+			<X class="size-4" />
+		</Button>
+	</div>
+{/if}
 
 <Sheet.Root open={panelAbierto} onOpenChange={(o) => !o && cerrarPanel()}>
 	<Sheet.Content side="right" class="w-full overflow-y-auto sm:max-w-xl">

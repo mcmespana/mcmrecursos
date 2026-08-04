@@ -96,6 +96,28 @@ Los cuatro problemas, en orden de tamaño:
   se lo pedía entero al servidor en la primera ⌘K, mirando la misma lista), y pinta como mucho 40
   coincidencias con la cabecera «Recursos (40 de 134)» en vez de 2.000 entradas de golpe.
 
+## Segunda vuelta: el JavaScript que se descarga (2026-07-30)
+
+Lo de arriba mide datos y pintado. Falta el peso del propio código, y ahí había dos cosas que
+pagaba todo el mundo para que las usaran unos pocos:
+
+| Paquete | Antes | Después |
+| --- | --- | --- |
+| Layout (en **todas** las páginas) | 312 KB · 82 KB gzip | **261 KB · 70 KB gzip** |
+| Portada | 100 KB · 32 KB gzip | **36 KB · 12 KB gzip** |
+| Suma en una primera visita a la portada | 114 KB gzip | **82 KB gzip** |
+
+- **La paleta de comandos viajaba en el paquete del layout.** Su primitiva (`Command` de bits-ui) se
+  descargaba en cada visita a cualquier página, incluida la de quien no ha pulsado ⌘K en su vida.
+  Ahora `PaletaComandos.svelte` es solo el disparador —dos botones y el atajo— y el diálogo
+  (`PaletaDialogo.svelte`) se carga con `import()` la primera vez que se abre.
+- **El motor de búsqueda se descargaba con la portada.** `@orama/orama` ahora entra con `import()`
+  cuando se escribe la primera letra, igual que el índice. Nadie busca antes de ver la página.
+- De paso, la paleta pintaba **una entrada por recurso**: con 2.000, dieciséis mil nodos de DOM al
+  abrirla. Ahora enseña 8 sin escribir y como mucho 40 coincidencias, con la cabecera «Recursos (40
+  de 134)». El recorte usa la misma comparación que el filtro de la primitiva, así que todo lo que
+  se le pasa encaja y el teclado sigue resaltando y abriendo con Intro.
+
 ## Criterios de aceptación
 
 - [x] Ninguna petición REST del navegador para cargar el catálogo en una visita en frío.
@@ -106,6 +128,8 @@ Los cuatro problemas, en orden de tamaño:
 - [x] Ordenar la tabla ordena todo el catálogo, no la ventana.
 - [x] Un enlace directo (`?r=`) abre un recurso que no está en la ventana pintada.
 - [x] La paleta sigue navegándose con teclado y abriendo con Intro.
+- [x] El JavaScript de una primera visita a la portada baja de 114 a 82 KB comprimidos.
+- [x] Abrir la paleta en la portada no pide **nada** al servidor (reutiliza el catálogo en memoria).
 
 ## Hasta dónde llega esto, y qué haríamos después
 

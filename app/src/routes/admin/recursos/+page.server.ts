@@ -4,6 +4,7 @@ import { clasificarRecurso, type VocabulariosIa } from '$lib/server/ia';
 import { extraerTextoDrive } from '$lib/server/drive';
 import { resolverFormato } from '$lib/server/formatos';
 import { camposDelFormulario, guardarRelacionados } from '$lib/server/recursos';
+import { slugTag } from '$lib/catalogo/tags';
 import { embeddingsDisponibles, embeddingsDocumentos } from '$lib/server/embeddings';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -83,6 +84,31 @@ async function clasificarUno(
 		confianza: res.propuesta.confianza
 	});
 	return { disponible: true, ok: true, propuesta: res.propuesta };
+}
+
+/**
+ * Id de una temática por su nombre, reutilizando la que ya existe.
+ *
+ * La comparación va por slug —no por el texto tal cual— para que «adviento», «Adviento» y
+ * «ADVIENTO » sean la misma etiqueta y no tres gemelas, igual que en el formulario (SPEC-008 §2).
+ */
+async function idDeTag(
+	supabase: SupabaseClient<any, 'recursos'>,
+	nombre: string,
+	crearSiFalta: boolean
+): Promise<string | null> {
+	const slug = slugTag(nombre);
+	if (!slug) return null;
+	const { data: existente } = await supabase
+		.from('tag')
+		.select('id')
+		.eq('slug', slug)
+		.maybeSingle();
+	if (existente) return existente.id as string;
+	if (!crearSiFalta) return null;
+	await supabase.from('tag').upsert({ nombre, slug }, { onConflict: 'slug', ignoreDuplicates: true });
+	const { data: creada } = await supabase.from('tag').select('id').eq('slug', slug).maybeSingle();
+	return (creada?.id as string) ?? null;
 }
 
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
@@ -183,6 +209,84 @@ export const actions: Actions = {
 		await guardarRelacionados(supabase, id, f);
 
 		return { ok: true, id };
+	},
+
+	/**
+	 * Acciones en lote (SPEC-008 §2): lo mismo aplicado a muchos recursos de una vez.
+	 *
+	 * Es lo que convierte una tarde de catalogación en diez minutos: cuando entran treinta
+	 * sesiones del mismo campamento por el Sheet, todas quieren el mismo MCM local, la misma
+	 * temática y el mismo estado.
+	 *
+	 * Cada operación es UNA sentencia con `in('id', ids)`, no un bucle: así o se aplica a todos o
+	 * a ninguno, y no hay que preocuparse de a mitad de dónde se quedó. La excepción es la
+	 * temática, que necesita buscar o crear la etiqueta antes.
+	 */
+	lote: async ({ request, locals: { supabase, user } }) => {
+		if (!user) return fail(401);
+		const f = await request.formData();
+		const ids = f.getAll('ids').map(String).filter(Boolean);
+		const operacion = String(f.get('operacion') ?? '');
+		const valor = String(f.get('valor') ?? '').trim();
+		if (!ids.length) return fail(400, { error: 'No hay ningún recurso seleccionado' });
+
+		const listo = (extra: Record<string, unknown> = {}) => ({
+			ok: true,
+			operacion,
+			afectados: ids.length,
+			...extra
+		});
+
+		if (operacion === 'estado') {
+			if (!valor) return fail(400, { error: 'Falta el estado' });
+			const { error } = await supabase.from('recurso').update({ estado: valor }).in('id', ids);
+			if (error) return fail(500, { error: error.message });
+			return listo({ valor });
+		}
+
+		// valor vacío = quitar el MCM local (es un campo opcional, y desasignar es legítimo)
+		if (operacion === 'mcm_local') {
+			const { error } = await supabase
+				.from('recurso')
+				.update({ mcm_local_id: valor || null })
+				.in('id', ids);
+			if (error) return fail(500, { error: error.message });
+			return listo({ valor });
+		}
+
+		if (operacion === 'tag' || operacion === 'quitar_tag') {
+			if (!valor) return fail(400, { error: 'Falta la temática' });
+			const tagId = await idDeTag(supabase, valor, operacion === 'tag');
+			if (!tagId) {
+				return fail(operacion === 'tag' ? 500 : 400, {
+					error:
+						operacion === 'tag'
+							? 'No se pudo crear la temática'
+							: `«${valor}» no existe como temática`
+				});
+			}
+			const { error } =
+				operacion === 'tag'
+					? await supabase
+							.from('recurso_tag')
+							.upsert(
+								ids.map((recurso_id) => ({ recurso_id, tag_id: tagId })),
+								{ onConflict: 'recurso_id,tag_id', ignoreDuplicates: true }
+							)
+					: await supabase.from('recurso_tag').delete().eq('tag_id', tagId).in('recurso_id', ids);
+			if (error) return fail(500, { error: error.message });
+			return listo({ valor });
+		}
+
+		if (operacion === 'eliminar') {
+			// igual que al borrar de uno en uno: las versiones posteriores se desenlazan primero
+			await supabase.from('recurso').update({ version_de: null }).in('version_de', ids);
+			const { error } = await supabase.from('recurso').delete().in('id', ids);
+			if (error) return fail(500, { error: error.message });
+			return listo();
+		}
+
+		return fail(400, { error: `Operación desconocida: ${operacion}` });
 	},
 
 	// Borrado definitivo. Lo social, las temáticas y los archivos caen en cascada; los envíos
