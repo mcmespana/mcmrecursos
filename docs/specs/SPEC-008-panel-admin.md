@@ -90,6 +90,28 @@ o quitar una temática, y eliminar. Detalles que importan:
 - La mecánica de marcar vive en `$lib/seleccion.svelte.ts`, fuera del componente, para poder
   probarla sin sesión de administrador.
 
+**Detección de duplicados** (implementada 2026-08-04, migración `00019`). El error más fácil de
+cometer en un banco de enlaces: el mismo material entra dos veces —una por el Sheet y otra por un
+envío— con el nombre escrito de otra forma, y nadie se entera hasta que hay tres «Oración de la
+mañana». Se avisa **antes** de crear el recurso, en los tres sitios donde entra material: el
+formulario público de `/enviar`, el alta y edición del panel, y la catalogación de un envío.
+
+- `recursos.normalizar_enlace(text)`: forma canónica de un enlace. Los de Google llegan de mil
+  maneras para el mismo archivo (`/edit`, `/view`, `/preview`, `?usp=sharing`, con y sin barra
+  final); lo único que identifica el archivo es su id, así que todo se reduce a `drive:<id>`. Con
+  YouTube, `youtube:<id>`. El resto, host + ruta sin parámetros. Es `immutable` para poder indexarla.
+- `recursos.firma_nombre(text)`: el nombre sin acentos, sin puntuación y sin el prefijo `[EJEMPLO]`.
+- `recursos.buscar_duplicados(enlace, titulo, excluir, umbral)`: devuelve hasta seis, con el motivo
+  ordenado de más fuerte a más débil — `enlace` (mismo archivo, duplicado casi seguro), `nombre`
+  (mismo título normalizado) y `parecido` (trigramas de `pg_trgm` por encima de 0,55). Es
+  `security invoker`: quien envía sin cuenta solo choca con lo publicado, y quien cataloga ve
+  también los borradores, que es cuando de verdad importa.
+- **Nunca bloquea**: es un aviso ámbar, no un error. Puede ser una versión nueva (SPEC-009) o algo
+  legítimamente parecido, y quien cataloga decide.
+- Al **editar** algo ya catalogado solo se avisa de coincidencias exactas: ahí un 70 % de parecido
+  con otro recurso es ruido que no se puede accionar. Los «se parece» salen al dar de alta material
+  nuevo, que es cuando sirven.
+
 **Formulario de recurso** (sheet lateral ancho o página según viewport):
 - **Uno solo para los tres caminos**: alta manual («Nuevo recurso»), edición y catalogar-y-
   publicar desde la cola de revisión comparten `RecursoFormulario.svelte`. Lo único que cambia

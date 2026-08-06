@@ -7,6 +7,7 @@
 	import SelectorTags from '$lib/components/SelectorTags.svelte';
 	import SelectorMultiple from '$lib/components/SelectorMultiple.svelte';
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
+	import AvisoDuplicados from '$lib/components/AvisoDuplicados.svelte';
 	import { FORMATOS, formatoEfectivo } from '$lib/catalogo/formatos';
 	import { socialLocal } from '$lib/social/local.svelte';
 	import { toast } from 'svelte-sonner';
@@ -172,6 +173,13 @@
 						Detectado: {FORMATOS[formato].etiqueta}
 					</p>
 				{/if}
+
+				<!--
+					Aviso de si eso ya está en el banco. Se enseña aquí, antes de enviar, porque es el
+					único momento en que sirve de algo: después, el duplicado ya está en la cola de
+					revisión y le cuesta el rato a otra persona. Nunca impide enviar.
+				-->
+				<AvisoDuplicados enlace={fila.enlace} titulo={fila.titulo} />
 				<Textarea
 					bind:value={fila.notas}
 					placeholder="Notas para el equipo (contexto, para qué lo usaste…) — opcional"

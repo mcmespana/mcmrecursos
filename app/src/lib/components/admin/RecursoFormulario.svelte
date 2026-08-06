@@ -6,6 +6,7 @@
 	import SelectorTags from '$lib/components/SelectorTags.svelte';
 	import SelectorMultiple from '$lib/components/SelectorMultiple.svelte';
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
+	import AvisoDuplicados from '$lib/components/AvisoDuplicados.svelte';
 	import { FORMATOS, formatoEfectivo } from '$lib/catalogo/formatos';
 	import { toast } from 'svelte-sonner';
 	import { Plus, Trash2 } from '@lucide/svelte';
@@ -54,6 +55,7 @@
 	let etapas = $state<string[]>([]);
 	let edades = $state<string[]>([]);
 	let enlace = $state('');
+	let nombre = $state('');
 	let archivos = $state<{ enlace: string; etiqueta: string }[]>([]);
 
 	$effect(() => {
@@ -62,6 +64,7 @@
 		etapas = [...(v.etapas ?? [])];
 		edades = [...(v.edades ?? [])];
 		enlace = v.enlace ?? '';
+		nombre = v.nombre ?? '';
 		archivos = (v.archivos ?? []).map((a: any) => ({
 			enlace: a.enlace ?? '',
 			etiqueta: a.etiqueta ?? ''
@@ -100,7 +103,7 @@
 
 		<div class="flex flex-col gap-1.5">
 			<label class="text-sm font-medium" for="f-nombre">Nombre *</label>
-			<Input id="f-nombre" name="nombre" value={valores.nombre ?? ''} required />
+			<Input id="f-nombre" name="nombre" bind:value={nombre} required />
 		</div>
 
 		<div class="flex flex-col gap-1.5">
@@ -109,6 +112,19 @@
 		</div>
 
 		{@render desplegable('tipo', 'Tipo')}
+
+		<!--
+			Aviso de duplicados: pregunta por el enlace y el nombre mientras se escribe. Nunca
+			bloquea el formulario — puede ser una versión nueva (SPEC-009) o algo legítimamente
+			parecido, y quien cataloga es quien decide.
+		-->
+		<AvisoDuplicados
+			{enlace}
+			titulo={nombre}
+			excluir={valores.id ?? null}
+			soloExactos={modo === 'editar'}
+			enlaceDe={(id) => `/?r=${id}`}
+		/>
 	</section>
 
 	<!-- ═══ 2 · Para quién ═══ (lo que de verdad hace encontrable un recurso) -->

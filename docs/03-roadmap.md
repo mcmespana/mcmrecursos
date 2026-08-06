@@ -52,12 +52,37 @@
 - [x] Relacionados de verdad (afinidad por tags/tipo/etapas) y navegación ←/→ de la ficha
       dentro del filtro/mazo con posición y estado disabled
 
-## 👉 SIGUIENTE
+## 👉 SIGUIENTE — el orden acordado (2026-08-04)
 
-Toda la SPEC-010 está implementada (autoclasificación, búsqueda semántica y el
-«Recomiéndame…» de Descubre) y el dashboard de estadísticas también. Lo que queda es
-sobre todo **configuración** — ver `docs/05-configuracion-servicios.md` para las claves
-pendientes (Gemini, Voyage, cuenta de servicio de Drive).
+1. ~~**Detección de duplicados**~~ ✅ **hecha** (2026-08-04, migración `00019`, SPEC-008 §2). Avisa
+   antes de crear el recurso en los tres sitios por donde entra material: `/enviar`, el alta/edición
+   del panel y la catalogación de un envío. Compara enlaces **normalizados** —`/edit`, `/view`,
+   `?usp=sharing` y la barra final dan igual: lo que cuenta es el id del archivo— y nombres sin
+   acentos ni puntuación, más un «se parece» por trigramas (`pg_trgm`). Nunca bloquea, y al editar
+   algo ya catalogado solo avisa de coincidencias exactas, porque el «se parece» ahí es ruido.
+2. **Panel de salud del banco y tareas del equipo** — **SPEC-014 ya escrita** (`docs/specs/
+   SPEC-014-salud-tareas.md`), pendiente de validar sus cinco preguntas abiertas. Convierte «hay que
+   ordenar el banco» en una lista de cosas que hacer esta tarde (qué está sin temáticas, sin etapa,
+   sin formato, qué envíos llevan semanas parados…) y añade una **lista de tareas compartida entre
+   administradores**, que hoy vive en un WhatsApp que se pierde. Incluye tabla `recursos.tarea`,
+   RPC `salud_banco()` y filtros por URL en el panel de recursos.
+3. **Reflexión de UI/UX a fondo** — una pasada completa, no parches: recorrer los caminos reales
+   (buscar → abrir → llevárselo, aportar un recurso, catalogar una tanda) buscando lo que sobra, lo
+   que falta y lo que se contradice, y salir con una lista priorizada. Lo hecho hasta ahora ha ido
+   por síntomas concretos; toca mirar el conjunto.
+4. **Miniaturas de verdad, cacheadas** — cuando se pueda. Las carpetas de Drive no tienen ninguna y
+   los `?sz=` de Google fallan a veces. Un endpoint que pide la miniatura una vez, la guarda en
+   Storage y sirve desde ahí, con el primer archivo de dentro para las carpetas.
+5. **Tests automatizados en CI** — cuando sobren créditos. El banco de pruebas ya existe (PostgREST
+   de mentira con Auth y mutaciones + Playwright, SPEC-013); falta convertirlo en `npm run test` con
+   Vitest para la lógica pura y engancharlo a GitHub Actions. Hoy todo se prueba a mano y se va con
+   la sesión.
+6. **Payload adelgazado y búsqueda en servidor** — cuando sobre tiempo. Paso 1 de SPEC-013: mandar la
+   descripción recortada y pedir la completa al abrir la ficha (~40% menos payload). Paso 2, ya con
+   umbral (~3.000 recursos): `pg_trgm` + paginación + facetas contadas en la base de datos.
+
+Aparte de esto, lo que queda es **configuración** — ver `docs/05-configuracion-servicios.md` para las
+claves pendientes (Gemini, Voyage, cuenta de servicio de Drive) y el Google OAuth de Supabase.
 
 ### ⚠️ Estado (2026-07-27)
 
