@@ -23,7 +23,7 @@ línea) · RECHAZADO (con el razonamiento).
 ## ⚠️ Plan 001: la migración está escrita pero NO aplicada en remoto
 
 Al ejecutar los 4 planes (sesión del 2026-08-06), la migración
-`supabase/migrations/00019_endurecer_sync_retirar.sql` se escribió y se
+`supabase/migrations/00020_endurecer_sync_retirar.sql` se escribió y se
 verificó su SQL, pero **las llamadas a la herramienta que la aplica contra el
 proyecto Supabase (`apply_migration` / `execute_sql`) se bloquearon
 repetidamente** en esta sesión — las lecturas (`list_migrations`) funcionaban
@@ -37,13 +37,30 @@ ejecutarlo. Dos formas de hacerlo:
 
 1. Con el MCP de Supabase, en una sesión donde la herramienta `apply_migration`
    funcione: `apply_migration(project_id: 'sjhxhsdckvungsrbquve', name:
-   'endurecer_sync_retirar', query: <contenido de 00019_endurecer_sync_retirar.sql>)`,
+   'endurecer_sync_retirar', query: <contenido de 00020_endurecer_sync_retirar.sql>)`,
    y luego correr las verificaciones de los pasos 3–6 del plan.
 2. A mano, en el SQL Editor del dashboard de Supabase del proyecto
    `mcmvotaciones` (`sjhxhsdckvungsrbquve`), pegando el contenido del fichero.
 
 Es la única pieza de los 4 planes que no se pudo verificar end-to-end en esta
 sesión. El resto (002, 003, 004) está aplicado, verificado y commiteado.
+
+**Numeración de la migración**: entre que se escribió este plan y se ejecutó,
+se mergeó a `main` el PR #27 (detección de duplicados), que ya usaba el
+número `00019` (`00019_duplicados.sql`, aplicada en remoto). El fichero de
+este plan se renombró a `00020_endurecer_sync_retirar.sql` al hacer el rebase
+sobre `main` — mismo contenido SQL, solo cambia el número.
+
+**De paso, al rebasar**: el PR #26 (acciones en lote), también mergeado entre
+medias, añadió una acción `lote` a `admin/recursos/+page.server.ts` con el
+mismo patrón que `plans/002` acababa de cerrar (`if (!user) return
+fail(401)`, sin comprobar el rol). Se corrigió igual, con `exigirRol`, y de
+paso se le añadió comprobación de error al `update` que desenlaza versiones
+antes de un borrado en lote — mismo patrón que `plans/004`. Es la prueba de
+que la regla «toda acción nueva bajo `/admin` empieza con `await
+exigirRol(locals)`» (anotada en las notas de mantenimiento de `plans/002`)
+hace falta de verdad: el agujero se reintrodujo en código nuevo a los pocos
+días de cerrarlo.
 
 ## Notas de dependencia
 

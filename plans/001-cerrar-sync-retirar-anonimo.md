@@ -1,5 +1,13 @@
 # Plan 001: `recursos._sync_retirar` deja de ser invocable desde internet
 
+> **Nota de ejecución (2026-08-06)**: exactamente la deriva que la comprobación de
+> abajo pedía vigilar — el PR #27, mergeado a `main` después de escribirse este
+> plan, ya usaba el número `00019` para su propia migración (`00019_duplicados.sql`).
+> El fichero de este plan se creó como **`00020_endurecer_sync_retirar.sql`**, no
+> `00019` como dice el resto de este documento. El contenido SQL es el mismo;
+> solo cambia el número de fichero. Todas las referencias a `00019_...` de aquí
+> en adelante en este plan deben leerse como `00020_...`.
+
 > **Instrucciones para quien ejecuta**: sigue el plan paso a paso. Ejecuta cada
 > comando de verificación y confirma el resultado esperado antes de pasar al
 > siguiente. Si ocurre algo de la sección «Condiciones de PARADA», para y

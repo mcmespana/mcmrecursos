@@ -235,8 +235,9 @@ export const actions: Actions = {
 	 * a ninguno, y no hay que preocuparse de a mitad de dónde se quedó. La excepción es la
 	 * temática, que necesita buscar o crear la etiqueta antes.
 	 */
-	lote: async ({ request, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	lote: async ({ request, locals }) => {
+		await exigirRol(locals);
+		const { supabase } = locals;
 		const f = await request.formData();
 		const ids = f.getAll('ids').map(String).filter(Boolean);
 		const operacion = String(f.get('operacion') ?? '');
@@ -293,7 +294,11 @@ export const actions: Actions = {
 
 		if (operacion === 'eliminar') {
 			// igual que al borrar de uno en uno: las versiones posteriores se desenlazan primero
-			await supabase.from('recurso').update({ version_de: null }).in('version_de', ids);
+			const { error: errDesenlazar } = await supabase
+				.from('recurso')
+				.update({ version_de: null })
+				.in('version_de', ids);
+			if (errDesenlazar) return fail(500, { error: errDesenlazar.message });
 			const { error } = await supabase.from('recurso').delete().in('id', ids);
 			if (error) return fail(500, { error: error.message });
 			return listo();
