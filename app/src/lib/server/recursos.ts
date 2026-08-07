@@ -5,6 +5,9 @@ import { resolverFormato } from './formatos';
 
 type Cliente = SupabaseClient<any, 'recursos'>;
 
+/** `null` si todo fue bien; el mensaje del primer fallo si no. */
+type FalloEscritura = string | null;
+
 /**
  * Escritura de un recurso desde el formulario compartido del panel (SPEC-008 §3).
  *
@@ -51,35 +54,61 @@ export async function camposDelFormulario(f: FormData) {
 /**
  * Reemplaza las temáticas del recurso. Reutiliza las que ya existen comparando por slug, para
  * que «Adviento» escrito de tres formas distintas no se convierta en tres etiquetas.
+ *
+ * Devuelve `null` si todo fue bien, o el mensaje del primer fallo. Borra y reinserta sin
+ * transacción: si algo falla a medio camino, se corta ahí mismo (no tiene sentido seguir
+ * insertando sobre un `recurso_tag` que ya se ha vaciado).
  */
-export async function guardarTags(supabase: Cliente, recursoId: string, crudo: string) {
+export async function guardarTags(
+	supabase: Cliente,
+	recursoId: string,
+	crudo: string
+): Promise<FalloEscritura> {
 	const { data: existentesRes } = await supabase.from('tag').select('nombre');
 	const existentes = (existentesRes ?? []).map((t: any) => t.nombre as string);
 	const tags = normalizarTags(partirTags(crudo), existentes);
 
-	await supabase.from('recurso_tag').delete().eq('recurso_id', recursoId);
+	const { error: errBorrar } = await supabase.from('recurso_tag').delete().eq('recurso_id', recursoId);
+	if (errBorrar) return errBorrar.message;
+
 	for (const nombreTag of tags) {
 		const slug = slugTag(nombreTag);
 		if (!slug) continue;
-		await supabase
+		const { error: errUpsert } = await supabase
 			.from('tag')
 			.upsert({ nombre: nombreTag, slug }, { onConflict: 'slug', ignoreDuplicates: true });
-		const { data: tag } = await supabase.from('tag').select('id').eq('slug', slug).maybeSingle();
-		if (tag) await supabase.from('recurso_tag').insert({ recurso_id: recursoId, tag_id: tag.id });
+		if (errUpsert) return errUpsert.message;
+
+		const { data: tag, error: errBuscar } = await supabase
+			.from('tag')
+			.select('id')
+			.eq('slug', slug)
+			.maybeSingle();
+		if (errBuscar) return errBuscar.message;
+		if (!tag) return `no se pudo crear la temática «${nombreTag}»`;
+
+		const { error: errInsert } = await supabase
+			.from('recurso_tag')
+			.insert({ recurso_id: recursoId, tag_id: tag.id });
+		if (errInsert) return errInsert.message;
 	}
+	return null;
 }
 
 /**
  * Reemplaza los formatos alternativos del recurso (SPEC-011). El formato de cada archivo se
  * resuelve en el servidor: por URL siempre, y consultando a Drive cuando la URL no basta.
+ *
+ * Devuelve `null` si todo fue bien, o el mensaje del primer fallo.
  */
 export async function guardarArchivos(
 	supabase: Cliente,
 	recursoId: string,
 	enlaces: string[],
 	etiquetas: string[]
-) {
-	await supabase.from('recurso_archivo').delete().eq('recurso_id', recursoId);
+): Promise<FalloEscritura> {
+	const { error: errBorrar } = await supabase.from('recurso_archivo').delete().eq('recurso_id', recursoId);
+	if (errBorrar) return errBorrar.message;
 
 	const vistos = new Set<string>();
 	const filas: {
@@ -102,13 +131,25 @@ export async function guardarArchivos(
 			orden: filas.length
 		});
 	}
-	if (filas.length) await supabase.from('recurso_archivo').insert(filas);
+	if (filas.length) {
+		const { error: errInsert } = await supabase.from('recurso_archivo').insert(filas);
+		if (errInsert) return errInsert.message;
+	}
+	return null;
 }
 
-/** Temáticas y archivos en una sola llamada, que es como se usan siempre. */
-export async function guardarRelacionados(supabase: Cliente, recursoId: string, f: FormData) {
-	await guardarTags(supabase, recursoId, String(f.get('tags') ?? ''));
-	await guardarArchivos(
+/**
+ * Temáticas y archivos en una sola llamada, que es como se usan siempre.
+ * Devuelve `null` si todo fue bien, o el mensaje del primer fallo (temáticas antes que archivos).
+ */
+export async function guardarRelacionados(
+	supabase: Cliente,
+	recursoId: string,
+	f: FormData
+): Promise<FalloEscritura> {
+	const falloTags = await guardarTags(supabase, recursoId, String(f.get('tags') ?? ''));
+	if (falloTags) return falloTags;
+	return guardarArchivos(
 		supabase,
 		recursoId,
 		f.getAll('archivo_enlace').map(String),

@@ -4,6 +4,7 @@ import { emailEnvioDevuelto, emailEnvioPublicado } from '$lib/server/email';
 import { clasificarRecurso } from '$lib/server/ia';
 import { extraerTextoDrive } from '$lib/server/drive';
 import { camposDelFormulario, guardarRelacionados } from '$lib/server/recursos';
+import { exigirRol } from '$lib/server/permisos';
 
 /** Estados desde los que un envío todavía se puede resolver. */
 const ABIERTOS = ['enviado', 'en_revision', 'revisar_ia'];
@@ -53,8 +54,9 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 };
 
 export const actions: Actions = {
-	publicar: async ({ request, url, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	publicar: async ({ request, url, locals }) => {
+		await exigirRol(locals);
+		const { supabase, user } = locals;
 		const f = await request.formData();
 		const envioId = String(f.get('envio_id') ?? '');
 		const campos = await camposDelFormulario(f);
@@ -65,7 +67,7 @@ export const actions: Actions = {
 		// va sin publicar nada. Antes se creaban dos recursos idénticos.
 		const { data: reclamado } = await supabase
 			.from('envio')
-			.update({ estado: 'publicado', revisado_por: user.id })
+			.update({ estado: 'publicado', revisado_por: user!.id })
 			.eq('id', envioId)
 			.in('estado', ABIERTOS)
 			.select('id');
@@ -73,25 +75,36 @@ export const actions: Actions = {
 			return fail(409, { error: 'Ese envío ya lo ha resuelto alguien (o tú mismo hace un instante)' });
 		}
 
-		const devolverEnvio = async () => {
-			await supabase.from('envio').update({ estado: 'enviado', revisado_por: null }).eq('id', envioId);
+		// Best-effort: si esto también falla, se añade al mensaje en vez de taparlo (el envío se
+		// quedaría marcado "publicado" sin recurso, y quien revise necesita saberlo para arreglarlo).
+		const devolverEnvio = async (motivoOriginal: string): Promise<string> => {
+			const { error } = await supabase
+				.from('envio')
+				.update({ estado: 'enviado', revisado_por: null })
+				.eq('id', envioId);
+			return error
+				? `${motivoOriginal} (y además no se pudo devolver el envío a su estado: ${error.message})`
+				: motivoOriginal;
 		};
 
 		const { data: nuevoId, error: errId } = await supabase.rpc('nuevo_id_recurso');
 		if (errId || !nuevoId) {
-			await devolverEnvio();
-			return fail(500, { error: errId?.message ?? 'No se pudo generar el id' });
+			return fail(500, { error: await devolverEnvio(errId?.message ?? 'No se pudo generar el id') });
 		}
 		const rid = String(nuevoId);
 
 		const { error: errRecurso } = await supabase.from('recurso').insert({ id: rid, ...campos });
 		if (errRecurso) {
-			await devolverEnvio();
-			return fail(500, { error: `No se pudo crear el recurso: ${errRecurso.message}` });
+			return fail(500, {
+				error: await devolverEnvio(`No se pudo crear el recurso: ${errRecurso.message}`)
+			});
 		}
 
-		await guardarRelacionados(supabase, rid, f);
-		await supabase.from('envio').update({ recurso_id: rid }).eq('id', envioId);
+		const falloRelacionados = await guardarRelacionados(supabase, rid, f);
+		if (falloRelacionados) return fail(500, { error: falloRelacionados });
+
+		const { error: errEnlazar } = await supabase.from('envio').update({ recurso_id: rid }).eq('id', envioId);
+		if (errEnlazar) return fail(500, { error: errEnlazar.message });
 
 		const { data: email } = await supabase.rpc('email_remitente', { envio_id: envioId });
 		if (email) await emailEnvioPublicado(email, campos.nombre, `${url.origin}/?r=${rid}`);
@@ -99,8 +112,9 @@ export const actions: Actions = {
 		return { ok: true, recurso_id: rid };
 	},
 
-	devolver: async ({ request, url, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	devolver: async ({ request, url, locals }) => {
+		await exigirRol(locals);
+		const { supabase, user } = locals;
 		const f = await request.formData();
 		const envioId = String(f.get('envio_id') ?? '');
 		const motivo = String(f.get('motivo') ?? '').trim();
@@ -109,7 +123,7 @@ export const actions: Actions = {
 		const { data: envio } = await supabase.from('envio').select('titulo').eq('id', envioId).single();
 		const { data: cambiado } = await supabase
 			.from('envio')
-			.update({ estado: 'devuelto', motivo_devolucion: motivo, revisado_por: user.id })
+			.update({ estado: 'devuelto', motivo_devolucion: motivo, revisado_por: user!.id })
 			.eq('id', envioId)
 			.in('estado', ABIERTOS)
 			.select('id');
@@ -121,13 +135,14 @@ export const actions: Actions = {
 		return { ok: true };
 	},
 
-	descartar: async ({ request, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	descartar: async ({ request, locals }) => {
+		await exigirRol(locals);
+		const { supabase, user } = locals;
 		const f = await request.formData();
 		const envioId = String(f.get('envio_id') ?? '');
 		const { data: cambiado } = await supabase
 			.from('envio')
-			.update({ estado: 'descartado', revisado_por: user.id })
+			.update({ estado: 'descartado', revisado_por: user!.id })
 			.eq('id', envioId)
 			.in('estado', ABIERTOS)
 			.select('id');
@@ -136,8 +151,9 @@ export const actions: Actions = {
 	},
 
 	// Autoclasificación del envío antes de publicarlo (SPEC-010): propone catalogación.
-	clasificar: async ({ request, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	clasificar: async ({ request, locals }) => {
+		await exigirRol(locals);
+		const { supabase } = locals;
 		const f = await request.formData();
 		const envioId = String(f.get('envio_id') ?? '');
 		if (!envioId) return fail(400);
@@ -176,7 +192,7 @@ export const actions: Actions = {
 		if (!res.disponible) return { ok: false, disponible: false };
 		if (!res.ok) return fail(502, { error: res.error });
 
-		await supabase.from('clasificacion_ia').insert({
+		const { error: errGuardar } = await supabase.from('clasificacion_ia').insert({
 			envio_id: envioId,
 			estado: 'propuesta',
 			modelo: res.modelo,
@@ -184,6 +200,7 @@ export const actions: Actions = {
 			avisos: res.propuesta.avisos,
 			confianza: res.propuesta.confianza
 		});
+		if (errGuardar) return fail(500, { error: `no se pudo guardar la propuesta: ${errGuardar.message}` });
 		return { ok: true, disponible: true, propuesta: res.propuesta };
 	}
 };

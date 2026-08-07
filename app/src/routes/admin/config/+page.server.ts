@@ -1,8 +1,9 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { iaDisponible } from '$lib/server/ia';
 import { embeddingsDisponibles } from '$lib/server/embeddings';
 import { forzadoPorEntorno, funcionActiva, limpiarCacheAjustes } from '$lib/server/ajustes';
+import { exigirAdmin, exigirAdminEnPagina } from '$lib/server/permisos';
 
 const ROLES = ['consulta', 'edicion_local', 'editor', 'administrador', 'consulta_externa'];
 const ORIGENES_FACETA = ['columna', 'extra', 'tag', 'autor', 'mcm_local'];
@@ -10,15 +11,6 @@ const TIPOS_FACETA = ['multiselect', 'select', 'boolean', 'rango'];
 
 /** Funciones que se pueden apagar desde aquí (tabla `ajuste`). */
 const AJUSTES = ['descubre_ia'];
-
-async function exigirAdmin(locals: App.Locals) {
-	const { data } = await locals.supabase
-		.from('perfil')
-		.select('rol')
-		.eq('id', locals.user!.id)
-		.maybeSingle();
-	if (data?.rol !== 'administrador') redirect(303, '/admin');
-}
 
 const slugify = (s: string) =>
 	s
@@ -29,7 +21,7 @@ const slugify = (s: string) =>
 		.replace(/(^-|-$)/g, '');
 
 export const load: PageServerLoad = async ({ locals }) => {
-	await exigirAdmin(locals);
+	await exigirAdminEnPagina(locals);
 	const [listasRes, facetasRes, mcmRes, accesosRes] = await Promise.all([
 		locals.supabase
 			.from('lista_valor')

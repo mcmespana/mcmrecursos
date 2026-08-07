@@ -123,7 +123,8 @@ export async function cargarDatosCatalogo(
  * `versiones_anteriores`, y agrega la capa social del linaje sobre la versión vigente
  * (herencia no destructiva de valoraciones/favoritos/usos/accesos §2/§3).
  */
-function resolverVersiones(recursos: RecursoCatalogo[]) {
+// exportada para los tests; no la uses desde fuera del módulo
+export function resolverVersiones(recursos: RecursoCatalogo[]) {
 	const porId = new Map(recursos.map((r) => [r.id, r]));
 	// hijo publicado por predecesor: quién sucede a quién
 	const sucesorDe = new Map<string, RecursoCatalogo>();
@@ -208,7 +209,8 @@ function agregarStats(cabeza: RecursoCatalogo, linaje: RecursoCatalogo[]) {
 }
 
 /** Devuelve una función id→id_vigente (sube por la cadena de sucesores publicados). */
-function mapaAVigente(recursos: RecursoCatalogo[]): (id: string) => string {
+// exportada para los tests; no la uses desde fuera del módulo
+export function mapaAVigente(recursos: RecursoCatalogo[]): (id: string) => string {
 	const porId = new Map(recursos.map((r) => [r.id, r]));
 	return (id: string) => {
 		let actual = porId.get(id);
