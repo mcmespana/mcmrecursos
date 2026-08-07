@@ -14,7 +14,7 @@ de PARADA, y actualiza tu fila al terminar.
 |------|--------|-----------|----------|--------|------------|--------|
 | [001](001-cerrar-sync-retirar-anonimo.md) | `_sync_retirar` deja de ser invocable desde internet | P1 | S | LOW | — | TODO |
 | [002](002-rol-en-acciones-admin.md) | Las 13 acciones de `/admin` comprueban el rol | P1 | S | LOW | — | HECHO |
-| [003](003-baseline-verificacion.md) | Baseline de verificación: Vitest + CI + lógica pura | P1 | M | LOW | — | TODO |
+| [003](003-baseline-verificacion.md) | Baseline de verificación: Vitest + CI + lógica pura | P1 | M | LOW | — | HECHO |
 | [004](004-escrituras-que-fallan-en-silencio.md) | Que las escrituras dejen de fallar en silencio | P2 | S | MED | 003, 002 | TODO |
 
 Valores de estado: TODO · EN CURSO · HECHO · BLOQUEADO (con el motivo en una
@@ -177,6 +177,26 @@ Con honestidad, para que la siguiente pasada sepa por dónde entrar:
   no índices, tipos de columna ni planes de consulta.
 - **Dependencias.** No he podido ejecutar `npm audit`: no hay `node_modules` en
   este entorno y la skill prohíbe instalar. Queda pendiente y es barato.
+  (Actualización al ejecutar 003: con `node_modules` ya instalado, `npm audit`
+  reporta 11 vulnerabilidades — 8 low, 2 moderate, 1 high — en dependencias de
+  desarrollo. No se ha investigado cuáles ni si son explotables; queda para la
+  siguiente pasada.)
+
+## Encontrado al ejecutar los planes (2026-08-06, sesión de ejecución)
+
+- **`recursos._sync_retirar.sanear` no deduplicaba ids repetidos** (bug, S,
+  confirmado). Al escribir los tests de `plans/003` para `sanear()` en
+  `app/src/lib/server/recomendar.ts`, uno de los casos —descartar ids
+  repetidos, quedarse con la primera aparición, tal como dice el comentario
+  del propio código— **falló**. La causa: `vistos.add(r.id)` vivía dentro del
+  `.map()` que corre después de que el `.filter()` ya ha completado su pasada
+  entera; el filtro comprobaba `!vistos.has(r.id)` contra un `Set` que seguía
+  vacío durante todo el filtrado. Si Gemini devolvía el mismo id dos veces,
+  `/descubre` mostraría la misma tarjeta repetida. Arreglado moviendo el
+  marcado de «visto» al propio `.filter()` (mismo commit que 003, ver
+  `recomendar.test.ts`). Es un ejemplo exacto de por qué `plans/003` insiste en
+  que un test que falla no se toca hasta entender la causa: aquí la causa era
+  un bug real, no un test mal escrito.
 
 ## Hallazgos considerados y rechazados
 

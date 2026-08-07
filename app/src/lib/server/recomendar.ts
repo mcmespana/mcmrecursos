@@ -198,7 +198,8 @@ function construirPrompt(
 	].join('\n');
 }
 
-function sanear(
+// exportada para los tests; no la uses desde fuera del módulo
+export function sanear(
 	cruda: any,
 	candidatos: CandidatoRecomendacion[],
 	vocab: VocabulariosRecomendacion
@@ -207,12 +208,18 @@ function sanear(
 	const vistos = new Set<string>();
 
 	// Defensa contra ids inventados o repetidos: si no está entre los candidatos, fuera.
+	// El marcado de "visto" tiene que ir en el propio filtro: si viviera en el `.map()` de
+	// abajo llegaría demasiado tarde (`.filter()` ya ha terminado su pasada completa antes de
+	// que `.map()` empiece la suya), y un id repetido por el modelo pasaría dos veces.
 	const recomendaciones: Recomendacion[] = (
 		Array.isArray(cruda?.recomendaciones) ? cruda.recomendaciones : []
 	)
-		.filter((r: any) => typeof r?.id === 'string' && validos.has(r.id) && !vistos.has(r.id))
-		.map((r: any) => {
+		.filter((r: any) => {
+			if (typeof r?.id !== 'string' || !validos.has(r.id) || vistos.has(r.id)) return false;
 			vistos.add(r.id);
+			return true;
+		})
+		.map((r: any) => {
 			const motivo = typeof r.motivo === 'string' ? r.motivo.replace(/\s+/g, ' ').trim() : '';
 			return {
 				id: r.id as string,
