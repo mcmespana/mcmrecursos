@@ -4,6 +4,7 @@ import { emailEnvioDevuelto, emailEnvioPublicado } from '$lib/server/email';
 import { clasificarRecurso } from '$lib/server/ia';
 import { extraerTextoDrive } from '$lib/server/drive';
 import { camposDelFormulario, guardarRelacionados } from '$lib/server/recursos';
+import { exigirRol } from '$lib/server/permisos';
 
 /** Estados desde los que un envío todavía se puede resolver. */
 const ABIERTOS = ['enviado', 'en_revision', 'revisar_ia'];
@@ -53,8 +54,9 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 };
 
 export const actions: Actions = {
-	publicar: async ({ request, url, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	publicar: async ({ request, url, locals }) => {
+		await exigirRol(locals);
+		const { supabase, user } = locals;
 		const f = await request.formData();
 		const envioId = String(f.get('envio_id') ?? '');
 		const campos = await camposDelFormulario(f);
@@ -65,7 +67,7 @@ export const actions: Actions = {
 		// va sin publicar nada. Antes se creaban dos recursos idénticos.
 		const { data: reclamado } = await supabase
 			.from('envio')
-			.update({ estado: 'publicado', revisado_por: user.id })
+			.update({ estado: 'publicado', revisado_por: user!.id })
 			.eq('id', envioId)
 			.in('estado', ABIERTOS)
 			.select('id');
@@ -99,8 +101,9 @@ export const actions: Actions = {
 		return { ok: true, recurso_id: rid };
 	},
 
-	devolver: async ({ request, url, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	devolver: async ({ request, url, locals }) => {
+		await exigirRol(locals);
+		const { supabase, user } = locals;
 		const f = await request.formData();
 		const envioId = String(f.get('envio_id') ?? '');
 		const motivo = String(f.get('motivo') ?? '').trim();
@@ -109,7 +112,7 @@ export const actions: Actions = {
 		const { data: envio } = await supabase.from('envio').select('titulo').eq('id', envioId).single();
 		const { data: cambiado } = await supabase
 			.from('envio')
-			.update({ estado: 'devuelto', motivo_devolucion: motivo, revisado_por: user.id })
+			.update({ estado: 'devuelto', motivo_devolucion: motivo, revisado_por: user!.id })
 			.eq('id', envioId)
 			.in('estado', ABIERTOS)
 			.select('id');
@@ -121,13 +124,14 @@ export const actions: Actions = {
 		return { ok: true };
 	},
 
-	descartar: async ({ request, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	descartar: async ({ request, locals }) => {
+		await exigirRol(locals);
+		const { supabase, user } = locals;
 		const f = await request.formData();
 		const envioId = String(f.get('envio_id') ?? '');
 		const { data: cambiado } = await supabase
 			.from('envio')
-			.update({ estado: 'descartado', revisado_por: user.id })
+			.update({ estado: 'descartado', revisado_por: user!.id })
 			.eq('id', envioId)
 			.in('estado', ABIERTOS)
 			.select('id');
@@ -136,8 +140,9 @@ export const actions: Actions = {
 	},
 
 	// Autoclasificación del envío antes de publicarlo (SPEC-010): propone catalogación.
-	clasificar: async ({ request, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	clasificar: async ({ request, locals }) => {
+		await exigirRol(locals);
+		const { supabase } = locals;
 		const f = await request.formData();
 		const envioId = String(f.get('envio_id') ?? '');
 		if (!envioId) return fail(400);

@@ -6,6 +6,7 @@ import { resolverFormato } from '$lib/server/formatos';
 import { camposDelFormulario, guardarRelacionados } from '$lib/server/recursos';
 import { slugTag } from '$lib/catalogo/tags';
 import { embeddingsDisponibles, embeddingsDocumentos } from '$lib/server/embeddings';
+import { exigirRol } from '$lib/server/permisos';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const ESTADOS_PENDIENTES = ['borrador', 'subido_usuario', 'pendiente_revision', 'revisar_ia'];
@@ -165,8 +166,9 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 };
 
 export const actions: Actions = {
-	guardar: async ({ request, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	guardar: async ({ request, locals }) => {
+		await exigirRol(locals);
+		const { supabase } = locals;
 		const f = await request.formData();
 		const id = String(f.get('id') ?? '');
 		const campos = await camposDelFormulario(f);
@@ -193,8 +195,9 @@ export const actions: Actions = {
 	},
 
 	// Alta manual de un recurso: mismo formulario y mismos campos que la edición (SPEC-008 §3).
-	crear: async ({ request, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	crear: async ({ request, locals }) => {
+		await exigirRol(locals);
+		const { supabase } = locals;
 		const f = await request.formData();
 		const campos = await camposDelFormulario(f);
 		if (!campos.nombre) return fail(400, { error: 'El nombre es obligatorio' });
@@ -291,8 +294,9 @@ export const actions: Actions = {
 
 	// Borrado definitivo. Lo social, las temáticas y los archivos caen en cascada; los envíos
 	// que apuntaban al recurso se conservan sin enlace (migración 00015).
-	eliminar: async ({ request, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	eliminar: async ({ request, locals }) => {
+		await exigirRol(locals);
+		const { supabase } = locals;
 		const f = await request.formData();
 		const id = String(f.get('id') ?? '');
 		if (!id) return fail(400, { error: 'Falta el id' });
@@ -307,8 +311,9 @@ export const actions: Actions = {
 
 	// Rellena el formato de los recursos que aún no lo tienen (SPEC-011). Los enlaces genéricos
 	// de Drive necesitan una consulta por archivo, así que va en tandas.
-	detectarFormatos: async ({ locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	detectarFormatos: async ({ locals }) => {
+		await exigirRol(locals);
+		const { supabase } = locals;
 
 		const { data: pendientes } = await supabase
 			.from('recurso')
@@ -335,8 +340,9 @@ export const actions: Actions = {
 		return { ok: true, procesados, restantes: count ?? 0 };
 	},
 
-	estado: async ({ request, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	estado: async ({ request, locals }) => {
+		await exigirRol(locals);
+		const { supabase } = locals;
 		const f = await request.formData();
 		const id = String(f.get('id') ?? '');
 		const estado = String(f.get('estado') ?? '');
@@ -347,8 +353,9 @@ export const actions: Actions = {
 	},
 
 	// Crea una nueva versión (borrador) del recurso y devuelve su id (SPEC-009)
-	crearVersion: async ({ request, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	crearVersion: async ({ request, locals }) => {
+		await exigirRol(locals);
+		const { supabase } = locals;
 		const f = await request.formData();
 		const id = String(f.get('id') ?? '');
 		if (!id) return fail(400);
@@ -358,8 +365,9 @@ export const actions: Actions = {
 	},
 
 	// Autoclasificación con IA (SPEC-010): propone metadatos desde el texto (+ Drive); no publica.
-	clasificar: async ({ request, locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	clasificar: async ({ request, locals }) => {
+		await exigirRol(locals);
+		const { supabase } = locals;
 		const f = await request.formData();
 		const id = String(f.get('id') ?? '');
 		if (!id) return fail(400);
@@ -372,8 +380,9 @@ export const actions: Actions = {
 	},
 
 	// Clasifica en lote los recursos pendientes que aún no tienen propuesta (SPEC-010).
-	clasificarPendientes: async ({ locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	clasificarPendientes: async ({ locals }) => {
+		await exigirRol(locals);
+		const { supabase } = locals;
 
 		const [pendientesRes, yaRes] = await Promise.all([
 			supabase
@@ -405,8 +414,9 @@ export const actions: Actions = {
 	},
 
 	// Reindexa embeddings semánticos (Voyage) de recursos publicados sin vector (SPEC-010).
-	reindexarSemantica: async ({ locals: { supabase, user } }) => {
-		if (!user) return fail(401);
+	reindexarSemantica: async ({ locals }) => {
+		await exigirRol(locals);
+		const { supabase } = locals;
 		if (!embeddingsDisponibles()) return { ok: false, disponible: false };
 
 		const { data: pendientes } = await supabase

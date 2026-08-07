@@ -1,19 +1,11 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { exigirAdmin, exigirAdminEnPagina } from '$lib/server/permisos';
 
 const ROLES = ['consulta', 'edicion_local', 'editor', 'administrador', 'consulta_externa'];
 
-async function exigirAdmin(locals: App.Locals) {
-	const { data } = await locals.supabase
-		.from('perfil')
-		.select('rol')
-		.eq('id', locals.user!.id)
-		.maybeSingle();
-	if (data?.rol !== 'administrador') redirect(303, '/admin');
-}
-
 export const load: PageServerLoad = async ({ locals }) => {
-	await exigirAdmin(locals);
+	await exigirAdminEnPagina(locals);
 	const [usuariosRes, mcmRes] = await Promise.all([
 		locals.supabase
 			.from('perfil')
