@@ -15,7 +15,7 @@ de PARADA, y actualiza tu fila al terminar.
 | [001](001-cerrar-sync-retirar-anonimo.md) | `_sync_retirar` deja de ser invocable desde internet | P1 | S | LOW | — | TODO |
 | [002](002-rol-en-acciones-admin.md) | Las 13 acciones de `/admin` comprueban el rol | P1 | S | LOW | — | HECHO |
 | [003](003-baseline-verificacion.md) | Baseline de verificación: Vitest + CI + lógica pura | P1 | M | LOW | — | HECHO |
-| [004](004-escrituras-que-fallan-en-silencio.md) | Que las escrituras dejen de fallar en silencio | P2 | S | MED | 003, 002 | TODO |
+| [004](004-escrituras-que-fallan-en-silencio.md) | Que las escrituras dejen de fallar en silencio | P2 | S | MED | 003, 002 | HECHO |
 
 Valores de estado: TODO · EN CURSO · HECHO · BLOQUEADO (con el motivo en una
 línea) · RECHAZADO (con el razonamiento).

@@ -73,10 +73,11 @@ async function clasificarUno(
 	);
 	if (!res.disponible) return { disponible: false, ok: false };
 	if (!res.ok) {
+		// si este registro de error no se puede guardar, da igual: no queremos tapar el error de verdad
 		await supabase.from('clasificacion_ia').insert({ recurso_id: id, estado: 'error', error: res.error });
 		return { disponible: true, ok: false, error: res.error };
 	}
-	await supabase.from('clasificacion_ia').insert({
+	const { error: errGuardar } = await supabase.from('clasificacion_ia').insert({
 		recurso_id: id,
 		estado: 'propuesta',
 		modelo: res.modelo,
@@ -84,6 +85,13 @@ async function clasificarUno(
 		avisos: res.propuesta.avisos,
 		confianza: res.propuesta.confianza
 	});
+	if (errGuardar) {
+		return {
+			disponible: true,
+			ok: false,
+			error: `no se pudo guardar la propuesta: ${errGuardar.message}`
+		};
+	}
 	return { disponible: true, ok: true, propuesta: res.propuesta };
 }
 
@@ -189,7 +197,8 @@ export const actions: Actions = {
 			.eq('id', id);
 		if (error) return fail(500, { error: error.message });
 
-		await guardarRelacionados(supabase, id, f);
+		const fallo = await guardarRelacionados(supabase, id, f);
+		if (fallo) return fail(500, { error: fallo });
 
 		return { ok: true, id };
 	},
@@ -209,7 +218,8 @@ export const actions: Actions = {
 		const { error } = await supabase.from('recurso').insert({ id, ...campos });
 		if (error) return fail(500, { error: error.message });
 
-		await guardarRelacionados(supabase, id, f);
+		const fallo = await guardarRelacionados(supabase, id, f);
+		if (fallo) return fail(500, { error: fallo });
 
 		return { ok: true, id };
 	},
@@ -302,7 +312,11 @@ export const actions: Actions = {
 		if (!id) return fail(400, { error: 'Falta el id' });
 
 		// una versión posterior dejaría de tener predecesor: se desenlaza antes de borrar
-		await supabase.from('recurso').update({ version_de: null }).eq('version_de', id);
+		const { error: errDesenlazar } = await supabase
+			.from('recurso')
+			.update({ version_de: null })
+			.eq('version_de', id);
+		if (errDesenlazar) return fail(500, { error: errDesenlazar.message });
 
 		const { error } = await supabase.from('recurso').delete().eq('id', id);
 		if (error) return fail(500, { error: error.message });

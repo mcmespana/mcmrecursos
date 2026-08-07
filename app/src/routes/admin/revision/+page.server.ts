@@ -75,25 +75,36 @@ export const actions: Actions = {
 			return fail(409, { error: 'Ese envío ya lo ha resuelto alguien (o tú mismo hace un instante)' });
 		}
 
-		const devolverEnvio = async () => {
-			await supabase.from('envio').update({ estado: 'enviado', revisado_por: null }).eq('id', envioId);
+		// Best-effort: si esto también falla, se añade al mensaje en vez de taparlo (el envío se
+		// quedaría marcado "publicado" sin recurso, y quien revise necesita saberlo para arreglarlo).
+		const devolverEnvio = async (motivoOriginal: string): Promise<string> => {
+			const { error } = await supabase
+				.from('envio')
+				.update({ estado: 'enviado', revisado_por: null })
+				.eq('id', envioId);
+			return error
+				? `${motivoOriginal} (y además no se pudo devolver el envío a su estado: ${error.message})`
+				: motivoOriginal;
 		};
 
 		const { data: nuevoId, error: errId } = await supabase.rpc('nuevo_id_recurso');
 		if (errId || !nuevoId) {
-			await devolverEnvio();
-			return fail(500, { error: errId?.message ?? 'No se pudo generar el id' });
+			return fail(500, { error: await devolverEnvio(errId?.message ?? 'No se pudo generar el id') });
 		}
 		const rid = String(nuevoId);
 
 		const { error: errRecurso } = await supabase.from('recurso').insert({ id: rid, ...campos });
 		if (errRecurso) {
-			await devolverEnvio();
-			return fail(500, { error: `No se pudo crear el recurso: ${errRecurso.message}` });
+			return fail(500, {
+				error: await devolverEnvio(`No se pudo crear el recurso: ${errRecurso.message}`)
+			});
 		}
 
-		await guardarRelacionados(supabase, rid, f);
-		await supabase.from('envio').update({ recurso_id: rid }).eq('id', envioId);
+		const falloRelacionados = await guardarRelacionados(supabase, rid, f);
+		if (falloRelacionados) return fail(500, { error: falloRelacionados });
+
+		const { error: errEnlazar } = await supabase.from('envio').update({ recurso_id: rid }).eq('id', envioId);
+		if (errEnlazar) return fail(500, { error: errEnlazar.message });
 
 		const { data: email } = await supabase.rpc('email_remitente', { envio_id: envioId });
 		if (email) await emailEnvioPublicado(email, campos.nombre, `${url.origin}/?r=${rid}`);
@@ -181,7 +192,7 @@ export const actions: Actions = {
 		if (!res.disponible) return { ok: false, disponible: false };
 		if (!res.ok) return fail(502, { error: res.error });
 
-		await supabase.from('clasificacion_ia').insert({
+		const { error: errGuardar } = await supabase.from('clasificacion_ia').insert({
 			envio_id: envioId,
 			estado: 'propuesta',
 			modelo: res.modelo,
@@ -189,6 +200,7 @@ export const actions: Actions = {
 			avisos: res.propuesta.avisos,
 			confianza: res.propuesta.confianza
 		});
+		if (errGuardar) return fail(500, { error: `no se pudo guardar la propuesta: ${errGuardar.message}` });
 		return { ok: true, disponible: true, propuesta: res.propuesta };
 	}
 };
