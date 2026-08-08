@@ -8,6 +8,13 @@
 > solo cambia el número de fichero. Todas las referencias a `00019_...` de aquí
 > en adelante en este plan deben leerse como `00020_...`.
 
+> **Nota de ejecución (2026-08-08)**: la migración se aplicó contra
+> `sjhxhsdckvungsrbquve` (versión remota `20260808000110`, confirmada en
+> `list_migrations`). No se pudo correr en esa sesión la verificación fina de
+> los pasos 3–5 (`execute_sql` no estaba disponible aunque `apply_migration` sí)
+> ni la sincronización de prueba del paso 6. Queda pendiente para la próxima
+> vez que se pueda: ver `plans/README.md`.
+
 > **Instrucciones para quien ejecuta**: sigue el plan paso a paso. Ejecuta cada
 > comando de verificación y confirma el resultado esperado antes de pasar al
 > siguiente. Si ocurre algo de la sección «Condiciones de PARADA», para y
