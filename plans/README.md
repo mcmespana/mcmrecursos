@@ -12,7 +12,7 @@ de PARADA, y actualiza tu fila al terminar.
 
 | Plan | Título | Prioridad | Esfuerzo | Riesgo | Depende de | Estado |
 |------|--------|-----------|----------|--------|------------|--------|
-| [001](001-cerrar-sync-retirar-anonimo.md) | `_sync_retirar` deja de ser invocable desde internet | P1 | S | LOW | — | BLOQUEADO (migración escrita, aplicación en remoto pendiente — ver nota abajo) |
+| [001](001-cerrar-sync-retirar-anonimo.md) | `_sync_retirar` deja de ser invocable desde internet | P1 | S | LOW | — | HECHO (aplicada en remoto 2026-08-08 — ver nota abajo) |
 | [002](002-rol-en-acciones-admin.md) | Las 13 acciones de `/admin` comprueban el rol | P1 | S | LOW | — | HECHO |
 | [003](003-baseline-verificacion.md) | Baseline de verificación: Vitest + CI + lógica pura | P1 | M | LOW | — | HECHO |
 | [004](004-escrituras-que-fallan-en-silencio.md) | Que las escrituras dejen de fallar en silencio | P2 | S | MED | 003, 002 | HECHO |
@@ -20,30 +20,30 @@ de PARADA, y actualiza tu fila al terminar.
 Valores de estado: TODO · EN CURSO · HECHO · BLOQUEADO (con el motivo en una
 línea) · RECHAZADO (con el razonamiento).
 
-## ⚠️ Plan 001: la migración está escrita pero NO aplicada en remoto
+## ✅ Plan 001: migración aplicada en remoto (2026-08-08)
 
-Al ejecutar los 4 planes (sesión del 2026-08-06), la migración
-`supabase/migrations/00020_endurecer_sync_retirar.sql` se escribió y se
-verificó su SQL, pero **las llamadas a la herramienta que la aplica contra el
-proyecto Supabase (`apply_migration` / `execute_sql`) se bloquearon
-repetidamente** en esta sesión — las lecturas (`list_migrations`) funcionaban
-con normalidad, así que no era un problema de conexión general, sino algo
-específico a las operaciones de escritura contra la base de datos remota.
+Al ejecutar los 4 planes (sesión del 2026-08-06), las llamadas de escritura al
+proyecto Supabase (`apply_migration`/`execute_sql`) se bloquearon
+repetidamente mientras las lecturas (`list_migrations`) funcionaban con
+normalidad. En una sesión posterior (2026-08-08) se reintentó y
+`apply_migration` funcionó: la migración `endurecer_sync_retirar` quedó
+aplicada contra `sjhxhsdckvungsrbquve` (versión `20260808000110`, confirmada
+en `list_migrations`, justo después de `duplicados`).
 
-**Esto significa que, hasta que alguien la aplique, `recursos._sync_retirar`
-sigue siendo invocable por `anon` desde internet tal como describe el
-hallazgo del plan.** El fichero SQL está listo y verificado; solo falta
-ejecutarlo. Dos formas de hacerlo:
+**No se pudo correr la verificación fina con `execute_sql`** (las consultas
+`has_function_privilege` de los pasos 3–5 del plan) — esa herramienta
+concreta siguió bloqueada en esa sesión aunque `apply_migration` y
+`list_migrations` sí funcionaron. La confirmación de que el cambio surtió
+efecto es indirecta pero sólida: `apply_migration` devolvió éxito y la
+migración aparece registrada en el histórico remoto. **Queda pendiente, la
+próxima vez que `execute_sql` esté disponible**, correr las queries de
+verificación de los pasos 3, 4 y 5 del plan (permisos de `anon`/`authenticated`
+sobre `_sync_retirar`, que la guardia salte al llamarla fuera de la
+sincronización, y que los tres triggers tengan `search_path` fijo) — y pedir a
+alguien con acceso al panel que confirme con una sincronización de prueba
+(paso 6) que `sync_filas` sigue funcionando.
 
-1. Con el MCP de Supabase, en una sesión donde la herramienta `apply_migration`
-   funcione: `apply_migration(project_id: 'sjhxhsdckvungsrbquve', name:
-   'endurecer_sync_retirar', query: <contenido de 00020_endurecer_sync_retirar.sql>)`,
-   y luego correr las verificaciones de los pasos 3–6 del plan.
-2. A mano, en el SQL Editor del dashboard de Supabase del proyecto
-   `mcmvotaciones` (`sjhxhsdckvungsrbquve`), pegando el contenido del fichero.
-
-Es la única pieza de los 4 planes que no se pudo verificar end-to-end en esta
-sesión. El resto (002, 003, 004) está aplicado, verificado y commiteado.
+Los 4 planes están ahora aplicados y commiteados.
 
 **Numeración de la migración**: entre que se escribió este plan y se ejecutó,
 se mergeó a `main` el PR #27 (detección de duplicados), que ya usaba el
