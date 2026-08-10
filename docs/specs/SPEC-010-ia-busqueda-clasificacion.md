@@ -1,7 +1,8 @@
 # SPEC-010 · IA: búsqueda semántica y autoclasificación de recursos
 
-> **Estado:** validada (decisiones cerradas 2026-07-20). Motor: **Google Gemini**.
-> Empezamos por **autoclasificación** (fase 2). En implementación.
+> **Estado:** IMPLEMENTADA. Motor: **Google Gemini** (autoclasificación) + Voyage
+> (embeddings/pgvector). Migraciones 00013 y 00014, Fase 5 del roadmap. Los criterios de
+> aceptación de abajo no se han vuelto a marcar tras implementarse.
 > **Depende de:** SPEC-002 (catálogo), SPEC-004/008 (envíos y revisión), SPEC-005 (sync)
 > **Habilita:** Fase 5 del roadmap (búsqueda con IA) y el gran salto de calidad del banco vivo
 

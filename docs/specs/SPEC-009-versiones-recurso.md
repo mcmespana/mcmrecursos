@@ -1,6 +1,7 @@
 # SPEC-009 · Nuevas versiones de un recurso
 
-> **Estado:** validada (decisiones cerradas 2026-07-20) — en implementación.
+> **Estado:** IMPLEMENTADA (migración 00012, Fase 3 del roadmap). Los criterios de
+> aceptación de abajo no se han vuelto a marcar tras implementarse.
 > **Depende de:** SPEC-002 (catálogo), SPEC-004 (envíos), SPEC-005 (sync), SPEC-008 (panel)
 
 ## Decisiones cerradas (2026-07-20)

@@ -14,6 +14,10 @@ con búsqueda facetada instantánea, valoraciones, favoritos, listas y flujo de 
    sin actualizar el documento.
 3. El esquema de BD es la suma de `supabase/migrations/*.sql`, en orden. Nunca edites una
    migración ya aplicada: crea una nueva.
+4. **`docs/03-roadmap.md` enseña solo lo que queda por hacer.** Todo lo ya cerrado se traslada
+   a `docs/archivo/roadmap-historico.md` en cuanto se termina — no dejes que el roadmap
+   activo vuelva a acumular fases enteras ya hechas, es justo lo que se limpió el
+   2026-08-10 porque agobiaba abrirlo. La tabla de estado de specs está en `docs/00-vision.md`.
 
 ## Comandos
 
@@ -53,10 +57,11 @@ proyecto propio (ver AD-6 en `docs/01-arquitectura.md`). Reglas:
   de votaciones y no se toca). Los clientes JS llevan `db: { schema: 'recursos' }`.
 - El esquema está expuesto en PostgREST vía `alter role authenticator set pgrst.db_schemas`
   (tras cada cambio DDL: `notify pgrst, 'reload schema';`).
-- La migración `00001` YA ESTÁ APLICADA en remoto. Las siguientes se aplican con el MCP
-  de Supabase (`apply_migration`) y se versionan también en `supabase/migrations/`.
-- ⚠️ Google OAuth como proveedor de Auth está PENDIENTE de configurar en el dashboard
-  (necesita client ID/secret de Google Cloud; no se puede por MCP).
+- Las migraciones se aplican con el MCP de Supabase (`apply_migration`) y se versionan
+  también en `supabase/migrations/` — mira el último número ahí para saber por dónde vas,
+  no confíes en un número fijo escrito en un doc: sube con cada sesión.
+- Google OAuth como proveedor de Auth está configurado desde 2026-07-27; sigue existiendo
+  el login alternativo por email+contraseña en `/entrar` para administración.
 
 ## Qué no hacer
 
