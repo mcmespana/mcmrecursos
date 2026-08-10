@@ -48,5 +48,29 @@ y con identidad propia.
 
 ## Fases
 
-Ver [03-roadmap.md](03-roadmap.md). La fase 5 (búsqueda con IA/embeddings) condiciona
-elecciones de hoy: Orama y pgvector dejan el camino pavimentado.
+Ver [03-roadmap.md](03-roadmap.md) para **lo que queda por hacer** — lo ya cerrado vive en
+[archivo/roadmap-historico.md](archivo/roadmap-historico.md), para no agobiar a quien solo
+quiere saber qué toca ahora. La fase 5 (búsqueda con IA/embeddings) condicionó elecciones de
+entonces: Orama y pgvector dejaron el camino pavimentado.
+
+## Specs, de un vistazo
+
+| Spec | Tema | Estado |
+|---|---|---|
+| [001](specs/SPEC-001-auth-usuarios.md) | Auth y usuarios | ✅ implementada |
+| [002](specs/SPEC-002-catalogo-busqueda.md) | Catálogo y búsqueda facetada | ✅ implementada |
+| [003](specs/SPEC-003-interaccion-social.md) | Interacción social | ✅ implementada |
+| [004](specs/SPEC-004-envios-revision.md) | Envíos y revisión | ✅ implementada |
+| [005](specs/SPEC-005-sync-sheet.md) | Sincronización con el Sheet | ✅ backend implementado — falta crear el Sheet real (15 min) |
+| [006](specs/SPEC-006-vistas-filtros.md) | Vistas del catálogo y filtros | 🟡 parcial — falta §3 itinerario, §4 top/descubrir, presets rápidos, faceta de rango |
+| [007](specs/SPEC-007-descubre-swipe.md) | Descubre (swipe + IA) | ✅ implementada — quedan los presets de mazo (ver roadmap, fundido con itinerarios) |
+| [008](specs/SPEC-008-panel-admin.md) | Panel de administración | ✅ implementada — falta el editor visual de itinerarios en `/admin/config` |
+| [009](specs/SPEC-009-versiones-recurso.md) | Versiones de un recurso | ✅ implementada |
+| [010](specs/SPEC-010-ia-busqueda-clasificacion.md) | IA: clasificación y búsqueda semántica | ✅ implementada |
+| [011](specs/SPEC-011-formatos-archivos.md) | Formatos de archivo y descargas | ✅ implementada |
+| [012](specs/SPEC-012-pulido-interfaz.md) | Pulido de interfaz | ✅ implementada |
+| [013](specs/SPEC-013-rendimiento.md) | Rendimiento con catálogo de verdad | ✅ implementada (primera vuelta; umbral y siguientes pasos anotados) |
+| [014](specs/SPEC-014-salud-tareas.md) | Salud del banco y tareas del equipo | 🟢 validada, lista para implementar — **siguiente en la cola** |
+| [015](specs/SPEC-015-itinerarios.md) | Itinerarios de recursos (y presets de mazo) | 📝 borrador — pendiente de validar contigo |
+
+Plantilla para specs nuevas: [`specs/_TEMPLATE.md`](specs/_TEMPLATE.md).

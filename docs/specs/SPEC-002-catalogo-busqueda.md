@@ -1,6 +1,10 @@
 # SPEC-002 · Catálogo y búsqueda facetada
 
-> **Estado:** borrador — modelo de datos propuesto en `docs/02-modelo-datos.md` (pendiente de validación; CSV seed en `docs/seed/recursos_seed.csv`)
+> **Estado:** IMPLEMENTADA — es la pantalla principal de la app (`/`), en producción desde
+> hace tiempo. Este «Estado» se quedó desactualizado desde que la spec era un borrador; los
+> criterios de aceptación de abajo no se han vuelto a marcar tras implementarse, pero se
+> cumplen — ver `docs/03-roadmap.md` (Fase 1) y `docs/archivo/roadmap-historico.md` para
+> cuándo se hizo cada parte.
 > **Depende de:** SPEC-001
 
 ## Objetivo

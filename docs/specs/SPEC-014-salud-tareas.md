@@ -1,6 +1,6 @@
 # SPEC-014 · Salud del banco y tareas del equipo
 
-> **Estado:** borrador (pendiente de validar contigo)
+> **Estado:** validada (2026-08-10) — lista para implementar
 > **Depende de:** SPEC-008 (panel admin), SPEC-011 (formatos), SPEC-010 (IA y embeddings)
 
 ## Objetivo
@@ -89,7 +89,8 @@ returns jsonb language sql security invoker stable as $$
     'fuera_del_banco',  (select count(*) from recursos.recurso where fuera_del_banco),
     'editados_en_web',  (select count(*) from recursos.recurso where editado_web_at is not null),
     'sin_embedding',    (select count(*) from recursos.recurso where estado = 'publicado' and embedding is null),
-    'nunca_abiertos',   (select count(*) from recursos.recurso r where r.estado = 'publicado'
+    'olvidados',        (select count(*) from recursos.recurso r where r.estado = 'publicado'
+                            and r.updated_at < now() - interval '90 days'
                             and not exists (select 1 from recursos.acceso a where a.recurso_id = r.id)),
     'envios_viejos',    (select count(*) from recursos.envio where estado in ('enviado','en_revision','revisar_ia')
                             and created_at < now() - interval '14 days'),
@@ -137,7 +138,28 @@ Colores: nada de rojo por defecto. Rojo (`destructive`) solo para lo que rompe a
 recurso publicado que no lleva a ninguna parte— y ámbar (`warm`) para lo que está a medias. El resto,
 neutro: el banco a medio catalogar es lo normal, no una emergencia.
 
+**«Olvidados» en vez de «nunca abiertos».** Contar recursos sin ningún acceso registrado no sirve de
+nada con un catálogo joven: con pocos meses de vida, eso son casi todos, y la tarjeta diría «187
+olvidados» el primer día. La señal de verdad es **publicado hace más de 90 días y nunca abierto**: ahí
+sí hay tiempo de sobra para que alguien lo hubiera encontrado, y que no lo haya hecho dice algo —está
+mal titulado, mal clasificado, o nadie sabe que existe.
+
+**Silenciar una señal, sin que se note que existe la opción.** Los recursos «fuera del banco» son una
+decisión consciente, no un defecto, y forzar a mirar esa tarjeta cada día es ruido. Cada tarjeta lleva
+un enlace de texto pequeño, en la esquina, igual que el «Ocultar» de la vista previa
+(`VistaPrevia.svelte`): sin icono llamativo, sin diálogo de confirmación, sin ajuste nuevo que buscar
+en `/admin/config`. Se guarda como una fila más en la tabla `recursos.ajuste` que ya existe (clave
+`salud_senales_ocultas`, valor una lista separada por comas) — ningún objeto nuevo en la base de
+datos, ninguna pantalla de ajustes nueva. Al pie de la rejilla, solo si hay algo oculto, un enlace
+discreto «N señales ocultas» las vuelve a enseñar con la opción de dejar de ocultarlas. Restringido a
+`administrador` (misma política que el resto de `ajuste`): es una decisión que afecta a todo el
+equipo, no algo que cada editor deba poder tocar por su cuenta.
+
 ### Abajo: «Tareas del equipo»
+
+Compartidas entre todos los administradores —cualquiera con rol de panel las ve y las puede marcar
+hechas— con la opción de **asignarlas a una persona concreta** cuando conviene que quede claro de
+quién es. No hay tareas privadas: es una lista de equipo, no una libreta personal.
 
 - **Un campo y Enter.** Apuntar tiene que costar menos que abrir WhatsApp. Lo demás (prioridad,
   asignar, detalle) se rellena después sobre la tarea ya creada.
@@ -168,16 +190,15 @@ Nada de números grandes de señales: la cifra que uno se compromete a bajar son
 - [ ] Los conteos cuadran con la realidad: se comprueba con el catálogo sintético del banco de
       pruebas (SPEC-013), tocando un recurso y viendo moverse el número.
 
-## Preguntas abiertas
+## Decisiones (validadas contigo, 2026-08-10)
 
-1. **¿Las tareas son solo del equipo o también «me lo apunto para mí»?** La spec asume compartidas
-   con asignación opcional. Si quieres privadas, hace falta una columna más y decidir si el resto las
-   ve en gris o no las ve.
-2. **¿Qué es «nunca abierto»?** Ahora mismo se propone contar recursos publicados sin ningún acceso
-   registrado. Con el catálogo joven eso son casi todos, así que quizá la señal deba ser «publicado
-   hace más de 3 meses y nunca abierto».
-3. **¿Interesa que una señal se pueda silenciar?** Ejemplo: los recursos «fuera del banco» son una
-   decisión consciente, no un defecto; quizá esa tarjeta debería poder marcarse como «ya lo sé».
-4. **Umbral de los envíos viejos**: 14 días es una propuesta.
-5. **¿Prioridad o solo orden?** Tres pastillas (alta/normal/baja) es lo más simple que funciona; si
-   sobra, se cambia por arrastrar y soltar.
+1. **Tareas compartidas, con asignación opcional a un administrador concreto.** Nada de tareas
+   privadas — es la lista del equipo, no una libreta personal. Sección ya actualizada arriba.
+2. **«Nunca abierto» pasa a ser «olvidado»**: publicado hace más de 90 días y sin ningún acceso
+   registrado. Con menos de 90 días de vida, un recurso no cuenta todavía — no ha tenido tiempo de
+   que nadie lo encuentre.
+3. **Sí se puede silenciar una señal, pero sin que abulte**: un enlace de texto pequeño por tarjeta,
+   sin diálogo ni ajuste nuevo que buscar — reutiliza la tabla `recursos.ajuste` que ya existe.
+   Detallado arriba, en la sección de señales.
+4. **Umbral de los envíos viejos**: se queda en 14 días, como estaba propuesto.
+5. **Prioridad con tres pastillas** (alta/normal/baja), sin arrastrar y soltar en la v1. Confirmado.
