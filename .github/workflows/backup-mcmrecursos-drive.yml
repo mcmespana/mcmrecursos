@@ -11,9 +11,12 @@ jobs:
     steps:
       - name: Instalar cliente de Postgres 17
         run: |
+          set -euo pipefail
+          sudo apt-get update
           sudo apt-get install -y postgresql-common
-          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          yes '' | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
           sudo apt-get install -y postgresql-client-17
+          test -x /usr/lib/postgresql/17/bin/pg_dump
 
       - name: Generar el dump (esquemas public + recursos)
         env:
@@ -21,7 +24,7 @@ jobs:
         run: |
           set -euo pipefail
           FILENAME="mcmvotaciones-$(date +%Y-%m-%d).sql.gz"
-          pg_dump "$SUPABASE_DB_URL" \
+          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" \
             --no-owner --no-privileges \
             --schema=public --schema=recursos \
             | gzip > "$FILENAME"
