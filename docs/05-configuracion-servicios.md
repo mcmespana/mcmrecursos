@@ -18,13 +18,13 @@ Resumen de todas las variables:
 | `PUBLIC_SUPABASE_ANON_KEY` | Clave pública de Supabase | ✅ (ya puesta) |
 | `SUPABASE_SECRET_KEY` | Tareas admin server-only (crear usuarios, etc.) | Recomendada |
 | `SYNC_CLAVE` | Clave del sync del Google Sheet | Solo si usas el Sheet |
-| `RESEND_API_KEY` | Emails transaccionales (aprobado/devuelto) | Opcional |
-| `RESEND_FROM` | Remitente de los emails | Opcional |
-| `GEMINI_API_KEY` | IA: autoclasificación (Gemini) | Opcional |
-| `GEMINI_MODELO` | Modelo de Gemini (por defecto `gemini-3.6-flash`) | Opcional |
-| `VOYAGE_API_KEY` | Búsqueda semántica (embeddings Voyage) | Opcional |
+| `RESEND_API_KEY` | Emails transaccionales (aprobado/devuelto) | ✅ (ya puesta) |
+| `RESEND_FROM` | Remitente de los emails | ✅ (ya puesta) |
+| `GEMINI_API_KEY` | IA: autoclasificación (Gemini) | ✅ (ya puesta) |
+| `GEMINI_MODELO` | Modelo de Gemini (por defecto `gemini-3.6-flash`) | ✅ (ya puesta) |
+| `VOYAGE_API_KEY` | Búsqueda semántica (embeddings Voyage) | ✅ (ya puesta) |
 | `VOYAGE_MODELO` | Modelo de embeddings (por defecto `voyage-4-lite`) | Opcional |
-| `GOOGLE_SERVICE_ACCOUNT_JSON` | Leer documentos de Drive para clasificar | Opcional |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Leer documentos de Drive para clasificar | ✅ (ya puesta) |
 | `DESCUBRE_IA` | Freno de mano de «Recomiéndame…» (`off`/`on`) | Opcional |
 
 ---
