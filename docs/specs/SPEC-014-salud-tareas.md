@@ -1,6 +1,6 @@
 # SPEC-014 · Salud del banco y tareas del equipo
 
-> **Estado:** validada (2026-08-10) — lista para implementar
+> **Estado:** implementada (2026-08-13) — migraciones `00021`–`00023`, `/admin/salud`
 > **Depende de:** SPEC-008 (panel admin), SPEC-011 (formatos), SPEC-010 (IA y embeddings)
 
 ## Objetivo

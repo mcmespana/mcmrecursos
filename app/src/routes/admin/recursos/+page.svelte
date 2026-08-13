@@ -32,6 +32,29 @@
 	let filtroEstado = $state('');
 	let orden = $state<{ campo: string; asc: boolean }>({ campo: 'updated_at', asc: false });
 
+	/** Títulos de señal para el aviso de «llegas desde /admin/salud», solo texto de pantalla. */
+	const SENAL_TITULO: Record<string, string> = {
+		sin_enlace: 'sin enlace',
+		enlaces_repetidos: 'con el enlace repetido',
+		sin_tematicas: 'sin temáticas',
+		sin_etapa: 'sin etapa',
+		olvidados: 'olvidados',
+		fuera_del_banco: 'fuera del banco',
+		sin_formato: 'sin formato',
+		por_clasificar: 'por clasificar',
+		sin_embedding: 'sin indexar semánticamente',
+		sin_descripcion: 'sin descripción',
+		sin_edades: 'sin edades',
+		sin_tipo: 'sin tipo',
+		editados_en_web: 'editados en la web'
+	};
+	// llega desde /admin/salud con ?pendiente=<señal>: se puede quitar sin recargar la página.
+	// Vuelve a activarse si se navega a un ?pendiente= distinto (otro enlace «Ver los N»).
+	let pendienteActivo = $state(false);
+	$effect(() => {
+		pendienteActivo = Boolean(data.pendiente);
+	});
+
 	/** Recurso abierto en el panel lateral; `'nuevo'` = alta desde cero. */
 	let editando = $state<any>(null);
 	let creando = $state(false);
@@ -197,6 +220,9 @@
 
 	const filtrados = $derived.by(() => {
 		let lista = data.recursos.filter((r: any) => !eliminados.has(r.id));
+		if (pendienteActivo && data.idsPendiente) {
+			lista = lista.filter((r: any) => data.idsPendiente!.has(r.id));
+		}
 		if (filtroEstado) lista = lista.filter((r) => r.estado === filtroEstado);
 		const q = normalizarConsulta(filtroTexto);
 		if (q) {
@@ -365,6 +391,23 @@
 <svelte:head><title>Recursos · Admin · Banco de Recursos MCM</title></svelte:head>
 
 <div class="flex flex-col gap-4">
+	{#if data.pendiente && pendienteActivo}
+		<div
+			class="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm"
+		>
+			<span
+				>Mostrando solo los {data.idsPendiente?.size ?? 0}
+				{SENAL_TITULO[data.pendiente] ?? data.pendiente} (desde Salud del banco)</span
+			>
+			<button
+				type="button"
+				class="toque ml-auto inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+				onclick={() => (pendienteActivo = false)}
+			>
+				<X class="size-3" /> Quitar filtro
+			</button>
+		</div>
+	{/if}
 	<div class="flex flex-wrap items-center gap-3">
 		<h1 class="font-display text-2xl font-bold">Recursos</h1>
 		<p class="text-sm text-muted-foreground tabular-nums" aria-live="polite" aria-atomic="true">

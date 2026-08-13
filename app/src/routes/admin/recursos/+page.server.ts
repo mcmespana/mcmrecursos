@@ -120,8 +120,9 @@ async function idDeTag(
 	return (creada?.id as string) ?? null;
 }
 
-export const load: PageServerLoad = async ({ locals: { supabase } }) => {
-	const [recursosRes, listasRes, mcmRes, tagsRes] = await Promise.all([
+export const load: PageServerLoad = async ({ locals: { supabase }, url }) => {
+	const pendiente = url.searchParams.get('pendiente');
+	const [recursosRes, listasRes, mcmRes, tagsRes, idsPendienteRes] = await Promise.all([
 		supabase
 			.from('recurso')
 			.select(
@@ -136,7 +137,12 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 			.order('updated_at', { ascending: false }),
 		supabase.from('lista_valor').select('lista, valor, grupo, orden').eq('activo', true).order('orden'),
 		supabase.from('mcm_local').select('id, nombre').eq('activo', true).order('nombre'),
-		supabase.from('tag').select('nombre, recurso_tag (recurso_id)').limit(500)
+		supabase.from('tag').select('nombre, recurso_tag (recurso_id)').limit(500),
+		// mismos predicados que salud_banco() (00023): así /admin/salud manda aquí filtrado y sin
+		// duplicar la lógica de cada señal en el cliente.
+		pendiente
+			? supabase.rpc('ids_senal', { p_senal: pendiente })
+			: Promise.resolve({ data: null })
 	]);
 
 	// última propuesta de IA por recurso (para badge + prellenado del formulario)
@@ -169,7 +175,9 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 		listas: listasRes.data ?? [],
 		mcmLocales: mcmRes.data ?? [],
 		tags,
-		sugerencias
+		sugerencias,
+		pendiente,
+		idsPendiente: pendiente ? new Set((idsPendienteRes.data as string[] | null) ?? []) : null
 	};
 };
 
