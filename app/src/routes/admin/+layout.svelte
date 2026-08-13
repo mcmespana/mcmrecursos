@@ -1,24 +1,79 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { ClipboardCheck, Database, RefreshCw, Settings2, Users, ChartBar } from '@lucide/svelte';
+	import {
+		ClipboardCheck,
+		Database,
+		HeartPulse,
+		RefreshCw,
+		Settings2,
+		Users,
+		ChartBar
+	} from '@lucide/svelte';
 
 	let { data, children } = $props();
 
 	const secciones = $derived(
 		[
-			{ href: '/admin/revision', etiqueta: 'Revisión', icono: ClipboardCheck, activa: true },
-			{ href: '/admin/recursos', etiqueta: 'Recursos', icono: Database, activa: true },
+			{
+				href: '/admin/salud',
+				etiqueta: 'Salud',
+				icono: HeartPulse,
+				activa: true,
+				pastilla: data.tareasAbiertas || null
+			},
+			{
+				href: '/admin/revision',
+				etiqueta: 'Revisión',
+				icono: ClipboardCheck,
+				activa: true,
+				pastilla: null as number | null
+			},
+			{
+				href: '/admin/recursos',
+				etiqueta: 'Recursos',
+				icono: Database,
+				activa: true,
+				pastilla: null as number | null
+			},
 			...(data.rolPanel !== 'edicion_local'
-				? [{ href: '/admin/sync', etiqueta: 'Sincronización', icono: RefreshCw, activa: true }]
+				? [
+						{
+							href: '/admin/sync',
+							etiqueta: 'Sincronización',
+							icono: RefreshCw,
+							activa: true,
+							pastilla: null as number | null
+						}
+					]
 				: []),
 			...(data.rolPanel === 'administrador'
 				? [
-						{ href: '/admin/usuarios', etiqueta: 'Usuarios', icono: Users, activa: true },
-						{ href: '/admin/config', etiqueta: 'Configuración', icono: Settings2, activa: true }
+						{
+							href: '/admin/usuarios',
+							etiqueta: 'Usuarios',
+							icono: Users,
+							activa: true,
+							pastilla: null as number | null
+						},
+						{
+							href: '/admin/config',
+							etiqueta: 'Configuración',
+							icono: Settings2,
+							activa: true,
+							pastilla: null as number | null
+						}
 					]
 				: []),
 			...(data.rolPanel !== 'edicion_local'
-				? [{ href: '/admin/stats', etiqueta: 'Estadísticas', icono: ChartBar, activa: true }]
+				? [
+						{
+							href: '/admin/stats',
+							etiqueta: 'Estadísticas',
+							icono: ChartBar,
+							activa: true,
+							pastilla: null as number | null
+						}
+					]
 				: [])
 		]
 	);
@@ -44,6 +99,13 @@
 				<s.icono class="size-4" />
 				{s.etiqueta}
 				{#if !s.activa}<span class="ml-auto text-[10px]">pronto</span>{/if}
+				{#if s.pastilla}
+					<span
+						class="ml-auto rounded-full bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-primary"
+					>
+						{s.pastilla}
+					</span>
+				{/if}
 			</a>
 		{/each}
 	</aside>

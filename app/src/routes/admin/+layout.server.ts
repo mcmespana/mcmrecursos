@@ -11,5 +11,12 @@ export const load: LayoutServerLoad = async ({ locals: { supabase, user } }) => 
 		.eq('id', user.id)
 		.maybeSingle();
 	if (!perfil || !ROLES_PANEL.includes(perfil.rol)) redirect(303, '/');
-	return { rolPanel: perfil.rol as string };
+
+	// Pastilla de la navegación: cuántas tareas abiertas hay (RLS ya acota a lo que le toca ver).
+	const { count: tareasAbiertas } = await supabase
+		.from('tarea')
+		.select('id', { count: 'exact', head: true })
+		.eq('estado', 'abierta');
+
+	return { rolPanel: perfil.rol as string, tareasAbiertas: tareasAbiertas ?? 0 };
 };

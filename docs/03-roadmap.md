@@ -8,15 +8,11 @@ por hacer**, para que abrirlo no dé pereza.
 Estado de las specs: la tabla de `docs/00-vision.md` dice de un vistazo cuál está implementada,
 cuál en curso y cuál es solo un borrador.
 
-## 👉 Orden acordado (actualizado 2026-08-10)
+## 👉 Orden acordado (actualizado 2026-08-13)
 
 1. ~~Detección de duplicados~~ ✅ hecha (2026-08-04/06, migración `00019`, SPEC-008 §2).
-2. **Panel de salud del banco y tareas del equipo** — spec **validada y lista para
-   implementar**: `docs/specs/SPEC-014-salud-tareas.md`. Convierte «hay que ordenar el banco»
-   en una lista de cosas que hacer esta tarde (qué está sin temáticas, sin etapa, sin formato,
-   qué envíos llevan semanas parados…) y añade una **lista de tareas compartida entre
-   administradores**, con asignación opcional a una persona concreta — lo que hoy vive en un
-   WhatsApp que se pierde. Es el siguiente en implementarse.
+2. ~~Panel de salud del banco y tareas del equipo~~ ✅ hecho (2026-08-13, SPEC-014, migraciones
+   `00021`–`00023`) — detalle en `docs/archivo/roadmap-historico.md`.
 3. **Reflexión de UI/UX a fondo** — una pasada completa, no parches: recorrer los caminos reales
    (buscar → abrir → llevárselo, aportar un recurso, catalogar una tanda) buscando lo que sobra,
    lo que falta y lo que se contradice, y salir con una lista priorizada. Lo hecho hasta ahora ha

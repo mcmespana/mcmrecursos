@@ -70,7 +70,7 @@ entonces: Orama y pgvector dejaron el camino pavimentado.
 | [011](specs/SPEC-011-formatos-archivos.md) | Formatos de archivo y descargas | ✅ implementada |
 | [012](specs/SPEC-012-pulido-interfaz.md) | Pulido de interfaz | ✅ implementada |
 | [013](specs/SPEC-013-rendimiento.md) | Rendimiento con catálogo de verdad | ✅ implementada (primera vuelta; umbral y siguientes pasos anotados) |
-| [014](specs/SPEC-014-salud-tareas.md) | Salud del banco y tareas del equipo | 🟢 validada, lista para implementar — **siguiente en la cola** |
+| [014](specs/SPEC-014-salud-tareas.md) | Salud del banco y tareas del equipo | ✅ implementada (2026-08-13) |
 | [015](specs/SPEC-015-itinerarios.md) | Itinerarios de recursos (y presets de mazo) | 📝 borrador — pendiente de validar contigo |
 
 Plantilla para specs nuevas: [`specs/_TEMPLATE.md`](specs/_TEMPLATE.md).

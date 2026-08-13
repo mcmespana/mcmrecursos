@@ -314,3 +314,21 @@ Los cuatro están **hechos** — detalle completo en `plans/README.md` y en cada
 De paso, al rebasar el PR de estos planes sobre `main`, se encontró y corrigió el mismo agujero
 de rol que `plans/002` acababa de cerrar en la acción `lote` del PR #26 (mergeado entre medias),
 y el mismo patrón de `plans/004` en un `update` sin comprobar error del borrado en lote.
+
+## Salud del banco y tareas del equipo (SPEC-014, 2026-08-13)
+
+- [x] `/admin/salud`: rejilla de **señales automáticas** (sin enlace, sin temáticas, sin etapa,
+      sin formato, por clasificar, sin indexar semánticamente, olvidados, envíos parados,
+      enlaces repetidos…) leídas de un único RPC `recursos.salud_banco()` (migración `00021`,
+      `security invoker` — cada rol ve solo lo que su RLS le deja contar). Cada tarjeta enlaza
+      al listado ya filtrado y se puede «apuntar como tarea» de un clic (índice único evita
+      duplicarla mientras siga abierta) o silenciar (fila en `ajuste`, solo administrador)
+- [x] `recursos.tarea`: lista compartida del equipo con prioridad, asignación, título editable
+      en línea y marcar hecha con deshacer (`avisoDeshacible`); filtros Abiertas/Mías/Hechas
+- [x] `recursos.ids_senal()` (migración `00023`): mismos predicados que `salud_banco()` pero
+      devolviendo IDs, para que `/admin/recursos?pendiente=<señal>` filtre el listado sin
+      duplicar la lógica de cada señal en el cliente
+- [x] `recursos.perfiles_panel()` (migración `00022`): nombre + avatar de todo el equipo sin
+      pasar por la RLS de `perfil` (que solo deja leer la fila propia), para poder mostrar quién
+      tiene asignada cada tarea
+- [x] Indicador de tareas abiertas en la navegación del panel (`/admin/+layout.server.ts`)
