@@ -1,6 +1,10 @@
 # SPEC-014 · Salud del banco y tareas del equipo
 
 > **Estado:** implementada (2026-08-13) — migraciones `00021`–`00023`, `/admin/salud`
+> **Ojo:** la mitad de «tareas del equipo» de esta spec quedó **sustituida por
+> [SPEC-016](SPEC-016-avisos-panel.md)** el 2026-08-15: la lista se fue de `/admin/salud` al buzón
+> de la cabecera. Lo de aquí vale como historia de por qué existe `recursos.tarea`; para cómo
+> funciona hoy, mira la 016. Las **señales** de esta spec siguen vigentes tal cual.
 > **Depende de:** SPEC-008 (panel admin), SPEC-011 (formatos), SPEC-010 (IA y embeddings)
 
 ## Objetivo

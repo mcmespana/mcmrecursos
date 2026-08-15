@@ -72,5 +72,6 @@ entonces: Orama y pgvector dejaron el camino pavimentado.
 | [013](specs/SPEC-013-rendimiento.md) | Rendimiento con catálogo de verdad | ✅ implementada (primera vuelta; umbral y siguientes pasos anotados) |
 | [014](specs/SPEC-014-salud-tareas.md) | Salud del banco y tareas del equipo | ✅ implementada (2026-08-13) |
 | [015](specs/SPEC-015-itinerarios.md) | Itinerarios de recursos (y presets de mazo) | 📝 borrador — pendiente de validar contigo |
+| [016](specs/SPEC-016-avisos-panel.md) | Avisos y tareas: el buzón del equipo | ✅ implementada (2026-08-15) |
 
 Plantilla para specs nuevas: [`specs/_TEMPLATE.md`](specs/_TEMPLATE.md).

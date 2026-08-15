@@ -332,3 +332,26 @@ y el mismo patrón de `plans/004` en un `update` sin comprobar error del borrado
       pasar por la RLS de `perfil` (que solo deja leer la fila propia), para poder mostrar quién
       tiene asignada cada tarea
 - [x] Indicador de tareas abiertas en la navegación del panel (`/admin/+layout.server.ts`)
+
+## Avisos y tareas: el buzón del equipo (SPEC-016, 2026-08-15)
+
+Rediseño completo de la mitad «tareas» de SPEC-014, que se quedó en una lista fea dentro de
+`/admin/salud` a la que había que acordarse de ir. Migración `00025`.
+
+- [x] **Campana en la cabecera, en todas las pantallas**, con el número de avisos sin leer (punto
+      rojo sin número cuando lo único que pasa es que algo venció). Cuelga un **panel flotante**
+      (popover en escritorio, hoja inferior en móvil) con filtros Sin leer / Míos / Todo / Hechas
+- [x] **`/admin/avisos`**: el mismo buzón en grande, agrupado por urgencia (vencidas · esta semana ·
+      más adelante · sin fecha), con búsqueda y filtro por responsable
+- [x] **Aviso ≠ tarea** (`tipo`) y **fecha límite** (`vence_at`) como campos de verdad, más
+      `tarea_visto` para que el «sin leer» sea de cada persona y no una bandera global
+- [x] Tarjeta rediseñada: el nombre del responsable **es** el selector y la píldora de fecha **es**
+      el control (lleva un `input[type=date]` invisible encima); lo que se usa poco aparece al pasar
+      por encima. Compositor plegado a una línea, con responsable/fecha/urgencia como chips
+      opcionales
+- [x] Store único en el cliente (`$lib/avisos/`), conteos derivados de la lista una vez cargada, y
+      acciones optimistas compartidas por el panel y la pantalla completa
+- [x] Fuera de `/admin/salud` la lista de tareas y sus cinco acciones de servidor; queda un enlace
+
+Pendiente anotado: **avisar por correo** (el hueco está pensado en la spec) y el **rediseño visual
+de la rejilla de señales de `/admin/salud`**, que se quedó como estaba.

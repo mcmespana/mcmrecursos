@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import {
+		Bell,
 		ClipboardCheck,
 		Database,
 		HeartPulse,
@@ -9,17 +10,27 @@
 		Users,
 		ChartBar
 	} from '@lucide/svelte';
+	import { buzon } from '$lib/avisos/estado.svelte';
 
 	let { data, children } = $props();
 
 	const secciones = $derived(
 		[
 			{
+				href: '/admin/avisos',
+				etiqueta: 'Avisos y tareas',
+				icono: Bell,
+				activa: true,
+				// el conteo del cliente manda en cuanto el buzón está cargado: así cerrar una tarea
+				// baja la pastilla sin recargar la página
+				pastilla: (buzon.cargado ? buzon.abiertas : data.tareasAbiertas) || null
+			},
+			{
 				href: '/admin/salud',
 				etiqueta: 'Salud',
 				icono: HeartPulse,
 				activa: true,
-				pastilla: data.tareasAbiertas || null
+				pastilla: null as number | null
 			},
 			{
 				href: '/admin/revision',
