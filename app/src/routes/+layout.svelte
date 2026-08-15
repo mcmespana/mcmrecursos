@@ -20,6 +20,7 @@
 		Sun
 	} from '@lucide/svelte';
 	import OnboardingMcm from '$lib/components/OnboardingMcm.svelte';
+	import CampanaAvisos from '$lib/components/avisos/CampanaAvisos.svelte';
 	import BarraProgreso from '$lib/components/BarraProgreso.svelte';
 	import PaletaComandos from '$lib/components/PaletaComandos.svelte';
 	import { browser } from '$app/environment';
@@ -39,6 +40,10 @@
 	});
 
 	const usuario = $derived(data.session?.user);
+	/** El buzón es del equipo editor: quien no administra nada no tiene qué mirar ahí. */
+	const puedeAdministrar = $derived(
+		!!data.perfil && ['edicion_local', 'editor', 'administrador'].includes(data.perfil.rol)
+	);
 	const avatarUrl = $derived(usuario?.user_metadata?.avatar_url as string | undefined);
 	const nombreUsuario = $derived(
 		(usuario?.user_metadata?.full_name as string | undefined) ?? usuario?.email ?? ''
@@ -168,11 +173,10 @@
 				<span class="text-primary">MCM</span>
 			</a>
 			<div class="ml-auto flex items-center gap-2">
-				<PaletaComandos
-					supabase={data.supabase}
-					puedeAdministrar={!!data.perfil &&
-						['edicion_local', 'editor', 'administrador'].includes(data.perfil.rol)}
-				/>
+				<PaletaComandos supabase={data.supabase} {puedeAdministrar} />
+				{#if puedeAdministrar && data.perfil}
+					<CampanaAvisos supabase={data.supabase} uid={data.perfil.id} />
+				{/if}
 				<Button variant="ghost" size="sm" href="/descubre">
 					<Sparkles class="size-4" /> <span class="hidden sm:inline">Descubre</span>
 				</Button>
@@ -217,7 +221,7 @@
 							<DropdownMenu.Item onclick={() => goto('/envios')}>
 								<Inbox class="size-4" /> Mis envíos
 							</DropdownMenu.Item>
-							{#if data.perfil && ['edicion_local', 'editor', 'administrador'].includes(data.perfil.rol)}
+							{#if puedeAdministrar}
 								<DropdownMenu.Item onclick={() => goto('/admin')}>
 									<Shield class="size-4" /> Administración
 								</DropdownMenu.Item>

@@ -8,29 +8,34 @@ por hacer**, para que abrirlo no dé pereza.
 Estado de las specs: la tabla de `docs/00-vision.md` dice de un vistazo cuál está implementada,
 cuál en curso y cuál es solo un borrador.
 
-## 👉 Orden acordado (actualizado 2026-08-13)
+## 👉 Orden acordado (actualizado 2026-08-15)
 
 1. ~~Detección de duplicados~~ ✅ hecha (2026-08-04/06, migración `00019`, SPEC-008 §2).
 2. ~~Panel de salud del banco y tareas del equipo~~ ✅ hecho (2026-08-13, SPEC-014, migraciones
    `00021`–`00023`) — detalle en `docs/archivo/roadmap-historico.md`.
-3. **Reflexión de UI/UX a fondo** — una pasada completa, no parches: recorrer los caminos reales
+3. ~~Buzón de avisos y tareas en toda la app~~ ✅ hecho (2026-08-15, SPEC-016, migración `00025`).
+4. **Rediseñar la rejilla de señales de `/admin/salud`** — lo siguiente. El buzón ya se rehízo a
+   fondo (SPEC-016) y esa pantalla se quedó con las tarjetas de señal tal cual estaban: correctas
+   pero pobres, sin jerarquía entre «12 publicados sin enlace» y «3 sin descripción». Toca una
+   pasada de diseño de verdad siguiendo `docs/04-diseno.md`, no un retoque de márgenes.
+5. **Reflexión de UI/UX a fondo** — una pasada completa, no parches: recorrer los caminos reales
    (buscar → abrir → llevárselo, aportar un recurso, catalogar una tanda) buscando lo que sobra,
    lo que falta y lo que se contradice, y salir con una lista priorizada. Lo hecho hasta ahora ha
    ido por síntomas concretos; toca mirar el conjunto.
-4. **Itinerarios de recursos** — spec **escrita, pendiente de validar**: `docs/specs/
+6. **Itinerarios de recursos** — spec **escrita, pendiente de validar**: `docs/specs/
    SPEC-015-itinerarios.md`. Un conjunto ordenado de recursos (p. ej. 20) pensado para
    recorrerse en un orden concreto, con su propia explicación general, construido sobre una
    tabla que ya existe sin usar desde la migración 00002. Se propone que absorba también los
    «presets de mazo configurables» pendientes desde Descubre (Fase 3.5) — ver la spec para
    el porqué y las 5 preguntas abiertas.
-5. **Miniaturas de verdad, cacheadas** — cuando se pueda. Las carpetas de Drive no tienen ninguna
+7. **Miniaturas de verdad, cacheadas** — cuando se pueda. Las carpetas de Drive no tienen ninguna
    y los `?sz=` de Google fallan a veces. Un endpoint que pide la miniatura una vez, la guarda en
    Storage y sirve desde ahí, con el primer archivo de dentro para las carpetas.
-6. **Tests automatizados en CI, más allá de la lógica pura** — cuando sobren créditos. Ya hay
+8. **Tests automatizados en CI, más allá de la lógica pura** — cuando sobren créditos. Ya hay
    una base (Vitest + GitHub Actions + tests de lógica pura, ver el histórico); falta
    Playwright en CI reutilizando el banco de pruebas de SPEC-013 (PostgREST de mentira con Auth
    y mutaciones), para dejar de probar todo a mano y que se vaya con la sesión.
-7. **Payload adelgazado y búsqueda en servidor** — cuando sobre tiempo. Paso 1 de SPEC-013:
+9. **Payload adelgazado y búsqueda en servidor** — cuando sobre tiempo. Paso 1 de SPEC-013:
    mandar la descripción recortada y pedir la completa al abrir la ficha (~40% menos payload).
    Paso 2, ya con umbral (~3.000 recursos): `pg_trgm` + paginación + facetas contadas en BD.
 
