@@ -353,5 +353,26 @@ Rediseño completo de la mitad «tareas» de SPEC-014, que se quedó en una list
       acciones optimistas compartidas por el panel y la pantalla completa
 - [x] Fuera de `/admin/salud` la lista de tareas y sus cinco acciones de servidor; queda un enlace
 
-Pendiente anotado: **avisar por correo** (el hueco está pensado en la spec) y el **rediseño visual
-de la rejilla de señales de `/admin/salud`**, que se quedó como estaba.
+Pendiente anotado: **avisar por correo** (el hueco está pensado en la spec).
+
+## Rediseño de la rejilla de señales de `/admin/salud` (2026-08-15)
+
+El problema no era el contenido sino la **falta de jerarquía**: catorce tarjetas idénticas en una
+rejilla de tres columnas, donde «12 publicados que no llevan a ningún sitio» pesaba exactamente lo
+mismo que «3 sin descripción». Había que leérsela entera para saber por dónde empezar.
+
+- [x] **Tres niveles de gravedad** que deciden el peso visual: `roto` (tarjetas grandes, número en
+      display, rojo) · `medias` (tarjetas normales) · `pulir` (filas compactas — seis detalles
+      cosméticos no merecen seis cajones del tamaño de «hay enlaces muertos»)
+- [x] **El número es el héroe** de cada tarjeta, en Bricolage y `tabular-nums`, con la frase del
+      «por qué duele» debajo en vez de llevar el contador embebido en mitad de una oración
+- [x] Resumen de arriba que **cuenta señales, no recursos sumados**: un mismo recurso puede estar
+      sin etapa y sin descripción, y «4 enlaces repetidos» son grupos — sumarlo todo daba un número
+      grande y falso. Va como línea discreta, no como panel rojo a todo lo ancho que repetía la
+      sección de debajo
+- [x] Rojo reservado a lo que de verdad está roto; el resto en tinta normal (el ámbar en números
+      grandes sobre tarjeta se leía casi negro y perdía el código de color)
+- [x] Estado vacío sin emoji ni celebración: dice **qué se ha mirado**
+- [x] La rejilla sale a `$lib/components/admin/RejillaSenales.svelte`, con las señales y su nivel
+      como dato exportado
+- [x] Verificado en navegador: claro, oscuro, móvil y estado vacío
