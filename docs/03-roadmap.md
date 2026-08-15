@@ -14,10 +14,9 @@ cuál en curso y cuál es solo un borrador.
 2. ~~Panel de salud del banco y tareas del equipo~~ ✅ hecho (2026-08-13, SPEC-014, migraciones
    `00021`–`00023`) — detalle en `docs/archivo/roadmap-historico.md`.
 3. ~~Buzón de avisos y tareas en toda la app~~ ✅ hecho (2026-08-15, SPEC-016, migración `00025`).
-4. **Rediseñar la rejilla de señales de `/admin/salud`** — lo siguiente. El buzón ya se rehízo a
-   fondo (SPEC-016) y esa pantalla se quedó con las tarjetas de señal tal cual estaban: correctas
-   pero pobres, sin jerarquía entre «12 publicados sin enlace» y «3 sin descripción». Toca una
-   pasada de diseño de verdad siguiendo `docs/04-diseno.md`, no un retoque de márgenes.
+4. ~~Rediseñar la rejilla de señales de `/admin/salud`~~ ✅ hecho (2026-08-15) — tres niveles de
+   gravedad que deciden el peso visual, el número como héroe de cada tarjeta y el resumen contando
+   señales en vez de sumar unidades distintas.
 5. **Reflexión de UI/UX a fondo** — una pasada completa, no parches: recorrer los caminos reales
    (buscar → abrir → llevárselo, aportar un recurso, catalogar una tanda) buscando lo que sobra,
    lo que falta y lo que se contradice, y salir con una lista priorizada. Lo hecho hasta ahora ha

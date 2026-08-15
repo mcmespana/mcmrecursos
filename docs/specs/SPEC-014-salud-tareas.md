@@ -4,7 +4,9 @@
 > **Ojo:** la mitad de «tareas del equipo» de esta spec quedó **sustituida por
 > [SPEC-016](SPEC-016-avisos-panel.md)** el 2026-08-15: la lista se fue de `/admin/salud` al buzón
 > de la cabecera. Lo de aquí vale como historia de por qué existe `recursos.tarea`; para cómo
-> funciona hoy, mira la 016. Las **señales** de esta spec siguen vigentes tal cual.
+> funciona hoy, mira la 016. Las **señales** siguen vigentes en contenido, pero su presentación se
+> rediseñó el 2026-08-15 (tres niveles de gravedad, el número como héroe): lo que manda ahora es
+> `$lib/components/admin/RejillaSenales.svelte`, no la descripción de §Experiencia de usuario.
 > **Depende de:** SPEC-008 (panel admin), SPEC-011 (formatos), SPEC-010 (IA y embeddings)
 
 ## Objetivo
