@@ -14,7 +14,10 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y postgresql-common
-          yes '' | sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
+          # `-y` en vez de `yes '' | …`: el script pide un Enter y termina cerrando la tubería,
+          # así que `yes` moría por SIGPIPE y `pipefail` daba el paso por fallido cuando el
+          # repositorio se había añadido perfectamente. El backup no llegó a correr nunca.
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y postgresql-client-17
           test -x /usr/lib/postgresql/17/bin/pg_dump
 
