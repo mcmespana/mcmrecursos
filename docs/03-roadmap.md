@@ -33,24 +33,11 @@ cuál en curso y cuál es solo un borrador.
    El documento deja además una pregunta de fondo que no es de interfaz: el banco tiene **7 recursos
    públicos** y máquina para miles, así que el cuello de botella no es encontrar, es **tener**. Eso
    reordena todo lo demás.
-6. **Itinerarios de recursos** — spec **validada (2026-08-20)**, lista para implementar:
-   `docs/specs/SPEC-015-itinerarios.md`. **Es lo siguiente.** Un conjunto ordenado de recursos
-   (p. ej. 20 sesiones) para recorrerse en un orden concreto, con su explicación general, sobre
-   las tres tablas que existen vacías desde la migración 00002.
-
-   Decidido al validar: **no** es lo mismo que los presets de mazo de Descubre (van aparte),
-   **sin** progreso personal, `etapas` con el mismo vocabulario y el mismo selector que en el
-   resto de la app, 10-12 itinerarios como techo (así que la parte pública es una rejilla sin
-   buscador ni paginación) y escritura para editores y administradores, que es la RLS que ya
-   está puesta.
-
-   El encargo del editor es explícito: **pocos campos**. El itinerario tiene cuatro (nombre,
-   descripción, etapas, estado) y los bloques están escondidos hasta que alguien pulsa «partir
-   en tramos» — el caso normal es una sola lista ordenada. Vive en `/admin/itinerarios`.
-
-   Primer paso listo y **sin aplicar**: `supabase/migrations/00026_itinerarios.sql` — `orden` en
-   `recurso_bloque` (sin eso no hay itinerario), `estado` borrador/publicado, `etapa` → `etapas[]`,
-   nombre de bloque opcional y lectura acotada a lo publicado.
+6. ~~Itinerarios de recursos~~ ✅ hecho (2026-08-20, SPEC-015, migración `00026`) —
+   `/admin/itinerarios` con el editor de cuatro campos y lista ordenada, y `/itinerarios` +
+   `/itinerarios/[id]` en público. Quedan tres cosas anotadas en la spec: ficha con
+   anterior/siguiente **dentro** del itinerario, reordenar los tramos entre sí, y «recorrerlo en
+   Descubre».
 7. **Miniaturas de verdad, cacheadas** — cuando se pueda. Las carpetas de Drive no tienen ninguna
    y los `?sz=` de Google fallan a veces. Un endpoint que pide la miniatura una vez, la guarda en
    Storage y sirve desde ahí, con el primer archivo de dentro para las carpetas.

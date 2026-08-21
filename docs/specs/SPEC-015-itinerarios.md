@@ -1,7 +1,7 @@
 # SPEC-015 · Itinerarios de recursos
 
-> **Estado:** **validada (2026-08-20)** — respuestas a las cinco preguntas abiertas integradas
-> abajo. Migración `00026_itinerarios.sql` escrita y **sin aplicar**, esperando el OK.
+> **Estado:** **implementada (2026-08-20)** — migración `00026` aplicada, `/admin/itinerarios`
+> (listado + editor) y `/itinerarios` + `/itinerarios/[id]` en marcha. Ver §Lo construido al final.
 > **Depende de:** SPEC-002 (catálogo), SPEC-006 §3 (la vista «Itinerario» ya prevista),
 > SPEC-008 (el «editor visual de itinerarios» ya listado como pendiente en `/admin/config`)
 
@@ -84,7 +84,7 @@ un preset); lo que cambia es si construimos también el atajo de filtro-sin-list
 ## Modelo de datos
 
 Reutiliza las tres tablas que ya existen vacías desde 00002 y les añade **lo mínimo que falta**.
-Todo está en `supabase/migrations/00026_itinerarios.sql` — escrita, sin aplicar. En resumen:
+Todo está en `supabase/migrations/00026_itinerarios.sql`, **aplicada** el 2026-08-20. En resumen:
 
 | Cambio | Por qué |
 | --- | --- |
@@ -230,3 +230,45 @@ es contenido editorial, como un recurso.
 **Fuera de la v1, y a propósito:** progreso personal (descartado del todo), «Recorrerlo en
 Descubre», presets por filtro, `imagen`, asignación de bloques desde el Sheet, itinerarios privados
 o por MCM local, y cualquier buscador o paginación en la parte pública.
+
+
+## Lo construido (2026-08-20)
+
+**Migración `00026`**, aplicada en remoto: `orden` en `recurso_bloque`, `estado`
+borrador/publicado, `etapa` → `etapas text[]`, nombre de bloque opcional y lectura acotada a lo
+publicado (en el itinerario y en sus bloques).
+
+**`/admin/itinerarios`** — listado. Crear cuesta escribir el nombre y pulsar: se entra directo a
+montarlo, porque es lo único que se puede hacer con un itinerario vacío. Cada fila dice cuántos
+recursos lleva y si está publicado. Borrar va con cuenta atrás (`accionRetardada`), y el aviso
+aclara que los recursos en sí no se tocan.
+
+**`/admin/itinerarios/[id]`** — el editor. Los cuatro campos arriba (nombre, de qué va, etapas con
+el `SelectorMultiple` de siempre, y un interruptor de publicado) y debajo la lista numerada. Añadir
+es un buscador por tramo que filtra en el cliente y descarta lo que ya está puesto; ordenar son
+flechas ↑↓ que mandan el orden completo del bloque de una vez. La palabra «tramo» no aparece hasta
+que se pulsa **«Partir en tramos»**: al crear el itinerario se hace un bloque implícito sin título,
+y mientras solo haya uno el editor habla de «los recursos, en orden». No se puede borrar el último
+tramo, porque sin bloque no hay dónde añadir.
+
+**`/itinerarios` y `/itinerarios/[id]`** — la parte pública. Rejilla de tarjetas sin buscador
+(decisión 4) y la ficha del itinerario con la explicación arriba y los recursos numerados de forma
+continua (no por tramo: el orden es del itinerario entero). Cada fila abre el recurso registrando
+el acceso, y su nombre lleva a la ficha de siempre vía `/?r=`. Un editor ve sus borradores con un
+aviso de que solo los ve él.
+
+**Entradas:** «Itinerarios» en la cabecera pública junto a Descubre —son la misma familia, mirar
+sin buscar— y en la paleta de comandos. En el panel, entre Recursos y Sincronización.
+
+### Lo que quedó fuera de esta vuelta
+
+- **`RecursoFicha` con anterior/siguiente dentro del itinerario.** La ficha lo soporta
+  (`indice`/`total`/`onnavegar`), pero montarla aquí obliga a duplicar toda la capa social que hoy
+  vive en la portada (favoritos, usos, valoraciones, login diferido). Mientras tanto, el nombre del
+  recurso lleva a `/?r=`, que abre esa misma ficha con todo funcionando — pero navegando por el
+  catálogo, no por el itinerario.
+- **Reordenar los tramos entre sí.** Se crean en orden y se pueden borrar; mover el tramo 3 al 1
+  todavía no. Con dos o tres tramos se resuelve borrando y rehaciendo, y no ha parecido que
+  justificara más botones en la primera versión.
+- Todo lo demás que ya estaba fuera de alcance: progreso personal, «recorrerlo en Descubre»,
+  presets por filtro, `imagen`, y asignar bloques desde el Sheet.

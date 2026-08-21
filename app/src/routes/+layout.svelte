@@ -14,6 +14,7 @@
 		ListChecks,
 		LogOut,
 		Moon,
+		Route,
 		Send,
 		Shield,
 		Sparkles,
@@ -179,6 +180,10 @@
 				{/if}
 				<Button variant="ghost" size="sm" href="/descubre">
 					<Sparkles class="size-4" /> <span class="hidden sm:inline">Descubre</span>
+				</Button>
+				<!-- Itinerarios y Descubre son la misma familia: mirar sin buscar. Mismo trato. -->
+				<Button variant="ghost" size="sm" href="/itinerarios" aria-label="Itinerarios">
+					<Route class="size-4" /> <span class="hidden sm:inline">Itinerarios</span>
 				</Button>
 				<!--
 					En móvil va solo el icono, como Descubre: con la etiqueta no cabe (logo, lupa,

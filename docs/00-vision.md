@@ -62,16 +62,16 @@ entonces: Orama y pgvector dejaron el camino pavimentado.
 | [003](specs/SPEC-003-interaccion-social.md) | Interacción social | ✅ implementada |
 | [004](specs/SPEC-004-envios-revision.md) | Envíos y revisión | ✅ implementada |
 | [005](specs/SPEC-005-sync-sheet.md) | Sincronización con el Sheet | ✅ backend implementado — falta crear el Sheet real (15 min) |
-| [006](specs/SPEC-006-vistas-filtros.md) | Vistas del catálogo y filtros | 🟡 parcial — falta §3 itinerario, §4 top/descubrir, presets rápidos, faceta de rango |
+| [006](specs/SPEC-006-vistas-filtros.md) | Vistas del catálogo y filtros | 🟡 parcial — §3 itinerario ya está (SPEC-015); faltan §4 top/descubrir, presets rápidos, faceta de rango |
 | [007](specs/SPEC-007-descubre-swipe.md) | Descubre (swipe + IA) | ✅ implementada — quedan los presets de mazo (ver roadmap, fundido con itinerarios) |
-| [008](specs/SPEC-008-panel-admin.md) | Panel de administración | ✅ implementada — falta el editor visual de itinerarios en `/admin/config` |
+| [008](specs/SPEC-008-panel-admin.md) | Panel de administración | ✅ implementada (el editor de itinerarios acabó en `/admin/itinerarios`, ver SPEC-015) |
 | [009](specs/SPEC-009-versiones-recurso.md) | Versiones de un recurso | ✅ implementada |
 | [010](specs/SPEC-010-ia-busqueda-clasificacion.md) | IA: clasificación y búsqueda semántica | ✅ implementada |
 | [011](specs/SPEC-011-formatos-archivos.md) | Formatos de archivo y descargas | ✅ implementada |
 | [012](specs/SPEC-012-pulido-interfaz.md) | Pulido de interfaz | ✅ implementada |
 | [013](specs/SPEC-013-rendimiento.md) | Rendimiento con catálogo de verdad | ✅ implementada (primera vuelta; umbral y siguientes pasos anotados) |
 | [014](specs/SPEC-014-salud-tareas.md) | Salud del banco y tareas del equipo | ✅ implementada (2026-08-13) |
-| [015](specs/SPEC-015-itinerarios.md) | Itinerarios de recursos | 🟢 validada (2026-08-20) — migración `00026` escrita sin aplicar, lista para implementar |
+| [015](specs/SPEC-015-itinerarios.md) | Itinerarios de recursos | ✅ implementada (2026-08-20) — migración `00026`, editor y parte pública |
 | [016](specs/SPEC-016-avisos-panel.md) | Avisos y tareas: el buzón del equipo | ✅ implementada (2026-08-15) |
 
 Plantilla para specs nuevas: [`specs/_TEMPLATE.md`](specs/_TEMPLATE.md).

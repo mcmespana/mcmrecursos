@@ -4,6 +4,7 @@
 		Bell,
 		ClipboardCheck,
 		Database,
+		Route,
 		HeartPulse,
 		RefreshCw,
 		Settings2,
@@ -46,6 +47,18 @@
 				activa: true,
 				pastilla: null as number | null
 			},
+			// itinerarios: contenido editorial, no un ajuste — de ahí que no viva en /admin/config
+			...(data.rolPanel !== 'edicion_local'
+				? [
+						{
+							href: '/admin/itinerarios',
+							etiqueta: 'Itinerarios',
+							icono: Route,
+							activa: true,
+							pastilla: null as number | null
+						}
+					]
+				: []),
 			...(data.rolPanel !== 'edicion_local'
 				? [
 						{

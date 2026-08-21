@@ -6,7 +6,7 @@
 	import { iconoDeTipo } from '$lib/catalogo/tipos';
 	import { normalizarConsulta } from '$lib/catalogo/filtros';
 	import type { SupabaseClient } from '@supabase/supabase-js';
-	import { Inbox, ListChecks, Moon, Search, Send, Shield, Sparkles, Sun } from '@lucide/svelte';
+	import { Inbox, ListChecks, Moon, Route, Search, Send, Shield, Sparkles, Sun } from '@lucide/svelte';
 	import { toggleMode } from 'mode-watcher';
 
 	/**
@@ -124,6 +124,12 @@
 	const SECCIONES = [
 		{ ruta: '/', etiqueta: 'Buscar en el banco', icono: Search, claves: ['catalogo', 'inicio'] },
 		{ ruta: '/descubre', etiqueta: 'Descubre', icono: Sparkles, claves: ['mazo', 'swipe'] },
+		{
+			ruta: '/itinerarios',
+			etiqueta: 'Itinerarios',
+			icono: Route,
+			claves: ['recorrido', 'orden', 'camino']
+		},
 		{ ruta: '/enviar', etiqueta: 'Enviar un recurso', icono: Send, claves: ['aportar', 'subir'] },
 		{ ruta: '/listas', etiqueta: 'Mis listas', icono: ListChecks, claves: ['guardado'] },
 		{ ruta: '/envios', etiqueta: 'Mis envíos', icono: Inbox, claves: ['aportaciones'] }
