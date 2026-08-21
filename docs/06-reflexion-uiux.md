@@ -156,11 +156,20 @@ resta.
 
 **Qué haría:** no pintar la fila social cuando no hay ni valoración ni favoritos.
 
-### F9 · Cuatro botones-icono sin etiqueta en la ficha (bajo)
+### F9 · Cuatro botones-icono en la ficha (bajo — corregido, sin acción)
 
-Junto a «Abrir recurso» hay cuatro botones cuadrados seguidos: corazón, check, enlace, lista. Tienen
-`aria-label` (bien para lector de pantalla), pero visualmente son cuatro incógnitas en fila. El check
-—«lo he usado»— es el menos adivinable y probablemente el más valioso para el proyecto.
+> **Corrección (2026-08-20).** Escribí «sin etiqueta» y es falso: **tienen tooltip** (`Tooltip.Root`
+> con 300 ms de retardo, «Marcar *lo he usado*», «Copiar enlace del recurso»…) además de
+> `aria-label`. Lo comprobé después, al ir a arreglarlo.
+
+Lo que queda del hallazgo es mucho más pequeño: en **táctil no hay hover**, así que en un móvil los
+cuatro iconos siguen siendo cuatro incógnitas para quien ve la pantalla (el lector de pantalla sí los
+lee). El menos adivinable es el check —«lo he usado»— y es probablemente el más valioso para el
+proyecto, porque alimenta «los más usados».
+
+**No lo he tocado.** Meter la etiqueta al lado de «Abrir recurso» aprieta una fila que ya va justa en
+un panel de ~490 px, y el problema real (táctil) no se arregla con eso. Merece pensarse aparte, no un
+parche para justificar el hallazgo.
 
 ### F10 · En móvil las facetas se cortan, y el diseño especificaba otra cosa (medio)
 
@@ -347,7 +356,8 @@ cuando el catálogo crezca.
 7. **F4 · Quitar «Formato» de las facetas públicas** y devolverlo a icono + filtro de admin.
 8. **F5 · Etiquetar la línea de la tarjeta** o separar etapas de edades de forma legible.
 9. **F8 · No pintar la fila social cuando está vacía.**
-10. **F9 · Dar texto al menos al botón «lo he usado»** en la ficha.
+10. ~~F9 · Dar texto al botón «lo he usado»~~ — **retirado**: ya tiene tooltip. Queda solo el caso
+    táctil, que merece pensarse aparte (ver el hallazgo).
 11. **F19 · Un solo buscador visible en la portada.**
 12. **F18 · Decidir la puerta de entrada:** o «Entrar» ofrece las dos vías, o se asume el huevo de
     pascua a sabiendas y se documenta.

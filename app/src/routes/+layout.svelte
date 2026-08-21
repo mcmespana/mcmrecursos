@@ -239,7 +239,15 @@
 						</DropdownMenu.Content>
 					</DropdownMenu.Root>
 				{:else}
-					<Button size="sm" onclick={entrarConGoogle}>Entrar</Button>
+					<!--
+						Dice a dónde lleva (F18 de docs/06-reflexion-uiux.md): este botón no ofrece
+						elegir, va directo a Google, y un «Entrar» a secas hacía esperar un formulario.
+						El acceso por correo del equipo sigue en /entrar, con su enlace discreto en el
+						pie — eso se queda como está, es deliberado.
+					-->
+					<Button size="sm" onclick={entrarConGoogle}>
+						Entrar<span class="hidden sm:inline">&nbsp;con Google</span>
+					</Button>
 				{/if}
 			</div>
 		</div>

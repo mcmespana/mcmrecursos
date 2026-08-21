@@ -393,6 +393,35 @@
 		}
 		return map;
 	});
+	/**
+	 * Facetas que de verdad pueden partir el catálogo (F3 de docs/06-reflexion-uiux.md).
+	 *
+	 * Una faceta cuyos valores presentes son menos de dos no puede filtrar nada: enseñarla es
+	 * ofrecer un desplegable que devuelve o todo o nada. Hoy pasa con «Idioma» (un solo valor en
+	 * todo el banco) y con «Formato» (puesto en un recurso de once), así que la barra tenía nueve
+	 * chips de los que dos eran decorativos.
+	 *
+	 * Se mira lo que **hay en los recursos**, no el vocabulario configurado: la tabla `lista_valor`
+	 * puede tener catorce edades aunque solo se usen tres.
+	 *
+	 * Se cuenta sobre el catálogo entero y no sobre los resultados a propósito — si dependiera del
+	 * filtro, las facetas aparecerían y desaparecerían mientras filtras. Y una faceta con algo
+	 * seleccionado nunca se esconde, para no dejar un filtro activo sin forma de quitarlo (los
+	 * enlaces compartidos con `?formato=` siguen funcionando: filtrar sigue usando todas).
+	 */
+	const facetasVisibles = $derived.by(() =>
+		facetas.filter((f) => {
+			if ((seleccion[f.campo]?.length ?? 0) > 0) return true;
+			const presentes = new Set<string>();
+			for (const r of recursosVigentes) {
+				for (const v of f.valores(r)) {
+					presentes.add(v);
+					if (presentes.size >= 2) return true;
+				}
+			}
+			return false;
+		})
+	);
 	const countsPorFaceta = $derived(
 		new Map(
 			facetas.map((f) => [
@@ -564,7 +593,7 @@
 	<div
 		class="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
 	>
-		{#each facetas as faceta (faceta.campo)}
+		{#each facetasVisibles as faceta (faceta.campo)}
 			<div class="shrink-0">
 				<FacetaFiltro
 					etiqueta={faceta.etiqueta}

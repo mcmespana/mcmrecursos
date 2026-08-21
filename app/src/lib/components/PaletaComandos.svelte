@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { SupabaseClient } from '@supabase/supabase-js';
 	import { Search } from '@lucide/svelte';
+	import { page } from '$app/state';
 
 	/**
 	 * Paleta de comandos (⌘K / Ctrl+K / `/`): el disparador.
@@ -18,6 +19,9 @@
 		supabase: SupabaseClient<any, 'recursos'>;
 		puedeAdministrar?: boolean;
 	} = $props();
+
+	/** En la portada ya hay un buscador grande: el disparador se queda en icono (F19). */
+	const enPortada = $derived(page.url.pathname === '/');
 
 	let abierta = $state(false);
 	let Dialogo = $state<typeof import('./PaletaDialogo.svelte').default | null>(null);
@@ -55,10 +59,20 @@
 
 <svelte:window onkeydown={teclas} />
 
-<!-- Disparador visible: sin él, un atajo de teclado es un secreto -->
+<!--
+	Disparador visible: sin él, un atajo de teclado es un secreto.
+
+	Menos en la portada (F19 de docs/06-reflexion-uiux.md): allí el buscador grande está en el centro
+	de la pantalla, y tener a la vez otra caja que también dice «Buscar…» hacía dudar de cuál era
+	cuál. En la portada se queda solo el icono —la paleta sirve además para navegar, así que no puede
+	desaparecer— y en el resto de páginas, donde no hay buscador, sigue con su etiqueta y su ⌘K.
+-->
 <button
 	type="button"
-	class="hidden items-center gap-2 rounded-lg border bg-muted/40 py-1.5 pr-2 pl-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground sm:flex"
+	class={[
+		'hidden items-center gap-2 rounded-lg border bg-muted/40 py-1.5 pr-2 pl-3 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+		enPortada ? '' : 'sm:flex'
+	]}
 	onclick={abrir}
 >
 	<Search class="size-3.5" />
@@ -71,7 +85,10 @@
 </button>
 <button
 	type="button"
-	class="toque flex items-center justify-center text-muted-foreground hover:text-foreground sm:hidden"
+	class={[
+		'toque flex items-center justify-center text-muted-foreground hover:text-foreground',
+		enPortada ? '' : 'sm:hidden'
+	]}
 	aria-label="Buscar en el banco"
 	onclick={abrir}
 >
