@@ -474,10 +474,17 @@
 		<h1 class="font-display text-3xl font-bold tracking-tight">
 			Descubre <span class="text-primary">recursos</span>
 		</h1>
+		<!--
+			Una línea en vez de tres (F12 de docs/06-reflexion-uiux.md). Y solo el teclado: los
+			botones están debajo de la tarjeta con su propia etiqueta, así que explicarlos era
+			repetir lo que ya se ve. Antes esta línea además decía «↑ abre la ficha» al lado de
+			símbolos de botón (✕, ❤) cuando el botón de abrir es un ojo, y la mezcla hacía dudar.
+		-->
 		{#if !recomendacion}
 			<p class="text-sm text-muted-foreground">
-				Uno a uno: ✕ descarta, ❤ guarda en favoritos, ↑ abre la ficha. También con las flechas del
-				teclado.
+				Con el teclado: <kbd class="font-sans">←</kbd> descartar,
+				<kbd class="font-sans">→</kbd> guardar, <kbd class="font-sans">↑</kbd> abrir,
+				<kbd class="font-sans">Z</kbd> deshacer.
 			</p>
 		{/if}
 
@@ -585,13 +592,16 @@
 					ajustar en el buscador
 				</a>
 			</div>
-		{:else if !recomendacion}
-			<a href="/" class="text-xs text-muted-foreground underline-offset-2 hover:underline">
-				¿Buscas algo concreto? Filtra en el buscador y vuelve con «Descubre»
-			</a>
 		{/if}
-		<p class="text-xs text-muted-foreground tabular-nums">
-			{mazo.length} de {total} en el mazo
+		<!-- recuento y escapatoria en la misma fila: eran dos líneas para dos datos pequeños -->
+		<p class="flex flex-wrap items-center justify-center gap-x-2 text-xs text-muted-foreground">
+			<span class="tabular-nums">{mazo.length} de {total} en el mazo</span>
+			{#if !recomendacion && !filtrosActivos.length}
+				<span class="text-muted-foreground/40">·</span>
+				<a href="/" class="underline-offset-2 hover:text-foreground hover:underline">
+					¿Buscas algo concreto?
+				</a>
+			{/if}
 		</p>
 	</header>
 
@@ -657,9 +667,16 @@
 								<span class="text-pretty">{motivo}</span>
 							</p>
 						{/if}
+						<!-- mismo formato que la tarjeta del catálogo (F5): las dos son la misma cosa -->
 						{#if r.etapas.length || r.edades.length}
 							<p class="text-xs text-muted-foreground">
-								{[r.etapas.join(' · '), r.edades.slice(0, 3).join(', ')].filter(Boolean).join(' — ')}
+								{#if r.etapas.length}<span>{r.etapas.join(' · ')}</span>{/if}
+								{#if r.edades.length}
+									<span class="text-muted-foreground/70">
+										{r.etapas.length ? '· para' : 'Para'}
+										{r.edades.slice(0, 3).join(', ')}
+									</span>
+								{/if}
 							</p>
 						{/if}
 						<div class="flex items-center gap-3">

@@ -589,9 +589,17 @@
 		</div>
 	</section>
 
-	<!-- facetas: envueltas en escritorio, carrusel en móvil -->
+	<!--
+		Facetas: envueltas en escritorio, carrusel en móvil.
+
+		El carrusel se cortaba a media palabra sin ninguna pista de que hubiera más (F10 de
+		docs/06-reflexion-uiux.md). El degradado del borde derecho dice «esto sigue» sin ocupar
+		sitio ni añadir un control; `mask-image` en vez de un pseudo-elemento encima para que el
+		chip que queda debajo siga siendo pulsable. Solo en móvil y solo mientras haya algo que
+		desvelar — de `sm` en adelante las facetas caben envueltas y no hay nada que insinuar.
+	-->
 	<div
-		class="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0"
+		class="-mx-4 flex items-center gap-2 overflow-x-auto px-4 pb-1 [mask-image:linear-gradient(to_right,black_calc(100%-2.5rem),transparent)] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:[mask-image:none]"
 	>
 		{#each facetasVisibles as faceta (faceta.campo)}
 			<div class="shrink-0">

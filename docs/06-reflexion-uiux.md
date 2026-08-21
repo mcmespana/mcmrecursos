@@ -1,6 +1,6 @@
 # Reflexión de UI/UX a fondo
 
-> **Fecha:** 2026-08-20 · **Estado:** análisis, pendiente de priorizar contigo
+> **Fecha:** 2026-08-20 · **Estado:** analizado y **P1 + P2 ejecutados** (ver §Estado de ejecución)
 > Lo pedía `docs/03-roadmap.md`: «una pasada completa, no parches: recorrer los caminos reales
 > buscando lo que sobra, lo que falta y lo que se contradice, y salir con una lista priorizada».
 
@@ -331,6 +331,35 @@ Un repaso así tiende a producir listas de cosas malas. Estas están bien y conv
 - **El buzón de avisos y las señales de salud**, recién rehechos.
 
 ---
+
+## Estado de ejecución (2026-08-20)
+
+Hechos en la misma sesión que el análisis, cada uno con su commit:
+
+| | Hallazgo | Estado |
+| --- | --- | --- |
+| P1.1 | F13 · puerta visible para aportar en móvil + invitación al pie del catálogo | ✅ |
+| P1.2 | F1 + F2 · héroe que se aparta y recuentos que no se contradicen | ✅ |
+| P1.3 | F6 · marcas de trabajo interno solo con rol de panel | ✅ |
+| P1.4 | F14 · enlace primero en `/enviar`, título marcado opcional | ✅ |
+| P1.5 | F20 · `docs/04-diseno.md` §4 sincerado | ✅ |
+| P2.6 | F3 · facetas que no pueden filtrar no se pintan (se van Idioma y Formato) | ✅ |
+| P2.7 | F4 · resuelto el síntoma vía F3; la decisión de taxonomía sigue abierta | ⚠️ |
+| P2.8 | F5 · etapas y edades separadas, en catálogo y en Descubre | ✅ |
+| P2.9 | F8 · fila social solo cuando dice algo | ✅ |
+| P2.10 | F9 · **retirado**, ya tenía tooltip | — |
+| P2.11 | F19 · un solo buscador con etiqueta en la portada | ✅ |
+| P2.12 | F18 · «Entrar con Google» en vez de «Entrar» | ✅ |
+| P3.15 | F10 · pista de que el carrusel de facetas sigue (degradado); el drawer sigue sin hacer | ⚠️ |
+| P3.16 | F12 · instrucciones de Descubre de tres líneas a una, icono cuadrado con el texto | ✅ |
+
+**Sin hacer, y por qué:** F11 (estanterías) espera catálogo — con siete recursos enseñaría tres veces
+los mismos siete. F16 y F17 (camino de catalogar) esperan una sesión para cronometrar antes de
+construir. F7 (miniaturas) ya vive en el roadmap.
+
+**Dos correcciones al propio análisis**, hechas al ir a implementar: F13 decía que la paleta no
+ofrecía «Enviar recurso» y sí lo ofrece; F9 decía que los botones de la ficha no tenían etiqueta y sí
+tienen tooltip. Las dos están anotadas en su sitio.
 
 ## Lista priorizada
 

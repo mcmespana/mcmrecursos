@@ -17,11 +17,18 @@ cuál en curso y cuál es solo un borrador.
 4. ~~Rediseñar la rejilla de señales de `/admin/salud`~~ ✅ hecho (2026-08-15) — tres niveles de
    gravedad que deciden el peso visual, el número como héroe de cada tarjeta y el resumen contando
    señales en vez de sumar unidades distintas.
-5. ~~Reflexión de UI/UX a fondo~~ ✅ hecha (2026-08-20) → **[`docs/06-reflexion-uiux.md`](06-reflexion-uiux.md)**.
-   20 hallazgos verificados recorriendo la app contra producción, con lista priorizada P1/P2/P3 y un
-   apartado de lo que conviene **no** tocar. Pendiente: **decidir contigo la priorización** y
-   ejecutar. Los cinco P1 son media tarde en total; el primero (en móvil no hay ninguna puerta para
-   aportar un recurso) es la corrección con mejor valor/esfuerzo de todo el documento.
+5. ~~Reflexión de UI/UX a fondo~~ ✅ hecha y ejecutada P1+P2 (2026-08-20) → **[`docs/06-reflexion-uiux.md`](06-reflexion-uiux.md)**.
+   20 hallazgos verificados recorriendo la app contra producción, con un apartado de lo que conviene
+   **no** tocar. **P1 y P2 ya están hechos** (ver §Estado de ejecución del documento): puerta visible
+   para aportar en móvil, héroe que se aparta al buscar, marcas de trabajo interno solo para el
+   equipo, poda de facetas que no pueden filtrar, y legibilidad de la tarjeta.
+
+   **Queda de ahí**, y son los tres que necesitan algo que hoy no hay:
+   - **F11 · estanterías editoriales de la portada** — espera catálogo: con siete recursos
+     enseñarían tres veces los mismos siete. En cuanto haya ~50, sube a lo primero.
+   - **F16 + F17 · camino de catalogar** — un «aceptar la propuesta de la IA y publicar» de dos clics
+     y selección múltiple en la cola de revisión. Antes hay que recorrerlo con sesión y cronómetro.
+   - **F4 · decisión de taxonomía**: si «Soporte» y «Formato» preguntan lo mismo, cuál se queda.
 
    El documento deja además una pregunta de fondo que no es de interfaz: el banco tiene **7 recursos
    públicos** y máquina para miles, así que el cuello de botella no es encontrar, es **tener**. Eso
