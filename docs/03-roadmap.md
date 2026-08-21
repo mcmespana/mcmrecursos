@@ -17,16 +17,27 @@ cuál en curso y cuál es solo un borrador.
 4. ~~Rediseñar la rejilla de señales de `/admin/salud`~~ ✅ hecho (2026-08-15) — tres niveles de
    gravedad que deciden el peso visual, el número como héroe de cada tarjeta y el resumen contando
    señales en vez de sumar unidades distintas.
-5. **Reflexión de UI/UX a fondo** — una pasada completa, no parches: recorrer los caminos reales
-   (buscar → abrir → llevárselo, aportar un recurso, catalogar una tanda) buscando lo que sobra,
-   lo que falta y lo que se contradice, y salir con una lista priorizada. Lo hecho hasta ahora ha
-   ido por síntomas concretos; toca mirar el conjunto.
-6. **Itinerarios de recursos** — spec **escrita, pendiente de validar**: `docs/specs/
-   SPEC-015-itinerarios.md`. Un conjunto ordenado de recursos (p. ej. 20) pensado para
-   recorrerse en un orden concreto, con su propia explicación general, construido sobre una
-   tabla que ya existe sin usar desde la migración 00002. Se propone que absorba también los
-   «presets de mazo configurables» pendientes desde Descubre (Fase 3.5) — ver la spec para
-   el porqué y las 5 preguntas abiertas.
+5. ~~Reflexión de UI/UX a fondo~~ ✅ hecha y ejecutada P1+P2 (2026-08-20) → **[`docs/06-reflexion-uiux.md`](06-reflexion-uiux.md)**.
+   20 hallazgos verificados recorriendo la app contra producción, con un apartado de lo que conviene
+   **no** tocar. **P1 y P2 ya están hechos** (ver §Estado de ejecución del documento): puerta visible
+   para aportar en móvil, héroe que se aparta al buscar, marcas de trabajo interno solo para el
+   equipo, poda de facetas que no pueden filtrar, y legibilidad de la tarjeta.
+
+   **Queda de ahí**, y son los tres que necesitan algo que hoy no hay:
+   - **F11 · estanterías editoriales de la portada** — espera catálogo: con siete recursos
+     enseñarían tres veces los mismos siete. En cuanto haya ~50, sube a lo primero.
+   - **F16 + F17 · camino de catalogar** — un «aceptar la propuesta de la IA y publicar» de dos clics
+     y selección múltiple en la cola de revisión. Antes hay que recorrerlo con sesión y cronómetro.
+   - **F4 · decisión de taxonomía**: si «Soporte» y «Formato» preguntan lo mismo, cuál se queda.
+
+   El documento deja además una pregunta de fondo que no es de interfaz: el banco tiene **7 recursos
+   públicos** y máquina para miles, así que el cuello de botella no es encontrar, es **tener**. Eso
+   reordena todo lo demás.
+6. ~~Itinerarios de recursos~~ ✅ hecho (2026-08-20, SPEC-015, migración `00026`) —
+   `/admin/itinerarios` con el editor de cuatro campos y lista ordenada, y `/itinerarios` +
+   `/itinerarios/[id]` en público. Quedan tres cosas anotadas en la spec: ficha con
+   anterior/siguiente **dentro** del itinerario, reordenar los tramos entre sí, y «recorrerlo en
+   Descubre».
 7. **Miniaturas de verdad, cacheadas** — cuando se pueda. Las carpetas de Drive no tienen ninguna
    y los `?sz=` de Google fallan a veces. Un endpoint que pide la miniatura una vez, la guarda en
    Storage y sirve desde ahí, con el primer archivo de dentro para las carpetas.

@@ -21,6 +21,7 @@
 		familia,
 		favorito,
 		nombreTransicion = null,
+		conEstadoEditorial = false,
 		onopen,
 		onfavorito
 	}: {
@@ -29,6 +30,13 @@
 		favorito: boolean;
 		/** `view-transition-name` de la miniatura mientras se abre la ficha (SPEC-012 §Movimiento). */
 		nombreTransicion?: string | null;
+		/**
+		 * Enseñar las marcas de trabajo interno («Por clasificar», «fuera del banco»). Solo para
+		 * quien tiene rol de panel: a quien viene a buscar una sesión para el martes no le dicen
+		 * nada, y lo que comunican es «este recurso está a medio hacer» sobre material que
+		 * probablemente está perfecto (F6 de docs/06-reflexion-uiux.md).
+		 */
+		conEstadoEditorial?: boolean;
 		onopen: (r: RecursoCatalogo) => void;
 		onfavorito: (r: RecursoCatalogo) => void;
 	} = $props();
@@ -157,33 +165,58 @@
 	<div class="flex flex-1 flex-col gap-1 p-3">
 		<h3 class="line-clamp-2 text-[15px] leading-snug font-semibold text-balance">{nombre}</h3>
 
+		<!--
+			Etapas y edades son dos taxonomías distintas y aquí iban pegadas con un guion largo:
+			«MIC · COM · LC — 5º EP, 6º EP». Para quien lleva años en el MCM las siglas son
+			transparentes; para un monitor nuevo —justo quien más necesita el banco— son ruido con
+			aspecto de dato. Ahora las edades van con su «para» delante, que es lo que la sigla no
+			dice (F5 de docs/06-reflexion-uiux.md).
+		-->
 		{#if recurso.etapas.length || recurso.edades.length}
 			<p class="line-clamp-1 text-xs text-muted-foreground">
-				{[recurso.etapas.join(' · '), recurso.edades.slice(0, 3).join(', ')]
-					.filter(Boolean)
-					.join(' — ')}
+				{#if recurso.etapas.length}<span>{recurso.etapas.join(' · ')}</span>{/if}
+				{#if recurso.edades.length}
+					<span class="text-muted-foreground/70">
+						{recurso.etapas.length ? '· para' : 'Para'}
+						{recurso.edades.slice(0, 3).join(', ')}
+					</span>
+				{/if}
 			</p>
 		{/if}
 
-		<div class="mt-auto flex items-center justify-between gap-2 pt-1.5">
-			<Estrellas media={recurso.valoracion_media} num={recurso.num_valoraciones} />
-			<div class="flex items-center gap-2 text-[11px] text-muted-foreground">
-				{#if recurso.pendiente_clasificar}
-					<span class="inline-flex items-center gap-1" title="Contenedor pendiente de clasificar">
-						<PackageOpen class="size-3" /> Por clasificar
-					</span>
-				{:else if recurso.fuera_del_banco}
-					<span class="inline-flex items-center gap-1" title="Material en carpeta local, fuera del banco">
-						<FolderSymlink class="size-3" />
-					</span>
+		<!--
+			La fila social solo si dice algo (F8). Con el banco joven, «Sin valorar» salía en cinco
+			de siete tarjetas: una fila entera ocupando sitio para informar de que no hay
+			información. Cuando haya valoraciones aparece sola.
+		-->
+		{#if recurso.num_valoraciones || recurso.num_favoritos || (conEstadoEditorial && recurso.pendiente_clasificar) || recurso.fuera_del_banco}
+			<div class="mt-auto flex items-center justify-between gap-2 pt-1.5">
+				{#if recurso.num_valoraciones}
+					<Estrellas media={recurso.valoracion_media} num={recurso.num_valoraciones} />
+				{:else}
+					<span></span>
 				{/if}
-				{#if recurso.num_favoritos}
-					<span class="inline-flex items-center gap-0.5 tabular-nums">
-						<Heart class="size-3" />
-						{recurso.num_favoritos}
-					</span>
-				{/if}
+				<div class="flex items-center gap-2 text-[11px] text-muted-foreground">
+					{#if conEstadoEditorial && recurso.pendiente_clasificar}
+						<span class="inline-flex items-center gap-1" title="Contenedor pendiente de clasificar">
+							<PackageOpen class="size-3" /> Por clasificar
+						</span>
+					{:else if recurso.fuera_del_banco}
+						<span
+							class="inline-flex items-center gap-1"
+							title="Material en carpeta local, fuera del banco"
+						>
+							<FolderSymlink class="size-3" />
+						</span>
+					{/if}
+					{#if recurso.num_favoritos}
+						<span class="inline-flex items-center gap-0.5 tabular-nums">
+							<Heart class="size-3" />
+							{recurso.num_favoritos}
+						</span>
+					{/if}
+				</div>
 			</div>
-		</div>
+		{/if}
 	</div>
 </article>

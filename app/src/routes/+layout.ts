@@ -8,6 +8,8 @@ export interface PerfilPropio {
 	apellidos: string;
 	mcm_local_id: string | null;
 	rol: string;
+	/** true si dijo «ahora no» al aviso de MCM local: no se le vuelve a preguntar. */
+	onboarding_mcm_omitido: boolean;
 }
 
 export const load: LayoutLoad = async ({ data, depends, fetch }) => {
@@ -36,11 +38,11 @@ export const load: LayoutLoad = async ({ data, depends, fetch }) => {
 	if (session) {
 		const { data: p } = await supabase
 			.from('perfil')
-			.select('id, nombre, apellidos, mcm_local_id, rol')
+			.select('id, nombre, apellidos, mcm_local_id, rol, onboarding_mcm_omitido')
 			.eq('id', session.user.id)
 			.maybeSingle();
 		perfil = p;
-		if (perfil && !perfil.mcm_local_id) {
+		if (perfil && !perfil.mcm_local_id && !perfil.onboarding_mcm_omitido) {
 			const { data: locales } = await supabase
 				.from('mcm_local')
 				.select('id, nombre')

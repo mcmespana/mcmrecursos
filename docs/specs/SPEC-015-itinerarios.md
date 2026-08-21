@@ -1,6 +1,7 @@
 # SPEC-015 · Itinerarios de recursos
 
-> **Estado:** borrador (pendiente de validar contigo)
+> **Estado:** **implementada (2026-08-20)** — migración `00026` aplicada, `/admin/itinerarios`
+> (listado + editor) y `/itinerarios` + `/itinerarios/[id]` en marcha. Ver §Lo construido al final.
 > **Depende de:** SPEC-002 (catálogo), SPEC-006 §3 (la vista «Itinerario» ya prevista),
 > SPEC-008 (el «editor visual de itinerarios» ya listado como pendiente en `/admin/config`)
 
@@ -37,8 +38,8 @@ cosa en tres sentidos:
 
 - Página pública `/itinerarios` (listado) y `/itinerarios/[id]` (uno, con sus bloques y
   recursos en orden, navegable de principio a fin).
-- Editor en `/admin/config` (ya anunciado en SPEC-008, nunca construido): crear/editar
-  itinerarios y bloques, y decidir qué recursos lleva cada bloque y en qué orden.
+- Editor propio en **`/admin/itinerarios`** (SPEC-008 lo anunciaba en `/admin/config`, pero esto
+  es contenido editorial, no un ajuste): crear/editar itinerarios y montar su lista ordenada.
 - Una columna `orden` nueva en `recurso_bloque` — hoy es una tabla puente sin orden interno,
   y sin eso no se puede decir «este recurso va antes que aquel dentro del bloque».
 - Decidir la relación con los «presets de mazo» pendientes de Descubre (ver más abajo):
@@ -82,41 +83,29 @@ un preset); lo que cambia es si construimos también el atajo de filtro-sin-list
 
 ## Modelo de datos
 
-Reutiliza lo que ya existe y le añade lo mínimo que falta (migración a numerar cuando se
-implemente — mirar el último número en `supabase/migrations/`, no fiarse de uno fijo aquí):
+Reutiliza las tres tablas que ya existen vacías desde 00002 y les añade **lo mínimo que falta**.
+Todo está en `supabase/migrations/00026_itinerarios.sql`, **aplicada** el 2026-08-20. En resumen:
 
-```sql
--- Orden de los recursos DENTRO de un bloque: hoy recurso_bloque no tiene ninguno.
-alter table recursos.recurso_bloque add column if not exists orden int not null default 0;
+| Cambio | Por qué |
+| --- | --- |
+| `recurso_bloque` + `orden int not null default 0` | Es LO que faltaba: era una puente de dos columnas, así que no se podía decir «este va antes que aquel». Sin esto no hay itinerario |
+| `itinerario` + `estado text not null default 'borrador'` | Se monta en varias sentadas; un borrador no puede salir en `/itinerarios` |
+| `itinerario.etapa text not null` → `itinerario.etapas text[]` | Decisión 3: mismo vocabulario y mismo `SelectorMultiple` que `recurso.etapas`. Opcional, porque hay itinerarios transversales |
+| `itinerario_bloque.nombre` deja de ser `not null` | Un itinerario simple es **un solo bloque sin título**, y obligar a bautizarlo forzaba a inventarse un «Bloque 1» que luego se pinta |
+| RLS de lectura acotada a `estado = 'publicado' or es_editor()`, en itinerario y en sus bloques | Era `true` a secas. Los bloques se acotan vía su itinerario, si no los tramos de un borrador quedaban a la vista |
 
--- Portada + estado editorial, igual que un recurso: un itinerario a medio escribir
--- no debería aparecer en /itinerarios hasta que el editor lo publique.
-alter table recursos.itinerario add column if not exists imagen text;
-alter table recursos.itinerario add column if not exists estado text not null default 'borrador';
-  -- borrador | publicado, mismo vocabulario que recurso.estado
+**Lo que NO se toca:** la escritura, que ya era `es_editor()` en las tres tablas desde 00002 y es
+justo lo que se quiere (decisión 5). Y no se crea **ninguna** tabla nueva: sin `imagen` (ver §El
+editor) y sin progreso personal (decisión 2).
 
--- lectura pública ya existe para 'itinerario' e 'itinerario_bloque' (migración 00002);
--- hay que acotarla a los publicados para que un borrador no se cuele en /itinerarios
-drop policy if exists "lectura publica" on recursos.itinerario;
-create policy "lectura publica" on recursos.itinerario for select
-  using (estado = 'publicado' or recursos.es_editor());
-```
-
-`itinerario_bloque` y `recurso_bloque` no necesitan más columnas: `bloque.orden` ya ordena los
-bloques dentro del itinerario, y el `orden` nuevo de `recurso_bloque` ordena los recursos
-dentro de cada bloque. Un itinerario simple (sin necesidad real de tramos) es solo un
-itinerario con un único bloque sin nombre visible.
-
-`etapa` en `itinerario` queda como está (texto libre por ahora, alineado con `lista_valor`
-`etapas` si conviene homogeneizarlo — pregunta abierta más abajo).
+`itinerario.orden` se queda en la tabla pero el editor no lo enseña: con 10-12 no se numeran a mano.
 
 ## Experiencia de usuario
 
 ### `/itinerarios` (listado público)
 
-Tarjetas como las del catálogo pero con su propia identidad: nombre, etapa, descripción
-corta, número de recursos, y quizá cuántos bloques. Solo publicados. Sin buscador propio al
-principio — se espera que sean pocos (decenas, no cientos).
+Tarjetas como las del catálogo pero con su propia identidad: nombre, etapas, descripción corta y
+número de recursos. Solo publicados. **Sin buscador ni paginación**: son 10-12 (decisión 4).
 
 ### `/itinerarios/[id]`
 
@@ -128,11 +117,15 @@ principio — se espera que sean pocos (decenas, no cientos).
   anterior/siguiente navegando **dentro del itinerario en su orden**, no del catálogo
   filtrado — reutiliza el mecanismo que ya tiene la ficha (`indice`/`total`/`onnavegar`),
   solo cambia de dónde sale la lista.
-- Botón «Recorrerlo en Descubre» si se valida la propuesta de la sección anterior.
+- «Recorrerlo en Descubre» queda para después de la v1 (decisión 1).
 
-### Editor en `/admin/config`
+### Editor
 
-- Crear/editar itinerario: nombre, etapa, descripción, estado (borrador/publicado), imagen.
+> Reescrito al validar: ver §El editor más abajo, que manda sobre lo que sigue. Cambia de sitio
+> (`/admin/itinerarios`, no `/admin/config`), se queda en cuatro campos y esconde los bloques
+> hasta que alguien los pide.
+
+- Crear/editar itinerario: nombre, etapas, descripción, estado (borrador/publicado).
 - Bloques: añadir, nombrar, describir, **reordenar con flechas arriba/abajo** — el mismo
   patrón que ya usa `RecursoTabla.svelte` para reordenar columnas (`moverColumna`), no hace
   falta traer una librería de arrastrar y soltar para esto.
@@ -155,24 +148,127 @@ principio — se espera que sean pocos (decenas, no cientos).
       `recurso_bloque` ya lo permite por ser una tabla puente.
 - [ ] La navegación ←/→ de la ficha, abierta desde un itinerario, respeta el orden del
       itinerario y no el del catálogo general.
-- [ ] `edicion_local` puede editar itinerarios (rol `es_editor()` ya cubre esto vía la RLS
-      existente) — confirmar que el alcance por MCM local, si hace falta alguno, se decide
-      aquí y no se da por hecho.
+- [ ] Solo **editores y administradores** pueden crear y publicar itinerarios (decisión 5).
+      Ojo, el borrador de esta spec decía que `edicion_local` también podría «porque `es_editor()`
+      ya lo cubre», y **es falso**: `es_editor()` es `rol_actual() in ('editor','administrador')`,
+      así que un `edicion_local` no entra. Como es justo lo que se ha decidido, no hay nada que
+      cambiar en la RLS — pero que no quede escrito al revés.
 
-## Preguntas abiertas
+## Decisiones (validadas 2026-08-20)
 
-1. **¿Itinerario como entidad propia + «recorrerlo en Descubre», o fusionar del todo con los
-   presets de mazo desde el primer día?** Ver la sección dedicada arriba; es la decisión que
-   más cambia el alcance de esta spec y de SPEC-007.
-2. **¿Hace falta progreso personal** («llevas 6 de 20», marcar bloques completados)? Se ha
-   dejado fuera de alcance por ahora; si el primer itinerario real lo pide, es una vuelta
-   corta con una tabla de seguimiento por persona.
-3. **`etapa` como texto libre o como `lista_valor`** (mismo vocabulario cerrado que ya usan
-   `tipo`, `idioma`, etc., editable desde `/admin/config`)? Homogeneizarlo evita que un
-   itinerario diga «MIC» y otro «Infancia» para lo mismo.
-4. **¿Cuántos itinerarios se esperan al principio?** Decenas hace innecesaria cualquier
-   paginación o buscador en `/itinerarios`; si la cifra real es mayor, esa pantalla necesita
-   más que una rejilla de tarjetas.
-5. **¿Quién puede publicar un itinerario?** La RLS propuesta usa `es_editor()`, igual que las
-   tablas ya existentes — así que cualquier editor o administrador, no solo `administrador`.
-   Confirmar que eso es lo que se quiere, en vez de restringirlo más.
+Las cinco preguntas que estaban abiertas, con su respuesta. Se conserva la numeración original.
+
+1. **¿Itinerario y «preset de mazo» son lo mismo? → No lo son.** Se acepta la propuesta de la
+   sección anterior: el itinerario es entidad propia (lista explícita y ordenada, con narrativa) y
+   los presets por filtro siguen su camino aparte. El botón «Recorrerlo en Descubre» queda como
+   añadido posterior, **no entra en la v1**.
+2. **¿Progreso personal? → No.** Descartado sin más vueltas. Ninguna tabla de seguimiento.
+3. **¿`etapa` texto libre o vocabulario cerrado? → Como en el resto de la app.** Es decir: el mismo
+   vocabulario que `recurso.etapas` (lista `etapas` de `lista_valor`) y el mismo control
+   (`SelectorMultiple`). Eso implica cambiar `itinerario.etapa text not null` por
+   **`etapas text[]`** — mismo tipo, mismo selector, y de paso opcional, porque un itinerario
+   transversal no tiene por qué inventarse una etapa. Va en la migración `00026`.
+4. **¿Cuántos itinerarios? → 10-12 como techo.** Así que `/itinerarios` es una rejilla de tarjetas
+   y punto: **sin buscador, sin paginación, sin filtros**. Y el editor puede permitirse cargar
+   todo de golpe sin pensar en rendimiento.
+5. **¿Quién publica? → Editores y administradores.** Que es exactamente la RLS que ya tienen las
+   tres tablas desde 00002 (`es_editor()`): no hay nada que cambiar en escritura.
+
+## El editor: pocos campos, y que se note
+
+Petición explícita al validar: **un admin de los buenos, y sin marearse con campos**. Así que la
+regla de esta spec es que el editor cabe en una pantalla y no pide nada que no haga falta.
+
+**El itinerario tiene cuatro campos. Solo cuatro:**
+
+| Campo | Obligatorio | Nota |
+| --- | --- | --- |
+| Nombre | sí | «Buscad y encontraréis» |
+| Descripción | no | la explicación general, para qué sirve el itinerario |
+| Etapas | no | `SelectorMultiple`, mismo vocabulario de siempre. Vacío = transversal |
+| Estado | sí (con defecto) | borrador ⇄ publicado, un interruptor |
+
+**Lo que se cae respecto al borrador de esta spec:**
+
+- **`imagen`.** Un campo más que rellenar a cambio de poco: la portada se resuelve con el mismo
+  fallback generado que ya usan los recursos (patrón + icono). Si con el itinerario delante se echa
+  de menos, es una columna y un hueco, no un rediseño.
+- **`orden` del itinerario como campo editable.** Con 10-12 se ordenan por nombre o por fecha y
+  nadie los va a numerar a mano. La columna existe en la tabla; el editor no la enseña.
+- **Nombre y descripción de bloque como algo que rellenar siempre.** Ver abajo.
+
+**Los bloques son opcionales y no se ven hasta que hacen falta.** Esto es lo que más cambia
+respecto al borrador. El caso normal —el que dispara la spec— es «veinte sesiones en orden», no
+«tres tramos con título». Así que:
+
+- Al crear un itinerario se crea **un bloque implícito sin título** y el editor enseña
+  directamente **una sola lista ordenada de recursos**. Cero mención a la palabra «bloque».
+- Solo si alguien pulsa **«Partir en tramos»** aparecen los títulos de sección y la posibilidad de
+  añadir más. Un itinerario simple nunca se entera de que los bloques existen.
+- Por eso `itinerario_bloque.nombre` pasa a admitir `NULL` en la migración: un bloque sin título no
+  se pinta.
+
+**Montar la lista:** buscador de recursos que reutiliza `normalizarConsulta` y el patrón del
+selector de temáticas para añadir, y **flechas arriba/abajo** para ordenar — el mismo mecanismo que
+`RecursoTabla.svelte` usa para sus columnas (`moverColumna`). Sin librería de arrastrar y soltar:
+con listas de veinte y reordenaciones puntuales, las flechas son más precisas y accesibles, y no
+traen 30 KB.
+
+**Dónde vive.** No en `/admin/config` (que es la pantalla de ajustes y vocabularios, y esto no es
+un ajuste) sino en **`/admin/itinerarios`**, con su entrada en la navegación del panel. Un itinerario
+es contenido editorial, como un recurso.
+
+## Alcance de la v1 (lo que se construye y en qué orden)
+
+1. **Migración `00026`** — las cuatro cosas que le faltan al esquema. Escrita, sin aplicar.
+2. **`/admin/itinerarios`** — listado, crear, editar los cuatro campos, montar la lista ordenada,
+   publicar. Es el grueso del trabajo y lo que de verdad se ha pedido.
+3. **`/itinerarios` y `/itinerarios/[id]`** — la parte pública: rejilla de tarjetas y la ficha del
+   itinerario con sus recursos en orden, reutilizando `RecursoFicha` con anterior/siguiente
+   navegando dentro del itinerario.
+
+**Fuera de la v1, y a propósito:** progreso personal (descartado del todo), «Recorrerlo en
+Descubre», presets por filtro, `imagen`, asignación de bloques desde el Sheet, itinerarios privados
+o por MCM local, y cualquier buscador o paginación en la parte pública.
+
+
+## Lo construido (2026-08-20)
+
+**Migración `00026`**, aplicada en remoto: `orden` en `recurso_bloque`, `estado`
+borrador/publicado, `etapa` → `etapas text[]`, nombre de bloque opcional y lectura acotada a lo
+publicado (en el itinerario y en sus bloques).
+
+**`/admin/itinerarios`** — listado. Crear cuesta escribir el nombre y pulsar: se entra directo a
+montarlo, porque es lo único que se puede hacer con un itinerario vacío. Cada fila dice cuántos
+recursos lleva y si está publicado. Borrar va con cuenta atrás (`accionRetardada`), y el aviso
+aclara que los recursos en sí no se tocan.
+
+**`/admin/itinerarios/[id]`** — el editor. Los cuatro campos arriba (nombre, de qué va, etapas con
+el `SelectorMultiple` de siempre, y un interruptor de publicado) y debajo la lista numerada. Añadir
+es un buscador por tramo que filtra en el cliente y descarta lo que ya está puesto; ordenar son
+flechas ↑↓ que mandan el orden completo del bloque de una vez. La palabra «tramo» no aparece hasta
+que se pulsa **«Partir en tramos»**: al crear el itinerario se hace un bloque implícito sin título,
+y mientras solo haya uno el editor habla de «los recursos, en orden». No se puede borrar el último
+tramo, porque sin bloque no hay dónde añadir.
+
+**`/itinerarios` y `/itinerarios/[id]`** — la parte pública. Rejilla de tarjetas sin buscador
+(decisión 4) y la ficha del itinerario con la explicación arriba y los recursos numerados de forma
+continua (no por tramo: el orden es del itinerario entero). Cada fila abre el recurso registrando
+el acceso, y su nombre lleva a la ficha de siempre vía `/?r=`. Un editor ve sus borradores con un
+aviso de que solo los ve él.
+
+**Entradas:** «Itinerarios» en la cabecera pública junto a Descubre —son la misma familia, mirar
+sin buscar— y en la paleta de comandos. En el panel, entre Recursos y Sincronización.
+
+### Lo que quedó fuera de esta vuelta
+
+- **`RecursoFicha` con anterior/siguiente dentro del itinerario.** La ficha lo soporta
+  (`indice`/`total`/`onnavegar`), pero montarla aquí obliga a duplicar toda la capa social que hoy
+  vive en la portada (favoritos, usos, valoraciones, login diferido). Mientras tanto, el nombre del
+  recurso lleva a `/?r=`, que abre esa misma ficha con todo funcionando — pero navegando por el
+  catálogo, no por el itinerario.
+- **Reordenar los tramos entre sí.** Se crean en orden y se pueden borrar; mover el tramo 3 al 1
+  todavía no. Con dos o tres tramos se resuelve borrando y rehaciendo, y no ha parecido que
+  justificara más botones en la primera versión.
+- Todo lo demás que ya estaba fuera de alcance: progreso personal, «recorrerlo en Descubre»,
+  presets por filtro, `imagen`, y asignar bloques desde el Sheet.

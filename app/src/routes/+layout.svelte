@@ -14,6 +14,7 @@
 		ListChecks,
 		LogOut,
 		Moon,
+		Route,
 		Send,
 		Shield,
 		Sparkles,
@@ -142,7 +143,12 @@
 <BarraProgreso />
 <Toaster richColors position="bottom-center" />
 
-{#if browser && data.perfil && !data.perfil.mcm_local_id && data.mcmLocales.length}
+<!--
+	Solo si no ha dicho ya «ahora no» (`onboarding_mcm_omitido`, migración 00027). Antes eso vivía
+	en `localStorage`, así que la app volvía a preguntar en cada dispositivo y cada vez que alguien
+	vaciaba el navegador.
+-->
+{#if browser && data.perfil && !data.perfil.mcm_local_id && !data.perfil.onboarding_mcm_omitido && data.mcmLocales.length}
 	<OnboardingMcm
 		supabase={data.supabase}
 		perfilId={data.perfil.id}
@@ -180,8 +186,18 @@
 				<Button variant="ghost" size="sm" href="/descubre">
 					<Sparkles class="size-4" /> <span class="hidden sm:inline">Descubre</span>
 				</Button>
-				<Button variant="ghost" size="sm" href="/enviar" class="hidden sm:inline-flex">
-					<Send class="size-4" /> Enviar recurso
+				<!-- Itinerarios y Descubre son la misma familia: mirar sin buscar. Mismo trato. -->
+				<Button variant="ghost" size="sm" href="/itinerarios" aria-label="Itinerarios">
+					<Route class="size-4" /> <span class="hidden sm:inline">Itinerarios</span>
+				</Button>
+				<!--
+					En móvil va solo el icono, como Descubre: con la etiqueta no cabe (logo, lupa,
+					campana, tema y cuenta ya llenan la fila a 390 px). Lo que NO puede seguir
+					pasando es que desaparezca — de esta acción depende que entre material, y
+					esconderla del todo la dejaba solo dentro de la paleta, detrás de una lupa.
+				-->
+				<Button variant="ghost" size="sm" href="/enviar" class="toque" aria-label="Enviar recurso">
+					<Send class="size-4" /> <span class="hidden sm:inline">Enviar recurso</span>
 				</Button>
 				<Button
 					variant="ghost"
@@ -233,7 +249,15 @@
 						</DropdownMenu.Content>
 					</DropdownMenu.Root>
 				{:else}
-					<Button size="sm" onclick={entrarConGoogle}>Entrar</Button>
+					<!--
+						Dice a dónde lleva (F18 de docs/06-reflexion-uiux.md): este botón no ofrece
+						elegir, va directo a Google, y un «Entrar» a secas hacía esperar un formulario.
+						El acceso por correo del equipo sigue en /entrar, con su enlace discreto en el
+						pie — eso se queda como está, es deliberado.
+					-->
+					<Button size="sm" onclick={entrarConGoogle}>
+						Entrar<span class="hidden sm:inline">&nbsp;con Google</span>
+					</Button>
 				{/if}
 			</div>
 		</div>

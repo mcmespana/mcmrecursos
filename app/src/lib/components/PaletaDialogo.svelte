@@ -6,7 +6,7 @@
 	import { iconoDeTipo } from '$lib/catalogo/tipos';
 	import { normalizarConsulta } from '$lib/catalogo/filtros';
 	import type { SupabaseClient } from '@supabase/supabase-js';
-	import { Inbox, ListChecks, Moon, Search, Send, Shield, Sparkles, Sun } from '@lucide/svelte';
+	import { Inbox, ListChecks, Moon, Route, Search, Send, Shield, Sparkles, Sun } from '@lucide/svelte';
 	import { toggleMode } from 'mode-watcher';
 
 	/**
@@ -124,6 +124,12 @@
 	const SECCIONES = [
 		{ ruta: '/', etiqueta: 'Buscar en el banco', icono: Search, claves: ['catalogo', 'inicio'] },
 		{ ruta: '/descubre', etiqueta: 'Descubre', icono: Sparkles, claves: ['mazo', 'swipe'] },
+		{
+			ruta: '/itinerarios',
+			etiqueta: 'Itinerarios',
+			icono: Route,
+			claves: ['recorrido', 'orden', 'camino']
+		},
 		{ ruta: '/enviar', etiqueta: 'Enviar un recurso', icono: Send, claves: ['aportar', 'subir'] },
 		{ ruta: '/listas', etiqueta: 'Mis listas', icono: ListChecks, claves: ['guardado'] },
 		{ ruta: '/envios', etiqueta: 'Mis envíos', icono: Inbox, claves: ['aportaciones'] }
@@ -140,15 +146,23 @@
 	}
 </script>
 
+<!--
+	Anclada arriba y no centrada: es la convención del género (VS Code, Linear, GitHub) y tiene un
+	motivo práctico — al escribir, la lista crece y se encoge, y un diálogo centrado verticalmente
+	se mueve entero en cada tecla. Anclado, el campo se queda quieto bajo el cursor.
+	Más ancha en escritorio: los nombres de recurso son largos y a 512 px se truncaban a media
+	palabra.
+-->
 <Command.Dialog
 	bind:open={abierta}
 	title="Paleta de comandos"
 	description="Busca un recurso o salta a una sección"
 	filter={filtro}
-	class="sm:max-w-lg"
+	class="top-[10svh] max-h-[calc(100svh-14svh)] translate-y-0 sm:max-w-2xl"
 >
 	<Command.Input placeholder="Busca un recurso, una sección…" bind:value={consulta} />
-	<Command.List class="max-h-[60svh]">
+	<!-- la lista se queda con lo que sobre tras el campo y el pie, sin empujarlos fuera -->
+	<Command.List class="max-h-[min(60svh,26rem)]">
 		{#if cargando}
 			<Command.Loading>Cargando el catálogo…</Command.Loading>
 		{/if}

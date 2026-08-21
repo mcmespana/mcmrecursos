@@ -139,8 +139,28 @@
 			{@const formato = formatoEfectivo(fila.enlace)}
 			{@const puestos = cuentaClasificacion(fila)}
 			<div class="flex flex-col gap-2 rounded-xl border bg-card p-4">
+				<!--
+					El enlace va PRIMERO porque es lo único que hace falta de verdad: la página promete
+					«pega el enlace y listo», y tener el título encima contaba otra historia. El título
+					se marca «(opcional)» como el resto de campos que lo son — sin la marca parecía
+					obligatorio por comparación (F14 de docs/06-reflexion-uiux.md).
+				-->
 				<div class="flex items-center gap-2">
-					<Input bind:value={fila.titulo} placeholder="Título del recurso" class="flex-1" />
+					<div class="relative flex-1">
+						{#if fila.enlace.trim() && formato}
+							<span class="absolute top-1/2 left-3 -translate-y-1/2">
+								<IconoFormato enlace={fila.enlace} class="size-4" />
+							</span>
+						{:else}
+							<Link2 class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+						{/if}
+						<Input
+							bind:value={fila.enlace}
+							placeholder="Enlace (Drive, YouTube, web…)"
+							class="pl-9"
+							type="url"
+						/>
+					</div>
 					{#if filas.length > 1}
 						<Button
 							variant="ghost"
@@ -153,21 +173,7 @@
 						</Button>
 					{/if}
 				</div>
-				<div class="relative">
-					{#if fila.enlace.trim() && formato}
-						<span class="absolute top-1/2 left-3 -translate-y-1/2">
-							<IconoFormato enlace={fila.enlace} class="size-4" />
-						</span>
-					{:else}
-						<Link2 class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-					{/if}
-					<Input
-						bind:value={fila.enlace}
-						placeholder="Enlace (Drive, YouTube, web…)"
-						class="pl-9"
-						type="url"
-					/>
-				</div>
+				<Input bind:value={fila.titulo} placeholder="Título (opcional, ya lo ponemos nosotros)" />
 				{#if fila.enlace.trim() && formato}
 					<p class="text-xs text-muted-foreground">
 						Detectado: {FORMATOS[formato].etiqueta}

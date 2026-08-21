@@ -61,6 +61,7 @@
 		versionActual = null,
 		versionesAnteriores = [],
 		nombreTransicion = null,
+		conEstadoEditorial = false,
 		onclose,
 		onnavegar,
 		onabrirrelacionado,
@@ -94,6 +95,8 @@
 		 * desparejado, que es lo que aborta una View Transition.
 		 */
 		nombreTransicion?: string | null;
+		/** Enseñar las marcas de trabajo interno («pendiente de trocear»). Solo rol de panel (F6). */
+		conEstadoEditorial?: boolean;
 		onclose: () => void;
 		onnavegar: (direccion: 1 | -1) => void;
 		onabrirrelacionado: (r: RecursoCatalogo) => void;
@@ -515,9 +518,14 @@
 					/>
 				</div>
 
-				{#if recurso.pendiente_clasificar || recurso.fuera_del_banco}
+				<!--
+					«Pendiente de trocear y clasificar» es jerga de taller: solo para rol de panel
+					(F6). El aviso de «fuera del banco» sí se queda público, porque le dice a
+					cualquiera que el enlace puede no llevarle a material que pueda abrir.
+				-->
+				{#if (conEstadoEditorial && recurso.pendiente_clasificar) || recurso.fuera_del_banco}
 					<div class="flex flex-col gap-1.5 rounded-xl bg-muted p-3 text-xs text-muted-foreground">
-						{#if recurso.pendiente_clasificar}
+						{#if conEstadoEditorial && recurso.pendiente_clasificar}
 							<span class="inline-flex items-center gap-1.5">
 								<PackageOpen class="size-3.5" />
 								Contenedor localizado, pendiente de trocear y clasificar.
