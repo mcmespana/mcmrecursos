@@ -143,7 +143,12 @@
 <BarraProgreso />
 <Toaster richColors position="bottom-center" />
 
-{#if browser && data.perfil && !data.perfil.mcm_local_id && data.mcmLocales.length}
+<!--
+	Solo si no ha dicho ya «ahora no» (`onboarding_mcm_omitido`, migración 00027). Antes eso vivía
+	en `localStorage`, así que la app volvía a preguntar en cada dispositivo y cada vez que alguien
+	vaciaba el navegador.
+-->
+{#if browser && data.perfil && !data.perfil.mcm_local_id && !data.perfil.onboarding_mcm_omitido && data.mcmLocales.length}
 	<OnboardingMcm
 		supabase={data.supabase}
 		perfilId={data.perfil.id}
