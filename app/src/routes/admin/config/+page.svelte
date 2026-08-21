@@ -6,7 +6,19 @@
 	import * as Tabs from '$lib/components/ui/tabs';
 	import { toast } from 'svelte-sonner';
 	import { crearOcupado } from '$lib/acciones.svelte';
-	import { Eye, EyeOff, Lock, LockOpen, Plus, Power, Save, Sparkles, Trash2 } from '@lucide/svelte';
+	import { describirFiltros } from '$lib/catalogo/presets';
+	import {
+		ExternalLink,
+		Eye,
+		EyeOff,
+		Lock,
+		LockOpen,
+		Plus,
+		Power,
+		Save,
+		Sparkles,
+		Trash2
+	} from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -47,7 +59,8 @@
 	<div>
 		<h1 class="font-display text-2xl font-bold">Configuración</h1>
 		<p class="text-sm text-muted-foreground">
-			Listas cerradas, facetas del buscador, MCM locales, accesos preautorizados y funciones.
+			Listas cerradas, facetas del buscador, atajos de filtros, MCM locales, accesos
+			preautorizados y funciones.
 		</p>
 	</div>
 
@@ -55,6 +68,7 @@
 		<Tabs.List>
 			<Tabs.Trigger value="listas">Listas cerradas</Tabs.Trigger>
 			<Tabs.Trigger value="facetas">Facetas</Tabs.Trigger>
+			<Tabs.Trigger value="presets">Atajos</Tabs.Trigger>
 			<Tabs.Trigger value="mcm">MCM locales</Tabs.Trigger>
 			<Tabs.Trigger value="accesos">Accesos preautorizados</Tabs.Trigger>
 			<Tabs.Trigger value="funciones">Funciones</Tabs.Trigger>
@@ -266,6 +280,100 @@
 			<p class="text-xs text-muted-foreground">
 				El buscador público pinta las facetas visibles de tipo select/multiselect en este orden,
 				sin necesidad de desplegar código. «Solo con login» la oculta a quien no tiene sesión.
+			</p>
+		</Tabs.Content>
+
+		<!-- ═══ Atajos (presets de filtros) ═══ -->
+		<Tabs.Content value="presets" class="flex flex-col gap-3 pt-3">
+			<div class="overflow-x-auto rounded-xl border">
+				<table class="w-full min-w-[720px] text-sm">
+					<thead class="bg-muted/50 text-left text-xs text-muted-foreground uppercase">
+						<tr>
+							<th class="px-3 py-2">Nombre</th>
+							<th class="w-20 px-3 py-2">Orden</th>
+							<th class="px-3 py-2">Filtros que lleva</th>
+							<th class="w-24 px-3 py-2">Se enseña</th>
+							<th class="w-36 px-3 py-2"></th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each data.presets as pr (pr.id)}
+							<tr class={`border-t ${pr.activo ? '' : 'opacity-50'}`}>
+								<td class="px-3 py-1.5" colspan="2">
+									<form
+										method="POST"
+										action="?/presetGuardar"
+										use:enhance={alGuardar('Atajo guardado', `preset-${pr.id}`)}
+										class="flex items-center gap-2"
+										id={`preset-${pr.id}`}
+									>
+										<input type="hidden" name="id" value={pr.id} />
+										<Input name="nombre" value={pr.nombre} required maxlength={40} class="h-8 flex-1" />
+										<Input name="orden" type="number" value={pr.orden} class="h-8 w-20 tabular-nums" />
+									</form>
+								</td>
+								<td class="px-3 py-1.5 text-xs text-muted-foreground">
+									{describirFiltros(pr.filtros, data.facetas)}
+								</td>
+								<td class="px-3 py-1.5">
+									<form
+										method="POST"
+										action="?/presetActivo"
+										use:enhance={alGuardar(pr.activo ? 'Atajo retirado' : 'Atajo publicado')}
+									>
+										<input type="hidden" name="id" value={pr.id} />
+										<input type="hidden" name="activo" value={String(!pr.activo)} />
+										<Button type="submit" disabled={ocupado.activo} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
+											{#if pr.activo}
+												<Eye class="size-3.5 text-primary" /> Sí
+											{:else}
+												<EyeOff class="size-3.5" /> No
+											{/if}
+										</Button>
+									</form>
+								</td>
+								<td class="px-3 py-1.5">
+									<div class="flex items-center justify-end gap-1">
+										<!--
+											Los filtros no se editan aquí: se abre el atajo en el buscador, se retoca
+											tocando facetas y se vuelve a guardar. Allí se ve cuántos recursos deja.
+										-->
+										<Button href={`/?${pr.filtros}`} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs" title="Abrirlo en el buscador">
+											<ExternalLink class="size-3.5" /> Ver
+										</Button>
+										<Button type="submit" disabled={ocupado.activo} hecho={ocupado.hecho(`preset-${pr.id}`)} form={`preset-${pr.id}`} variant="ghost" size="sm" class="h-7 gap-1.5 px-2 text-xs">
+											<Save class="size-3.5" /> Guardar
+										</Button>
+										<form method="POST" action="?/presetBorrar" use:enhance={alGuardar('Atajo eliminado')}>
+											<input type="hidden" name="id" value={pr.id} />
+											<Button
+												type="submit"
+												variant="ghost"
+												size="sm"
+												class="h-7 px-2 text-xs text-destructive hover:text-destructive"
+												aria-label={`Eliminar el atajo ${pr.nombre}`}
+											>
+												<Trash2 class="size-3.5" />
+											</Button>
+										</form>
+									</div>
+								</td>
+							</tr>
+						{:else}
+							<tr>
+								<td colspan="5" class="px-3 py-8 text-center text-muted-foreground">
+									Todavía no hay atajos
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+			<p class="text-xs text-muted-foreground">
+				Los atajos se <strong>crean desde el buscador</strong>: pon los filtros que quieras y
+				pulsa «Guardar como atajo». Salen como chips en la portada y como mazos en Descubre, así
+				que un atajo es la misma cosa en las dos pantallas. Retirar uno lo esconde sin borrarlo
+				— para los de temporada, tipo «Adviento».
 			</p>
 		</Tabs.Content>
 

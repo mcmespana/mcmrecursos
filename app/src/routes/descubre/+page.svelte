@@ -18,6 +18,8 @@
 		miniatura
 	} from '$lib/catalogo/tipos';
 	import { construirFacetas, filtrar, relacionar, type Seleccion } from '$lib/catalogo/filtros';
+	import { crearPreset, esPresetActivo, presetDeSeleccion, type Preset } from '$lib/catalogo/presets';
+	import PresetsChips from '$lib/components/PresetsChips.svelte';
 	import RecursoFicha from '$lib/components/RecursoFicha.svelte';
 	import LoginDialog from '$lib/components/LoginDialog.svelte';
 	import AvisoLocal from '$lib/components/AvisoLocal.svelte';
@@ -51,6 +53,40 @@
 	const filtrosActivos = $derived(
 		facetas.flatMap((f) => (seleccion[f.campo] ?? []).map((valor) => ({ campo: f.campo, valor })))
 	);
+
+	/**
+	 * Mazos preparados: son los mismos presets del buscador (SPEC-007 §Fases 1, «el mazo sale de
+	 * los filtros normales o de un preset»). Aquí valen para lo mismo por lo que valen allí, solo
+	 * que el resultado se baraja en vez de pintarse en rejilla — de ahí que sea el mismo chip y no
+	 * un vocabulario aparte que hubiera que mantener dos veces.
+	 */
+	let presets = $state<Preset[]>([]);
+	$effect(() => {
+		presets = data.presets;
+	});
+	const esAdmin = $derived(data.perfil?.rol === 'administrador');
+	/**
+	 * ¿La selección de ahora ES exactamente un mazo guardado? Si lo es, el chip del mazo ya dice
+	 * qué está filtrando y la fila de chips de debajo repetía lo mismo en la misma cabecera.
+	 */
+	const presetExacto = $derived(presets.some((pr) => esPresetActivo(pr, seleccion, facetas)));
+
+	async function guardarPreset(nombre: string) {
+		const filtros = presetDeSeleccion(seleccion, facetas);
+		if (!filtros) return;
+		const { preset, error } = await crearPreset(data.supabase, {
+			nombre,
+			filtros,
+			orden: presets.length,
+			creadoPor: data.perfil?.id ?? null
+		});
+		if (!preset) {
+			toast.error('No se pudo guardar el mazo', { description: error ?? undefined });
+			return;
+		}
+		presets = [...presets, preset];
+		toast.success(`Mazo «${nombre}» guardado`);
+	}
 
 	$effect(() => {
 		if (!browser) return;
@@ -568,23 +604,38 @@
 			</div>
 		{/if}
 
+		<!-- los mazos guardados: un clic y el mazo ya viene armado, sin pasar por el buscador -->
+		<PresetsChips
+			{presets}
+			{facetas}
+			{seleccion}
+			etiqueta="Mazos"
+			centrado
+			puedeGuardar={esAdmin}
+			onaplicar={(nueva) => (seleccion = nueva)}
+			onguardar={guardarPreset}
+		/>
+
 		{#if filtrosActivos.length}
 			<div class="flex flex-wrap items-center justify-center gap-1.5">
-				{#each filtrosActivos as filtro (filtro.campo + filtro.valor)}
-					<button
-						type="button"
-						transition:fade={{ duration: 120 }}
-						class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20"
-						onclick={() =>
-							(seleccion = {
-								...seleccion,
-								[filtro.campo]: seleccion[filtro.campo].filter((v) => v !== filtro.valor)
-							})}
-					>
-						{filtro.valor}
-						<X class="size-3" />
-					</button>
-				{/each}
+				{#if !presetExacto}
+					{#each filtrosActivos as filtro (filtro.campo + filtro.valor)}
+						<button
+							type="button"
+							transition:fade={{ duration: 120 }}
+							class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+							onclick={() =>
+								(seleccion = {
+									...seleccion,
+									[filtro.campo]: seleccion[filtro.campo].filter((v) => v !== filtro.valor)
+								})}
+						>
+							{filtro.valor}
+							<X class="size-3" />
+						</button>
+					{/each}
+				{/if}
+				<!-- la escapatoria se queda SIEMPRE: con mazo puesto también se quiere retocar a mano -->
 				<a
 					href={`/${page.url.search}`}
 					class="text-xs text-muted-foreground underline-offset-2 hover:underline"

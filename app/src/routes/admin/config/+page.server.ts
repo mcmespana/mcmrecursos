@@ -22,7 +22,7 @@ const slugify = (s: string) =>
 
 export const load: PageServerLoad = async ({ locals }) => {
 	await exigirAdminEnPagina(locals);
-	const [listasRes, facetasRes, mcmRes, accesosRes] = await Promise.all([
+	const [listasRes, facetasRes, mcmRes, accesosRes, presetsRes] = await Promise.all([
 		locals.supabase
 			.from('lista_valor')
 			.select('id, lista, valor, grupo, orden, activo')
@@ -36,12 +36,19 @@ export const load: PageServerLoad = async ({ locals }) => {
 		locals.supabase
 			.from('acceso_previo')
 			.select('email, rol, mcm_local_id, created_at, mcm_local:mcm_local_id (nombre)')
-			.order('email')
+			.order('email'),
+		// Aquí SÍ salen los desactivados: esta es la pantalla donde se vuelven a encender.
+		locals.supabase
+			.from('preset')
+			.select('id, nombre, filtros, orden, activo')
+			.order('orden')
+			.order('nombre')
 	]);
 	return {
 		listas: listasRes.data ?? [],
 		facetas: facetasRes.data ?? [],
 		mcmLocales: mcmRes.data ?? [],
+		presets: presetsRes.data ?? [],
 		accesos: (accesosRes.data ?? []).map((a: any) => ({
 			...a,
 			mcm_local: a.mcm_local?.nombre ?? null
@@ -175,6 +182,46 @@ export const actions: Actions = {
 
 		// esta instancia se entera ya; las demás, al caducar su caché (segundos)
 		limpiarCacheAjustes(clave);
+		return { ok: true };
+	},
+
+	// --- Presets del buscador y de Descubre (migración 00029) ---
+	//
+	// Solo nombre, orden y activo: los filtros que lleva dentro NO se editan a mano aquí. Se
+	// cambian donde se ven —abriendo el preset en el buscador, tocando facetas y volviendo a
+	// guardarlo—, que es donde se sabe cuántos recursos deja. Un campo de texto para escribir
+	// `etapas=MIC|COM` sería la forma más rápida de dejar un chip que no encuentra nada.
+	presetGuardar: async ({ request, locals }) => {
+		await exigirAdmin(locals);
+		const f = await request.formData();
+		const id = String(f.get('id') ?? '');
+		const nombre = String(f.get('nombre') ?? '').trim();
+		if (!id) return fail(400);
+		if (!nombre) return fail(400, { error: 'El nombre es obligatorio' });
+		const { error } = await locals.supabase
+			.from('preset')
+			.update({ nombre, orden: Number(f.get('orden') ?? 0) || 0 })
+			.eq('id', id);
+		if (error) return fail(500, { error: error.message });
+		return { ok: true };
+	},
+	presetActivo: async ({ request, locals }) => {
+		await exigirAdmin(locals);
+		const f = await request.formData();
+		const { error } = await locals.supabase
+			.from('preset')
+			.update({ activo: String(f.get('activo')) === 'true' })
+			.eq('id', String(f.get('id') ?? ''));
+		if (error) return fail(500, { error: error.message });
+		return { ok: true };
+	},
+	presetBorrar: async ({ request, locals }) => {
+		await exigirAdmin(locals);
+		const f = await request.formData();
+		const id = String(f.get('id') ?? '');
+		if (!id) return fail(400);
+		const { error } = await locals.supabase.from('preset').delete().eq('id', id);
+		if (error) return fail(500, { error: error.message });
 		return { ok: true };
 	},
 

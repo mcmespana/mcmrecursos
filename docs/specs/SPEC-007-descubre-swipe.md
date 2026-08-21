@@ -6,7 +6,7 @@
 > Z para deshacer, descartes por sesión (`sessionStorage`), «volver a barajar», misma ficha
 > del buscador; sin login el ❤ cae en la capa local (SPEC-003) y el aviso invita a entrar.
 > **Fase 2 (con IA) IMPLEMENTADA** — ver §«Recomiéndame…» más abajo.
-> PENDIENTE: presets de mazo.
+> **Presets de mazo IMPLEMENTADOS** (2026-08-21, migración `00029`) — ver §«Mazos guardados».
 > **Depende de:** SPEC-002, SPEC-003 (favoritos); SPEC-010 (embeddings + Gemini) para la fase 2
 
 ## Objetivo
@@ -34,6 +34,38 @@ no búsqueda.
   escritorio (✕ / ❤ / ver), atajos ← → ↑. Animaciones de salida con la firma de la app.
 - Cada guardado cae en favoritos o en una lista elegida ("Campamento 2026").
 - Requiere login para guardar; sin login se puede jugar pero invita a entrar al primer ❤.
+
+## Mazos guardados (los «presets de mazo», implementados)
+
+Fila de chips en la cabecera de `/descubre`: un clic y el mazo viene ya armado, sin pasar por el
+buscador. Son **los mismos presets** que en `/` salen como «Atajos» (SPEC-006 §Filtros), no un
+vocabulario aparte.
+
+### La decisión: un preset es una combinación de filtros, no una lista de recursos
+
+Se guarda la **selección de facetas**, en la misma sintaxis de URL que las dos pantallas ya leen
+y escriben (`etapas=MIC|COM&tags=Adviento`, tabla `recursos.preset`). Consecuencias buscadas:
+
+- **Un preset vale igual en las dos pantallas**: en el buscador recorta la rejilla, en Descubre
+  arma el mazo. Es la misma pregunta con dos formas de contestarla.
+- **No envejece**: un recurso nuevo que cumpla los filtros entra solo. Una lista de ids elegidos
+  a mano se queda vieja el día siguiente — para eso están las listas (SPEC-008) y los itinerarios
+  (SPEC-015), que sí quieren un contenido fijo y en orden.
+- **Sobrevive a la configuración**: al añadir una faceta desde /admin/config los presets siguen
+  valiendo, y si se retira una, el preset aplica el resto en vez de dejar un filtro fantasma.
+
+El **texto libre no viaja dentro** a propósito: Descubre no busca por texto, así que un preset con
+«Adviento» escrito daría una cosa en el buscador y otra en el mazo. Un preset son facetas.
+
+### Cómo se crean
+
+Desde el propio buscador: se ponen los filtros, se ve cuántos recursos dejan y se pulsa «Guardar
+como atajo». Es la única forma, y es a propósito — un formulario aparte con un campo para escribir
+`etapas=MIC|COM` sería la vía rápida a un chip que no encuentra nada. En Ajustes → Atajos
+(`/admin/config`) se renombran, se ordenan, se retiran sin borrar (para los de temporada) y se
+borran. Escritura solo de administradores, por RLS (`es_admin()`).
+
+Un chip encendido se vuelve a pulsar para apagarlo: es el atajo de vuelta a «todo».
 
 ## «Recomiéndame…» (fase 2, implementada)
 

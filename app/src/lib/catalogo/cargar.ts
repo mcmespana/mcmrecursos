@@ -2,12 +2,14 @@ import type { SupabaseClient, Session } from '@supabase/supabase-js';
 import type { ListaValor, RecursoCatalogo, SocialPropio } from './tipos';
 import { socialVacio } from './tipos';
 import type { FacetaConfig } from './filtros';
+import type { Preset } from './presets';
 
 export interface DatosCatalogo {
 	recursos: RecursoCatalogo[];
 	listas: ListaValor[];
 	social: SocialPropio;
 	facetas: FacetaConfig[];
+	presets: Preset[];
 }
 
 /** Carga completa del catálogo público (recursos + listas + facetas + lo mío). */
@@ -15,7 +17,7 @@ export async function cargarDatosCatalogo(
 	supabase: SupabaseClient<any, 'recursos'>,
 	session: Session | null
 ): Promise<DatosCatalogo> {
-	const [recursosRes, listasRes, statsRes, facetasRes] = await Promise.all([
+	const [recursosRes, listasRes, statsRes, facetasRes, presetsRes] = await Promise.all([
 		supabase
 			.from('recurso')
 			.select(
@@ -34,7 +36,17 @@ export async function cargarDatosCatalogo(
 		supabase
 			.from('faceta')
 			.select('campo, etiqueta, tipo, origen, orden, visible, protegida')
+			.order('orden'),
+		// Los presets viajan con el catálogo porque los pintan las DOS pantallas que lo usan
+		// (`/` y `/descubre`) y son una decena de filas: una consulta más en el mismo viaje.
+		// `activo` explícito aunque la RLS ya esconda los apagados al público: un administrador
+		// sí los ve, y en la portada no tienen que salir ni para él.
+		supabase
+			.from('preset')
+			.select('id, nombre, filtros, orden, activo')
+			.eq('activo', true)
 			.order('orden')
+			.order('nombre')
 	]);
 
 	const stats = new Map((statsRes.data ?? []).map((s: any) => [s.recurso_id, s]));
@@ -114,7 +126,8 @@ export async function cargarDatosCatalogo(
 		recursos,
 		listas: listasRes.data ?? [],
 		social,
-		facetas: facetasRes.data ?? []
+		facetas: facetasRes.data ?? [],
+		presets: presetsRes.data ?? []
 	};
 }
 

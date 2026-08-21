@@ -33,19 +33,26 @@ cuál en curso y cuál es solo un borrador.
    El documento deja además una pregunta de fondo que no es de interfaz: el banco tiene **7 recursos
    públicos** y máquina para miles, así que el cuello de botella no es encontrar, es **tener**. Eso
    reordena todo lo demás.
-6. ~~Itinerarios de recursos~~ ✅ hecho (2026-08-20, SPEC-015, migración `00026`) —
+6. ~~Itinerarios de recursos~~ ✅ hecho (2026-08-20/21, SPEC-015, migraciones `00026` y `00028`) —
    `/admin/itinerarios` con el editor de cuatro campos y lista ordenada, y `/itinerarios` +
-   `/itinerarios/[id]` en público. Quedan tres cosas anotadas en la spec: ficha con
-   anterior/siguiente **dentro** del itinerario, reordenar los tramos entre sí, y «recorrerlo en
-   Descubre».
-7. **Miniaturas de verdad, cacheadas** — cuando se pueda. Las carpetas de Drive no tienen ninguna
+   `/itinerarios/[id]` en público. La segunda vuelta cerró la ficha con anterior/siguiente **dentro**
+   del itinerario, reordenar los tramos entre sí, arrastrar y soltar, `imagen` y `edades`. Queda solo
+   «recorrerlo en Descubre», y se descarta asignar bloques desde el Sheet.
+7. ~~Presets de filtros («Atajos» / «Mazos»)~~ ✅ hecho (2026-08-21, migración `00029`, SPEC-006
+   §Filtros + SPEC-007 §Mazos guardados) — un preset es una **combinación de filtros con nombre**,
+   guardada en la misma sintaxis de URL que ya usaban el buscador y Descubre, así que el mismo chip
+   recorta la rejilla en `/` y arma el mazo en `/descubre`. Se crean desde el propio buscador
+   («Guardar como atajo», con los filtros puestos y viendo cuántos recursos dejan) y se gestionan en
+   Ajustes → Atajos. Con esto cae también la última pieza pendiente de SPEC-007. La **asignación de
+   bloques de itinerario desde el Sheet** se descarta por decisión del usuario en la misma sesión.
+8. **Miniaturas de verdad, cacheadas** — cuando se pueda. Las carpetas de Drive no tienen ninguna
    y los `?sz=` de Google fallan a veces. Un endpoint que pide la miniatura una vez, la guarda en
    Storage y sirve desde ahí, con el primer archivo de dentro para las carpetas.
-8. **Tests automatizados en CI, más allá de la lógica pura** — cuando sobren créditos. Ya hay
+9. **Tests automatizados en CI, más allá de la lógica pura** — cuando sobren créditos. Ya hay
    una base (Vitest + GitHub Actions + tests de lógica pura, ver el histórico); falta
    Playwright en CI reutilizando el banco de pruebas de SPEC-013 (PostgREST de mentira con Auth
    y mutaciones), para dejar de probar todo a mano y que se vaya con la sesión.
-9. **Payload adelgazado y búsqueda en servidor** — cuando sobre tiempo. Paso 1 de SPEC-013:
+10. **Payload adelgazado y búsqueda en servidor** — cuando sobre tiempo. Paso 1 de SPEC-013:
    mandar la descripción recortada y pedir la completa al abrir la ficha (~40% menos payload).
    Paso 2, ya con umbral (~3.000 recursos): `pg_trgm` + paginación + facetas contadas en BD.
 
