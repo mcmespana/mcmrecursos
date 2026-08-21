@@ -17,10 +17,15 @@ cuál en curso y cuál es solo un borrador.
 4. ~~Rediseñar la rejilla de señales de `/admin/salud`~~ ✅ hecho (2026-08-15) — tres niveles de
    gravedad que deciden el peso visual, el número como héroe de cada tarjeta y el resumen contando
    señales en vez de sumar unidades distintas.
-5. **Reflexión de UI/UX a fondo** — una pasada completa, no parches: recorrer los caminos reales
-   (buscar → abrir → llevárselo, aportar un recurso, catalogar una tanda) buscando lo que sobra,
-   lo que falta y lo que se contradice, y salir con una lista priorizada. Lo hecho hasta ahora ha
-   ido por síntomas concretos; toca mirar el conjunto.
+5. ~~Reflexión de UI/UX a fondo~~ ✅ hecha (2026-08-20) → **[`docs/06-reflexion-uiux.md`](06-reflexion-uiux.md)**.
+   20 hallazgos verificados recorriendo la app contra producción, con lista priorizada P1/P2/P3 y un
+   apartado de lo que conviene **no** tocar. Pendiente: **decidir contigo la priorización** y
+   ejecutar. Los cinco P1 son media tarde en total; el primero (en móvil no hay ninguna puerta para
+   aportar un recurso) es la corrección con mejor valor/esfuerzo de todo el documento.
+
+   El documento deja además una pregunta de fondo que no es de interfaz: el banco tiene **7 recursos
+   públicos** y máquina para miles, así que el cuello de botella no es encontrar, es **tener**. Eso
+   reordena todo lo demás.
 6. **Itinerarios de recursos** — spec **escrita, pendiente de validar**: `docs/specs/
    SPEC-015-itinerarios.md`. Un conjunto ordenado de recursos (p. ej. 20) pensado para
    recorrerse en un orden concreto, con su propia explicación general, construido sobre una

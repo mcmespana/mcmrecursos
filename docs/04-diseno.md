@@ -55,6 +55,11 @@ tracking solo en eyebrows de sección y cabeceras de faceta.
 
 ## 4. Layout y vistas
 
+> ⚠️ **Ojo con esta sección** (revisado 2026-08-20, ver `docs/06-reflexion-uiux.md`): describe la
+> dirección completa, y **dos piezas no están construidas**. Van marcadas abajo como
+> «🔜 no construido» para que nadie implemente creyendo que ya existen:
+> las **estanterías editoriales de la portada** y el **drawer de facetas en móvil**.
+
 Estructura general: **header fino y pegajoso** (logo, búsqueda global, avatar) →
 **barra de facetas** → **resultados**. Densidad: cómoda en galería, compacta en tabla.
 Grid de 4 px; radios 10 px (ya en `--radius`); sombras solo 2 niveles (reposo/elevado).
@@ -69,7 +74,7 @@ Grid de 4 px; radios 10 px (ya en `--radius`); sombras solo 2 niveles (reposo/el
   como pill semántica, edición rápida inline donde sea trivial.
 - **Itinerario**: columna izquierda con etapas/itinerarios, centro con bloques ordenados
   como secciones y recursos colgando en mini-tarjetas horizontales.
-- **Top / Descubrir** (portada sin búsqueda activa): stats-héroe (recursos, autores,
+- **Top / Descubrir** 🔜 **no construido** (portada sin búsqueda activa): stats-héroe (recursos, autores,
   valoraciones — número grande display + sparkline sutil) y estanterías horizontales
   con scroll-snap: "Mejor valorados", "Más usados", "Novedades", tag destacado de
   temporada (Adviento en noviembre…). Aquí vive la personalidad editorial.
@@ -80,8 +85,9 @@ Grid de 4 px; radios 10 px (ya en `--radius`); sombras solo 2 niveles (reposo/el
 
 **Filtros**: chips activos siempre visibles bajo la búsqueda (quitables, "limpiar todo");
 facetas en popover-combobox con contadores en vivo y buscador interno cuando > 8 opciones;
-móvil: drawer inferior con las mismas facetas y botón "Ver N recursos". La faceta activa
-tiñe su trigger de primary.
+la faceta activa tiñe su trigger de primary. En **móvil**, 🔜 **no construido**: hoy es un carrusel
+horizontal de chips que se corta sin pista, no el drawer inferior con botón "Ver N recursos" que
+especificaba esta sección.
 
 ## 5. Movimiento
 
