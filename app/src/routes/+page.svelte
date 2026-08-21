@@ -16,7 +16,7 @@
 		textoIndexable,
 		type Seleccion
 	} from '$lib/catalogo/filtros';
-	import { limpiarNombre } from '$lib/catalogo/tipos';
+	import { limpiarNombre, vocabularioEdades } from '$lib/catalogo/tipos';
 	import { crearPreset, presetDeSeleccion, type Preset } from '$lib/catalogo/presets';
 	import { avisoDeshacible } from '$lib/deshacer';
 	import RecursoCard from '$lib/components/RecursoCard.svelte';
@@ -405,6 +405,8 @@
 	const tipoFamilia = $derived(
 		new Map(data.listas.filter((l) => l.lista === 'tipo').map((l) => [l.valor, l.grupo]))
 	);
+	/** Vocabulario de edades: con todas puestas, tarjeta, tabla y ficha dicen «todas». */
+	const vocabEdades = $derived(vocabularioEdades(data.listas));
 	const opcionesPorFaceta = $derived.by(() => {
 		const map = new Map<string, { valor: string; grupo: string | null }[]>();
 		for (const f of facetas) {
@@ -746,6 +748,7 @@
 			<RecursoTabla
 				recursos={resultados}
 				{tipoFamilia}
+				{vocabEdades}
 				{esFavorito}
 				onopen={abrirFicha}
 				onfavorito={toggleFavorito}
@@ -758,6 +761,7 @@
 							{recurso}
 							familia={recurso.tipo ? (tipoFamilia.get(recurso.tipo) ?? null) : null}
 							favorito={esFavorito(recurso.id)}
+							{vocabEdades}
 							nombreTransicion={transicion.tarjeta(recurso.id)}
 							conEstadoEditorial={esEquipo}
 						onopen={abrirFicha}
@@ -845,6 +849,7 @@
 <RecursoFicha
 	supabase={data.supabase}
 	session={data.session}
+	{vocabEdades}
 	puedeModerar={data.perfil?.rol === 'editor' || data.perfil?.rol === 'administrador'}
 	conEstadoEditorial={esEquipo}
 	onrequierelogin={() => (loginAbierto = true)}

@@ -15,7 +15,9 @@
 		FONDO_NEUTRO,
 		ICONO_NEUTRO,
 		limpiarNombre,
-		miniatura
+		miniatura,
+		resumirEdades,
+		vocabularioEdades
 	} from '$lib/catalogo/tipos';
 	import { construirFacetas, filtrar, relacionar, type Seleccion } from '$lib/catalogo/filtros';
 	import { crearPreset, esPresetActivo, presetDeSeleccion, type Preset } from '$lib/catalogo/presets';
@@ -36,6 +38,7 @@
 	const tipoFamilia = $derived(
 		new Map(data.listas.filter((l) => l.lista === 'tipo').map((l) => [l.valor, l.grupo]))
 	);
+	const vocabEdades = $derived(vocabularioEdades(data.listas));
 	// el mazo solo baraja versiones vigentes (SPEC-009)
 	const recursosVigentes = $derived(data.recursos.filter((r) => r.es_vigente));
 
@@ -720,12 +723,13 @@
 						{/if}
 						<!-- mismo formato que la tarjeta del catálogo (F5): las dos son la misma cosa -->
 						{#if r.etapas.length || r.edades.length}
+							{@const edades = resumirEdades(r.edades, vocabEdades, 3)}
 							<p class="text-xs text-muted-foreground">
 								{#if r.etapas.length}<span>{r.etapas.join(' · ')}</span>{/if}
 								{#if r.edades.length}
 									<span class="text-muted-foreground/70">
 										{r.etapas.length ? '· para' : 'Para'}
-										{r.edades.slice(0, 3).join(', ')}
+										{edades.todas ? 'todas las edades' : edades.valores.join(', ')}
 									</span>
 								{/if}
 							</p>
@@ -821,6 +825,7 @@
 <RecursoFicha
 	supabase={data.supabase}
 	session={data.session}
+	{vocabEdades}
 	puedeModerar={data.perfil?.rol === 'editor' || data.perfil?.rol === 'administrador'}
 	onrequierelogin={() => (loginAbierto = true)}
 	recurso={abierto}

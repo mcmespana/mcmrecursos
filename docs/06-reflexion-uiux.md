@@ -357,6 +357,14 @@ Hechos en la misma sesión que el análisis, cada uno con su commit:
 los mismos siete. F16 y F17 (camino de catalogar) esperan una sesión para cronometrar antes de
 construir. F7 (miniaturas) ya vive en el roadmap.
 
+**Añadido después (2026-08-21), en la misma línea que F5:** cuando un recurso tiene **todas** las
+edades marcadas —el caso normal de lo transversal, tipo una carpeta de Drive— la fila decía «para 3º
+EP, 4º EP, 5º EP, 6º EP, 1º ESO…»: catorce cursos que no informan de nada, porque no excluyen a
+nadie. Ahora dice **«todas las edades»**, en tarjeta, tabla, ficha, Descubre e itinerarios. En el
+panel se sigue viendo el dato tal cual está guardado, que es lo que se está editando. De paso, esa
+línea de la tarjeta pasa a dos líneas: con cuatro etapas delante, el `line-clamp-1` cortaba justo la
+parte que informa y dejaba «MIC · COM · LC · Monitores · para…».
+
 **Dos correcciones al propio análisis**, hechas al ir a implementar: F13 decía que la paleta no
 ofrecía «Enviar recurso» y sí lo ofrece; F9 decía que los botones de la ficha no tenían etiqueta y sí
 tienen tooltip. Las dos están anotadas en su sitio.

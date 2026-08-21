@@ -8,7 +8,8 @@
 		FONDO_NEUTRO,
 		iconoDeTipo,
 		limpiarNombre,
-		miniatura
+		miniatura,
+		resumirEdades
 	} from '$lib/catalogo/tipos';
 	import { FORMATOS, formatoEfectivo } from '$lib/catalogo/formatos';
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
@@ -30,12 +31,15 @@
 	let {
 		recursos,
 		tipoFamilia,
+		vocabEdades = [],
 		esFavorito,
 		onopen,
 		onfavorito
 	}: {
 		recursos: RecursoCatalogo[];
 		tipoFamilia: Map<string, string | null>;
+		/** Vocabulario de edades, para poder decir «Todas» en vez de listarlas (`resumirEdades`). */
+		vocabEdades?: string[];
 		esFavorito: (id: string) => boolean;
 		onopen: (r: RecursoCatalogo) => void;
 		onfavorito: (r: RecursoCatalogo) => void;
@@ -62,7 +66,15 @@
 			}
 		},
 		{ id: 'etapas', etiqueta: 'Etapas', valor: (r) => r.etapas.join(', ') || null },
-		{ id: 'edades', etiqueta: 'Edades', valor: (r) => r.edades.join(', ') || null },
+		{
+			id: 'edades',
+			etiqueta: 'Edades',
+			// «Todas» ordena igual de bien y no revienta el ancho de la columna con catorce cursos
+			valor: (r) => {
+				const e = resumirEdades(r.edades, vocabEdades);
+				return e.todas ? 'Todas' : e.valores.join(', ') || null;
+			}
+		},
 		{ id: 'nivel', etiqueta: 'Nivel', valor: (r) => r.nivel },
 		{ id: 'mcm_local', etiqueta: 'MCM Local', valor: (r) => r.mcm_local },
 		{ id: 'idioma', etiqueta: 'Idioma', valor: (r) => r.idioma },

@@ -8,7 +8,7 @@
 	import RecursoFicha from '$lib/components/RecursoFicha.svelte';
 	import LoginDialog from '$lib/components/LoginDialog.svelte';
 	import { socialLocal } from '$lib/social/local.svelte';
-	import { limpiarNombre } from '$lib/catalogo/tipos';
+	import { limpiarNombre, resumirEdades, vocabularioEdades } from '$lib/catalogo/tipos';
 	import type { RecursoCatalogo } from '$lib/catalogo/tipos';
 	import { ArrowLeft, ExternalLink, ListOrdered, PanelRight } from '@lucide/svelte';
 
@@ -25,6 +25,8 @@
 	 */
 	let { data } = $props();
 	const it = $derived(data.itinerario);
+	const vocabEdades = $derived(vocabularioEdades(data.listas));
+	const edadesItinerario = $derived(resumirEdades(it.edades, vocabEdades));
 	const simple = $derived(it.bloques.length === 1 && !it.bloques[0].nombre);
 
 	/** Lista plana en el orden del itinerario: es la que gobierna el anterior/siguiente. */
@@ -172,9 +174,14 @@
 			{#each it.etapas as e (e)}
 				<Badge variant="secondary" class="font-normal">{e}</Badge>
 			{/each}
-			{#each it.edades as e (e)}
-				<Badge variant="outline" class="font-normal text-muted-foreground">{e}</Badge>
-			{/each}
+			<!-- «Todas las edades» en vez de catorce insignias que no excluyen a nadie -->
+			{#if edadesItinerario.todas}
+				<Badge variant="outline" class="font-normal text-muted-foreground">Todas las edades</Badge>
+			{:else}
+				{#each edadesItinerario.valores as e (e)}
+					<Badge variant="outline" class="font-normal text-muted-foreground">{e}</Badge>
+				{/each}
+			{/if}
 		</div>
 	</header>
 
@@ -226,8 +233,9 @@
 								<p class="flex flex-wrap items-center gap-x-2 text-[11.5px] text-muted-foreground">
 									{#if r.tipo}<span>{r.tipo}</span>{/if}
 									{#if r.edades?.length}
+										{@const edades = resumirEdades(r.edades, vocabEdades, 3)}
 										<span class="text-muted-foreground/60">
-											para {r.edades.slice(0, 3).join(', ')}
+											para {edades.todas ? 'todas las edades' : edades.valores.join(', ')}
 										</span>
 									{/if}
 								</p>
@@ -264,6 +272,7 @@
 <RecursoFicha
 	supabase={data.supabase}
 	session={data.session}
+	{vocabEdades}
 	conEstadoEditorial={!!data.perfil &&
 		['edicion_local', 'editor', 'administrador'].includes(data.perfil.rol)}
 	puedeModerar={data.perfil?.rol === 'editor' || data.perfil?.rol === 'administrador'}

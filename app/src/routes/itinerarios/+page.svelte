@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { Badge } from '$lib/components/ui/badge';
+	import { resumirEdades, vocabularioEdades } from '$lib/catalogo/tipos';
 	import { ArrowRight, ListOrdered, Route } from '@lucide/svelte';
 
 	let { data } = $props();
+	const vocabEdades = $derived(vocabularioEdades(data.listas));
 </script>
 
 <svelte:head>
@@ -37,6 +39,7 @@
 	{:else}
 		<div class="grid gap-4 sm:grid-cols-2">
 			{#each data.itinerarios as i (i.id)}
+				{@const edades = resumirEdades(i.edades, vocabEdades, 2)}
 				<a
 					href={`/itinerarios/${i.id}`}
 					class="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5"
@@ -86,9 +89,16 @@
 						{#each i.etapas as e (e)}
 							<Badge variant="secondary" class="font-normal">{e}</Badge>
 						{/each}
-						{#each i.edades.slice(0, 2) as e (e)}
-							<Badge variant="outline" class="font-normal text-muted-foreground">{e}</Badge>
-						{/each}
+						<!-- con las catorce edades marcadas, una insignia que diga «todas» y no catorce -->
+						{#if edades.todas}
+							<Badge variant="outline" class="font-normal text-muted-foreground">
+								Todas las edades
+							</Badge>
+						{:else}
+							{#each edades.valores as e (e)}
+								<Badge variant="outline" class="font-normal text-muted-foreground">{e}</Badge>
+							{/each}
+						{/if}
 						<span
 							class="ml-auto inline-flex items-center gap-1 text-[13px] font-semibold text-primary"
 						>

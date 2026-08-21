@@ -8,14 +8,25 @@ import type { PageServerLoad } from './$types';
  * editor, así que aquí no hay que filtrar por estado a mano.
  */
 export const load: PageServerLoad = async ({ locals: { supabase } }) => {
-	const { data } = await supabase
-		.from('itinerario')
-		.select(
-			'id, nombre, descripcion, etapas, edades, imagen, estado, itinerario_bloque (id, recurso_bloque (recurso_id))'
-		)
-		.order('nombre');
+	const [itinRes, edadesRes] = await Promise.all([
+		supabase
+			.from('itinerario')
+			.select(
+				'id, nombre, descripcion, etapas, edades, imagen, estado, itinerario_bloque (id, recurso_bloque (recurso_id))'
+			)
+			.order('nombre'),
+		// el vocabulario, solo para poder decir «todas las edades» en vez de listar catorce cursos
+		supabase
+			.from('lista_valor')
+			.select('lista, valor, grupo, orden')
+			.eq('lista', 'edades')
+			.eq('activo', true)
+			.order('orden')
+	]);
+	const data = itinRes.data;
 
 	return {
+		listas: edadesRes.data ?? [],
 		itinerarios: (data ?? []).map((i: any) => ({
 			id: i.id,
 			nombre: i.nombre,
