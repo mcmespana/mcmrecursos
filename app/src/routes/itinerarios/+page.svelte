@@ -39,17 +39,33 @@
 			{#each data.itinerarios as i (i.id)}
 				<a
 					href={`/itinerarios/${i.id}`}
-					class="group flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5"
+					class="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5"
 				>
-					<div class="flex items-start justify-between gap-3">
-						<span class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-							<Route class="size-4.5 text-primary" />
-						</span>
+					<!-- portada si la tiene; si no, el mismo relleno generado que usan los recursos -->
+					<div class="relative aspect-[3/1] w-full overflow-hidden bg-gradient-to-br from-primary/10 to-warm/10">
+						{#if i.imagen}
+							<img
+								src={i.imagen}
+								alt=""
+								class="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+								loading="lazy"
+							/>
+						{:else}
+							<span class="flex size-full items-center justify-center">
+								<Route class="size-9 text-primary/25" strokeWidth={1.5} />
+							</span>
+						{/if}
 						{#if i.borrador}
-							<Badge variant="outline" class="text-muted-foreground">Borrador</Badge>
+							<Badge
+								variant="outline"
+								class="absolute top-2 right-2 bg-background/85 text-muted-foreground backdrop-blur"
+							>
+								Borrador
+							</Badge>
 						{/if}
 					</div>
 
+					<div class="flex flex-1 flex-col gap-3 p-5">
 					<div class="flex flex-col gap-1">
 						<h2 class="font-display text-lg leading-tight font-bold text-balance">{i.nombre}</h2>
 						{#if i.descripcion}
@@ -70,11 +86,15 @@
 						{#each i.etapas as e (e)}
 							<Badge variant="secondary" class="font-normal">{e}</Badge>
 						{/each}
+						{#each i.edades.slice(0, 2) as e (e)}
+							<Badge variant="outline" class="font-normal text-muted-foreground">{e}</Badge>
+						{/each}
 						<span
 							class="ml-auto inline-flex items-center gap-1 text-[13px] font-semibold text-primary"
 						>
 							Recorrerlo <ArrowRight class="size-3.5 transition-transform group-hover:translate-x-0.5" />
 						</span>
+					</div>
 					</div>
 				</a>
 			{/each}
