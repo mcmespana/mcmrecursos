@@ -7,12 +7,18 @@
 	import { Textarea } from '$lib/components/ui/textarea';
 	import { Badge } from '$lib/components/ui/badge';
 	import SelectorMultiple from '$lib/components/SelectorMultiple.svelte';
+	import SelectorRecursos from '$lib/components/admin/SelectorRecursos.svelte';
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
 	import { crearOcupado, lanzarAccion } from '$lib/acciones.svelte';
 	import { normalizarConsulta } from '$lib/catalogo/filtros';
 	import { limpiarNombre } from '$lib/catalogo/tipos';
+	import { flip } from 'svelte/animate';
+	import { fade, slide } from 'svelte/transition';
 	import {
 		ArrowLeft,
+		GripVertical,
+		ImageIcon,
+		LayoutList,
 		ChevronDown,
 		ChevronUp,
 		Eye,
@@ -39,16 +45,17 @@
 	/** Un solo bloque sin título = itinerario simple: no se pinta la palabra «tramo» en ningún sitio. */
 	const simple = $derived(it.bloques.length === 1 && !it.bloques[0].nombre);
 
-	const opcionesEtapas = $derived(
+	const opciones = (lista: string) =>
 		data.listas
-			.filter((l: any) => l.lista === 'etapas')
-			.map((l: any) => ({ valor: l.valor, grupo: l.grupo }))
-	);
+			.filter((l: any) => l.lista === lista)
+			.map((l: any) => ({ valor: l.valor, grupo: l.grupo }));
 
 	// --- los cuatro campos ---
 	let nombre = $state('');
 	let descripcion = $state('');
 	let etapas = $state<string[]>([]);
+	let edades = $state<string[]>([]);
+	let imagen = $state('');
 	let publicado = $state(false);
 	// se reinicia al cambiar de itinerario, no en cada `invalidateAll`
 	let idCargado = $state('');
@@ -58,6 +65,8 @@
 		nombre = it.nombre;
 		descripcion = it.descripcion ?? '';
 		etapas = [...it.etapas];
+		edades = [...it.edades];
+		imagen = it.imagen ?? '';
 		publicado = it.estado === 'publicado';
 	});
 
@@ -122,20 +131,55 @@
 		}, `quitar-${recursoId}`);
 	}
 
-	/**
-	 * Mover con flechas y no arrastrando: con veinte elementos y ajustes de uno en uno, las
-	 * flechas aciertan siempre, funcionan con teclado y no traen una librería (SPEC-015).
-	 */
-	async function mover(bloque: any, indice: number, salto: -1 | 1) {
-		const destino = indice + salto;
-		if (destino < 0 || destino >= bloque.recursos.length) return;
-		const ids = bloque.recursos.map((r: any) => r.id);
-		[ids[indice], ids[destino]] = [ids[destino], ids[indice]];
+	/** ids añadidos hace un instante: para que la fila entre con un destello y se vea que llegó. */
+	let recienAnadidos = $state<string[]>([]);
+	let selectorAbierto = $state(false);
+	let bloqueDelSelector = $state<string | null>(null);
 
+	function abrirSelector(bloqueId: string) {
+		bloqueDelSelector = bloqueId;
+		selectorAbierto = true;
+	}
+
+	/** Añadir varios de golpe desde el selector, en el orden en que se marcaron. */
+	async function anadirVarios(ids: string[]) {
+		const bloqueId = bloqueDelSelector;
+		if (!bloqueId || !ids.length) return;
+		const cuerpo = new URLSearchParams();
+		cuerpo.set('bloque_id', bloqueId);
+		for (const id of ids) cuerpo.append('recurso_id', id);
+		await ocupado.envolver(async () => {
+			const error = await lanzarAccion('?/anadir', cuerpo);
+			if (error) {
+				toast.error('No se pudieron añadir', { description: error });
+				return;
+			}
+			await invalidateAll();
+			destacar(ids);
+			toast.success(`${ids.length} ${ids.length === 1 ? 'recurso añadido' : 'recursos añadidos'}`);
+		}, 'anadir-varios');
+	}
+
+	function destacar(ids: string[]) {
+		recienAnadidos = ids;
+		setTimeout(() => (recienAnadidos = recienAnadidos.filter((x) => !ids.includes(x))), 1800);
+	}
+
+	/**
+	 * Reordenar: arrastrando y con flechas, las dos cosas.
+	 *
+	 * Arrastrar es lo natural para «esto va tres más abajo» y es lo que se pidió; las flechas se
+	 * quedan porque son las que funcionan con teclado y en táctil, donde el arrastre nativo de HTML
+	 * no existe. Se usa el drag&drop del navegador y no una librería: para una lista vertical de
+	 * veinte, `dragstart`/`dragover`/`drop` bastan y no hay 30 KB que descargar.
+	 */
+	let arrastrando = $state<{ bloque: string; id: string } | null>(null);
+	let encima = $state<string | null>(null);
+
+	async function guardarOrden(bloque: any, ids: string[]) {
 		const cuerpo = new URLSearchParams();
 		cuerpo.set('bloque_id', bloque.id);
 		for (const id of ids) cuerpo.append('recurso_id', id);
-
 		await ocupado.envolver(async () => {
 			const error = await lanzarAccion('?/ordenar', cuerpo);
 			if (error) {
@@ -144,6 +188,47 @@
 			}
 			await invalidateAll();
 		}, `mover-${bloque.id}`);
+	}
+
+	async function mover(bloque: any, indice: number, salto: -1 | 1) {
+		const destino = indice + salto;
+		if (destino < 0 || destino >= bloque.recursos.length) return;
+		const ids = bloque.recursos.map((r: any) => r.id);
+		[ids[indice], ids[destino]] = [ids[destino], ids[indice]];
+		await guardarOrden(bloque, ids);
+	}
+
+	/** Mover un tramo entero arriba o abajo. */
+	async function moverBloque(indice: number, salto: -1 | 1) {
+		const destino = indice + salto;
+		if (destino < 0 || destino >= it.bloques.length) return;
+		const ids = it.bloques.map((b: any) => b.id);
+		[ids[indice], ids[destino]] = [ids[destino], ids[indice]];
+		const cuerpo = new URLSearchParams();
+		for (const id of ids) cuerpo.append('bloque_id', id);
+		await ocupado.envolver(async () => {
+			const error = await lanzarAccion('?/ordenarBloques', cuerpo);
+			if (error) {
+				toast.error('No se pudo reordenar los tramos', { description: error });
+				return;
+			}
+			await invalidateAll();
+		}, 'ordenar-bloques');
+	}
+
+	/** Suelta lo arrastrado justo delante de la fila sobre la que se suelta. */
+	async function soltarEn(bloque: any, idDestino: string) {
+		const origen = arrastrando;
+		arrastrando = null;
+		encima = null;
+		if (!origen || origen.bloque !== bloque.id || origen.id === idDestino) return;
+		const ids = bloque.recursos.map((r: any) => r.id);
+		const desde = ids.indexOf(origen.id);
+		const hasta = ids.indexOf(idDestino);
+		if (desde < 0 || hasta < 0) return;
+		ids.splice(desde, 1);
+		ids.splice(hasta, 0, origen.id);
+		await guardarOrden(bloque, ids);
 	}
 
 	function accionSimple(accion: string, campos: Record<string, string>, exito?: string) {
@@ -211,11 +296,42 @@
 
 			<SelectorMultiple
 				etiqueta="Etapas"
-				opciones={opcionesEtapas}
+				opciones={opciones('etapas')}
 				bind:valor={etapas}
 				nombre="etapas"
 				ayuda="Déjalo vacío si vale para cualquier etapa."
 			/>
+			<SelectorMultiple
+				etiqueta="Edades"
+				opciones={opciones('edades')}
+				bind:valor={edades}
+				nombre="edades"
+				ayuda="Déjalo vacío si vale para cualquier edad."
+			/>
+
+			<!-- Portada opcional: si falta, la tarjeta pinta el fallback generado de siempre -->
+			<label class="flex flex-col gap-1.5">
+				<span
+					class="flex items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+				>
+					<ImageIcon class="size-3.5" /> Portada
+				</span>
+				<div class="flex items-center gap-3">
+					<Input
+						name="imagen"
+						bind:value={imagen}
+						placeholder="Enlace a una imagen (opcional)"
+						class="h-9 flex-1"
+					/>
+					{#if imagen.trim()}
+						<img
+							src={imagen}
+							alt=""
+							class="size-14 shrink-0 rounded-lg border border-border object-cover"
+						/>
+					{/if}
+				</div>
+			</label>
 
 			<div class="flex flex-wrap items-center gap-3 border-t border-border pt-3">
 				<label class="flex items-center gap-2 text-sm">
@@ -302,6 +418,28 @@
 						/>
 						<Button type="submit" variant="outline" size="sm">Guardar tramo</Button>
 						{#if it.bloques.length > 1}
+							<span class="flex items-center gap-0.5">
+								<button
+									type="button"
+									disabled={ib === 0}
+									class="toque inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-25"
+									onclick={() => moverBloque(ib, -1)}
+									aria-label="Subir este tramo"
+								>
+									<ChevronUp class="size-4" />
+								</button>
+								<button
+									type="button"
+									disabled={ib === it.bloques.length - 1}
+									class="toque inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-25"
+									onclick={() => moverBloque(ib, 1)}
+									aria-label="Bajar este tramo"
+								>
+									<ChevronDown class="size-4" />
+								</button>
+							</span>
+						{/if}
+						{#if it.bloques.length > 1}
 							<button
 								type="button"
 								class="toque inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive"
@@ -322,10 +460,43 @@
 					<ol class="flex flex-col">
 						{#each bloque.recursos as r, i (r.id)}
 							<li
-								class="group/fila flex items-center gap-3 border-b border-border/60 py-2 last:border-0"
+								animate:flip={{ duration: 220 }}
+								draggable="true"
+								ondragstart={() => (arrastrando = { bloque: bloque.id, id: r.id })}
+								ondragend={() => {
+									arrastrando = null;
+									encima = null;
+								}}
+								ondragover={(e) => {
+									if (arrastrando?.bloque !== bloque.id) return;
+									e.preventDefault();
+									encima = r.id;
+								}}
+								ondragleave={() => encima === r.id && (encima = null)}
+								ondrop={(e) => {
+									e.preventDefault();
+									soltarEn(bloque, r.id);
+								}}
+								class={[
+									'group/fila flex items-center gap-2 border-b border-border/60 py-2 last:border-0 transition-colors',
+									arrastrando?.id === r.id && 'opacity-40',
+									encima === r.id && arrastrando?.id !== r.id && 'border-t-2 border-t-primary',
+									recienAnadidos.includes(r.id) && 'bg-primary/[0.07]'
+								]}
 							>
+								<!--
+									El asa hace de agarre y de pista: sin algo que diga «esto se arrastra», el
+									drag&drop es un secreto. Se ve al pasar por encima y siempre en táctil,
+									donde además no funciona y las flechas son la vía.
+								-->
 								<span
-									class="w-6 shrink-0 text-right font-display text-sm font-bold text-muted-foreground tabular-nums"
+									class="shrink-0 cursor-grab text-muted-foreground/40 opacity-0 transition-opacity group-hover/fila:opacity-100 active:cursor-grabbing max-sm:opacity-100"
+									aria-hidden="true"
+								>
+									<GripVertical class="size-4" />
+								</span>
+								<span
+									class="w-5 shrink-0 text-right font-display text-sm font-bold text-muted-foreground tabular-nums"
 								>
 									{i + 1}
 								</span>
@@ -372,8 +543,12 @@
 					</ol>
 				{/if}
 
-				<!-- Añadir: un buscador por tramo, para no tener que elegir destino en un desplegable -->
-				<div class="relative mt-1">
+				<!--
+					Dos formas de añadir, y las dos hacen falta: el buscador va rapidísimo cuando sabes
+					el nombre, y el selector es para cuando quieres ver qué hay y marcar unos cuantos.
+				-->
+				<div class="mt-1 flex items-start gap-2">
+				<div class="relative flex-1">
 					<Search
 						class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
 					/>
@@ -410,7 +585,24 @@
 						</p>
 					{/if}
 				</div>
+					<Button
+						variant="outline"
+						class="h-9 shrink-0"
+						onclick={() => abrirSelector(bloque.id)}
+						cargando={ocupado.cargando('anadir-varios')}
+						textoCargando="Añadiendo…"
+					>
+						<LayoutList class="size-4" /> Elegir de la lista
+					</Button>
+				</div>
 			</div>
 		{/each}
 	</section>
 </div>
+
+<SelectorRecursos
+	bind:abierto={selectorAbierto}
+	catalogo={data.catalogo}
+	{yaPuestos}
+	onanadir={anadirVarios}
+/>

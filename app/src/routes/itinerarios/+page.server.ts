@@ -11,7 +11,7 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 	const { data } = await supabase
 		.from('itinerario')
 		.select(
-			'id, nombre, descripcion, etapas, estado, itinerario_bloque (id, recurso_bloque (recurso_id))'
+			'id, nombre, descripcion, etapas, edades, imagen, estado, itinerario_bloque (id, recurso_bloque (recurso_id))'
 		)
 		.order('nombre');
 
@@ -21,6 +21,8 @@ export const load: PageServerLoad = async ({ locals: { supabase } }) => {
 			nombre: i.nombre,
 			descripcion: i.descripcion,
 			etapas: i.etapas ?? [],
+			edades: i.edades ?? [],
+			imagen: i.imagen,
 			// un editor ve también sus borradores: conviene que la tarjeta lo diga
 			borrador: i.estado !== 'publicado',
 			recursos: (i.itinerario_bloque ?? []).reduce(

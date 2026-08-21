@@ -9,7 +9,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 		supabase
 			.from('itinerario')
 			.select(
-				`id, nombre, descripcion, etapas, estado,
+				`id, nombre, descripcion, etapas, edades, imagen, estado,
 				 itinerario_bloque (id, nombre, descripcion, orden,
 				   recurso_bloque (orden, recurso:recurso_id (id, nombre, tipo, enlace, formato, etapas, edades)))`
 			)
@@ -50,6 +50,8 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 			nombre: it.nombre,
 			descripcion: it.descripcion,
 			etapas: it.etapas ?? [],
+			edades: it.edades ?? [],
+			imagen: it.imagen,
 			estado: it.estado,
 			bloques
 		},
@@ -85,7 +87,9 @@ export const actions: Actions = {
 			.update({
 				nombre,
 				descripcion: String(f.get('descripcion') ?? '').trim() || null,
+				imagen: String(f.get('imagen') ?? '').trim() || null,
 				etapas: f.getAll('etapas').map(String).filter(Boolean),
+				edades: f.getAll('edades').map(String).filter(Boolean),
 				estado: String(f.get('estado') ?? 'borrador') === 'publicado' ? 'publicado' : 'borrador'
 			})
 			.eq('id', params.id);
@@ -175,6 +179,22 @@ export const actions: Actions = {
 			.from('itinerario_bloque')
 			.insert({ itinerario_id: params.id, nombre, orden: (bloques ?? []).length });
 		if (err) return fail(500, { error: err.message });
+		return { ok: true };
+	},
+
+	/** Reordenar los tramos entre sí. Sin esto, el orden de los bloques era el de creación. */
+	ordenarBloques: async ({ request, locals }) => {
+		await exigirRol(locals, ROLES);
+		const f = await request.formData();
+		const ids = f.getAll('bloque_id').map(String).filter(Boolean);
+		if (!ids.length) return fail(400);
+		for (const [orden, id] of ids.entries()) {
+			const { error: err } = await locals.supabase
+				.from('itinerario_bloque')
+				.update({ orden })
+				.eq('id', id);
+			if (err) return fail(500, { error: err.message });
+		}
 		return { ok: true };
 	},
 
