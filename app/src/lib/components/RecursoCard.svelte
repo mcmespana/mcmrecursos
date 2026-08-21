@@ -21,6 +21,7 @@
 		familia,
 		favorito,
 		nombreTransicion = null,
+		conEstadoEditorial = false,
 		onopen,
 		onfavorito
 	}: {
@@ -29,6 +30,13 @@
 		favorito: boolean;
 		/** `view-transition-name` de la miniatura mientras se abre la ficha (SPEC-012 §Movimiento). */
 		nombreTransicion?: string | null;
+		/**
+		 * Enseñar las marcas de trabajo interno («Por clasificar», «fuera del banco»). Solo para
+		 * quien tiene rol de panel: a quien viene a buscar una sesión para el martes no le dicen
+		 * nada, y lo que comunican es «este recurso está a medio hacer» sobre material que
+		 * probablemente está perfecto (F6 de docs/06-reflexion-uiux.md).
+		 */
+		conEstadoEditorial?: boolean;
 		onopen: (r: RecursoCatalogo) => void;
 		onfavorito: (r: RecursoCatalogo) => void;
 	} = $props();
@@ -168,7 +176,7 @@
 		<div class="mt-auto flex items-center justify-between gap-2 pt-1.5">
 			<Estrellas media={recurso.valoracion_media} num={recurso.num_valoraciones} />
 			<div class="flex items-center gap-2 text-[11px] text-muted-foreground">
-				{#if recurso.pendiente_clasificar}
+				{#if conEstadoEditorial && recurso.pendiente_clasificar}
 					<span class="inline-flex items-center gap-1" title="Contenedor pendiente de clasificar">
 						<PackageOpen class="size-3" /> Por clasificar
 					</span>

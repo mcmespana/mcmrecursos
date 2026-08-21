@@ -207,18 +207,26 @@ honesta («Estás enviando sin cuenta, y no pasa nada»). Nada que tocar ahí de
 
 El problema es cómo se llega.
 
-### F13 · En móvil no hay ninguna puerta para aportar (crítico, arreglo pequeño)
+### F13 · En móvil, aportar está escondido detrás de la lupa (alto, arreglo pequeño)
+
+> **Corrección (2026-08-20).** La primera versión de este documento decía que en móvil «no existe
+> ninguna puerta» porque la paleta de comandos no ofrecía «Enviar recurso». **Era falso**: sí lo
+> ofrece — busqué en `PaletaComandos.svelte`, que es solo el disparador, cuando las entradas viven en
+> `PaletaDialogo.svelte` (se carga con `import()` al abrirla). El hallazgo se sostiene, pero es
+> menos grave de lo que escribí.
+
+Lo que de verdad pasa en móvil:
 
 - El botón «Enviar recurso» de la cabecera es `hidden sm:inline-flex` → **desaparece por debajo de
   640 px**.
-- La paleta de comandos (⌘K) **no ofrece «Enviar recurso»**: lo he buscado, no está.
+- La única vía que queda es **pulsar el icono de lupa** y, dentro, elegir «Enviar un recurso» en el
+  grupo «Ir a».
 
-Resultado: en un móvil, la única forma de aportar material es **saber escribir `/enviar` en la barra
-de direcciones**. El proyecto entero depende de que los monitores suban lo que preparan, los
-monitores están en el móvil, y en el móvil no existe la puerta.
+Es decir: la acción de la que depende que el banco crezca vive **detrás de un icono de buscar**. Para
+quien no ha abierto nunca esa paleta —la mayoría en un móvil— es indistinguible de no existir.
 
-De todo este documento, esto es lo que arreglaría primero: es media hora y desatasca el cuello de
-botella real.
+El proyecto entero depende de que los monitores suban lo que preparan, y los monitores están en el
+móvil. Sigue siendo lo que arreglaría primero: es media hora.
 
 ### F14 · El campo que importa va segundo y sin marcar (bajo)
 
@@ -323,9 +331,9 @@ cuando el catálogo crezca.
 
 ### P1 — Ahora (todo esto es media tarde)
 
-1. **F13 · Puerta para aportar en móvil.** Que «Enviar recurso» no desaparezca por debajo de 640 px,
-   y añadirlo a la paleta de comandos. *Es la corrección con mejor relación valor/esfuerzo de toda la
-   lista.*
+1. **F13 · Puerta visible para aportar en móvil.** Que «Enviar recurso» no desaparezca por debajo de
+   640 px (en la paleta ya está, pero detrás de una lupa no cuenta). *Mejor relación valor/esfuerzo
+   de toda la lista.*
 2. **F1 + F2 · Que el héroe se aparte al buscar,** y con él el recuento total que se contradice con
    el de resultados.
 3. **F6 · Que «Por clasificar» no salga al público.** Una condición de rol.

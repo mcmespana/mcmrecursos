@@ -29,7 +29,7 @@
 	import { crearTransicionFicha } from '$lib/transicion.svelte';
 	import { Input } from '$lib/components/ui/input';
 	import { Button } from '$lib/components/ui/button';
-	import { LayoutGrid, Rows3, Search, Sparkles, X } from '@lucide/svelte';
+	import { LayoutGrid, Rows3, Search, Send, Sparkles, X } from '@lucide/svelte';
 
 	let { data } = $props();
 
@@ -362,6 +362,12 @@
 	const filtrosActivos = $derived(
 		facetas.flatMap((f) => (seleccion[f.campo] ?? []).map((valor) => ({ campo: f.campo, valor })))
 	);
+	/** ¿Hay intención de búsqueda? Decide si el héroe se aparta (F1). */
+	const buscando = $derived(!!q.trim() || filtrosActivos.length > 0);
+	/** Rol de panel: decide si se ven las marcas de trabajo interno en tarjeta y ficha (F6). */
+	const esEquipo = $derived(
+		!!data.perfil && ['edicion_local', 'editor', 'administrador'].includes(data.perfil.rol)
+	);
 	const tipoFamilia = $derived(
 		new Map(data.listas.filter((l) => l.lista === 'tipo').map((l) => [l.valor, l.grupo]))
 	);
@@ -514,16 +520,35 @@
 </svelte:head>
 
 <main class="mx-auto flex w-full max-w-[1600px] flex-col gap-4 px-4 pb-10 sm:px-6">
-	<!-- héroe compacto -->
-	<section class="flex flex-col items-center gap-4 pt-10 pb-2 text-center">
-		<h1 class="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-			Encuentra tu próximo <span class="text-primary">recurso</span>
-		</h1>
-		<p class="text-sm text-muted-foreground tabular-nums">
-			{stats.recursos}
-			{stats.recursos === 1 ? 'recurso' : 'recursos'} · {stats.autores}
-			{stats.autores === 1 ? 'autor' : 'autores'} · {stats.accesos} aperturas
-		</p>
+	<!--
+		Héroe que se aparta en cuanto hay intención (F1 de docs/06-reflexion-uiux.md).
+
+		El titular y las cifras del banco son una bienvenida: valen la primera vez que entras y no
+		valen nada cuando ya estás buscando. Ocupaban ~180 px en escritorio y ~380 px en móvil
+		SIEMPRE, así que con una consulta puesta el primer resultado aparecía fuera de pantalla en el
+		camino más transitado de la app. Con `buscando` el bloque se reduce al buscador y deja la
+		pantalla para lo que se ha pedido.
+
+		Las cifras del banco se van con el titular a propósito: mientras buscas, «7 recursos» (el
+		total) convivía a 140 px de «2 recursos» (el resultado), las dos con la misma palabra, y se
+		leía como un error.
+	-->
+	<section
+		class={[
+			'flex flex-col items-center text-center transition-all',
+			buscando ? 'gap-3 pt-4 pb-1' : 'gap-4 pt-10 pb-2'
+		]}
+	>
+		{#if !buscando}
+			<h1 class="font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
+				Encuentra tu próximo <span class="text-primary">recurso</span>
+			</h1>
+			<p class="text-sm text-muted-foreground tabular-nums">
+				{stats.recursos}
+				{stats.recursos === 1 ? 'recurso' : 'recursos'} · {stats.autores}
+				{stats.autores === 1 ? 'autor' : 'autores'} · {stats.accesos} aperturas
+			</p>
+		{/if}
 		<div class="relative w-full max-w-2xl">
 			<Search class="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
 			<Input
@@ -650,6 +675,7 @@
 							familia={recurso.tipo ? (tipoFamilia.get(recurso.tipo) ?? null) : null}
 							favorito={esFavorito(recurso.id)}
 							nombreTransicion={transicion.tarjeta(recurso.id)}
+							conEstadoEditorial={esEquipo}
 						onopen={abrirFicha}
 							onfavorito={toggleFavorito}
 						/>
@@ -711,12 +737,32 @@
 			{/if}
 		</div>
 	{/if}
+
+	<!--
+		Invitación a aportar, al pie del catálogo y no en el héroe: aquí es donde de verdad ocurre
+		«no he encontrado lo que buscaba», y no le roba ni un píxel a la primera pantalla, que ya
+		va justa en móvil. Sale con resultados y sin ellos, porque las dos son buenas ocasiones.
+	-->
+	<aside
+		class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-dashed border-border px-5 py-4"
+	>
+		<div class="flex min-w-0 flex-col gap-0.5">
+			<p class="font-medium">¿Has preparado algo que no está aquí?</p>
+			<p class="text-sm text-muted-foreground text-pretty">
+				Pega el enlace y el equipo lo cataloga. No hace falta cuenta ni rellenar nada más.
+			</p>
+		</div>
+		<Button href="/enviar" class="ml-auto shrink-0">
+			<Send class="size-4" /> Enviar un recurso
+		</Button>
+	</aside>
 </main>
 
 <RecursoFicha
 	supabase={data.supabase}
 	session={data.session}
 	puedeModerar={data.perfil?.rol === 'editor' || data.perfil?.rol === 'administrador'}
+	conEstadoEditorial={esEquipo}
 	onrequierelogin={() => (loginAbierto = true)}
 	recurso={abierto}
 	familia={abierto?.tipo ? (tipoFamilia.get(abierto.tipo) ?? null) : null}

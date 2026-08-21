@@ -180,8 +180,14 @@
 				<Button variant="ghost" size="sm" href="/descubre">
 					<Sparkles class="size-4" /> <span class="hidden sm:inline">Descubre</span>
 				</Button>
-				<Button variant="ghost" size="sm" href="/enviar" class="hidden sm:inline-flex">
-					<Send class="size-4" /> Enviar recurso
+				<!--
+					En móvil va solo el icono, como Descubre: con la etiqueta no cabe (logo, lupa,
+					campana, tema y cuenta ya llenan la fila a 390 px). Lo que NO puede seguir
+					pasando es que desaparezca — de esta acción depende que entre material, y
+					esconderla del todo la dejaba solo dentro de la paleta, detrás de una lupa.
+				-->
+				<Button variant="ghost" size="sm" href="/enviar" class="toque" aria-label="Enviar recurso">
+					<Send class="size-4" /> <span class="hidden sm:inline">Enviar recurso</span>
 				</Button>
 				<Button
 					variant="ghost"
