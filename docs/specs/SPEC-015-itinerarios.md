@@ -270,5 +270,9 @@ sin buscar— y en la paleta de comandos. En el panel, entre Recursos y Sincroni
 - **Reordenar los tramos entre sí.** Se crean en orden y se pueden borrar; mover el tramo 3 al 1
   todavía no. Con dos o tres tramos se resuelve borrando y rehaciendo, y no ha parecido que
   justificara más botones en la primera versión.
-- Todo lo demás que ya estaba fuera de alcance: progreso personal, «recorrerlo en Descubre»,
-  presets por filtro, `imagen`, y asignar bloques desde el Sheet.
+- Todo lo demás que ya estaba fuera de alcance: progreso personal y «recorrerlo en Descubre».
+  De esa lista, dos ya se han hecho después: **`imagen`** (migración `00028`, segunda vuelta del
+  editor) y los **presets por filtro**, que resultaron ser cosa aparte y viven en SPEC-007
+  §Mazos guardados con su propia tabla (`00029`) — el punto 1 de las decisiones acertó: itinerario
+  y preset no son lo mismo. **Asignar bloques desde el Sheet queda descartado** por decisión del
+  usuario (2026-08-21).

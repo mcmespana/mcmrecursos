@@ -62,8 +62,8 @@ entonces: Orama y pgvector dejaron el camino pavimentado.
 | [003](specs/SPEC-003-interaccion-social.md) | Interacción social | ✅ implementada |
 | [004](specs/SPEC-004-envios-revision.md) | Envíos y revisión | ✅ implementada |
 | [005](specs/SPEC-005-sync-sheet.md) | Sincronización con el Sheet | ✅ backend implementado — falta crear el Sheet real (15 min) |
-| [006](specs/SPEC-006-vistas-filtros.md) | Vistas del catálogo y filtros | 🟡 parcial — §3 itinerario ya está (SPEC-015); faltan §4 top/descubrir, presets rápidos, faceta de rango |
-| [007](specs/SPEC-007-descubre-swipe.md) | Descubre (swipe + IA) | ✅ implementada — quedan los presets de mazo (ver roadmap, fundido con itinerarios) |
+| [006](specs/SPEC-006-vistas-filtros.md) | Vistas del catálogo y filtros | 🟡 parcial — §3 itinerario ya está (SPEC-015) y los presets rápidos también; faltan §4 top/descubrir y faceta de rango |
+| [007](specs/SPEC-007-descubre-swipe.md) | Descubre (swipe + IA) | ✅ implementada, presets de mazo incluidos (migración `00029`) |
 | [008](specs/SPEC-008-panel-admin.md) | Panel de administración | ✅ implementada (el editor de itinerarios acabó en `/admin/itinerarios`, ver SPEC-015) |
 | [009](specs/SPEC-009-versiones-recurso.md) | Versiones de un recurso | ✅ implementada |
 | [010](specs/SPEC-010-ia-busqueda-clasificacion.md) | IA: clasificación y búsqueda semántica | ✅ implementada |

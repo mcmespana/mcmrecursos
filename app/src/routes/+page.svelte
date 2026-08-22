@@ -16,11 +16,13 @@
 		textoIndexable,
 		type Seleccion
 	} from '$lib/catalogo/filtros';
-	import { limpiarNombre } from '$lib/catalogo/tipos';
+	import { limpiarNombre, vocabularioEdades } from '$lib/catalogo/tipos';
+	import { crearPreset, presetDeSeleccion, type Preset } from '$lib/catalogo/presets';
 	import { avisoDeshacible } from '$lib/deshacer';
 	import RecursoCard from '$lib/components/RecursoCard.svelte';
 	import RecursoTabla from '$lib/components/RecursoTabla.svelte';
 	import FacetaFiltro from '$lib/components/FacetaFiltro.svelte';
+	import PresetsChips from '$lib/components/PresetsChips.svelte';
 	import RecursoFicha from '$lib/components/RecursoFicha.svelte';
 	import LoginDialog from '$lib/components/LoginDialog.svelte';
 	import AvisoLocal from '$lib/components/AvisoLocal.svelte';
@@ -368,9 +370,43 @@
 	const esEquipo = $derived(
 		!!data.perfil && ['edicion_local', 'editor', 'administrador'].includes(data.perfil.rol)
 	);
+	const esAdmin = $derived(data.perfil?.rol === 'administrador');
+
+	/**
+	 * Presets (atajos de filtros, SPEC-006 §Filtros).
+	 *
+	 * Copia local del `data.presets` para poder pintar el atajo recién guardado al instante: el
+	 * `$effect` la resincroniza cuando el `load` trae otra tanda, pero un `invalidateAll()` solo
+	 * para enseñar un chip volvería a traer el catálogo entero por una fila.
+	 */
+	let presets = $state<Preset[]>([]);
+	$effect(() => {
+		presets = data.presets;
+	});
+
+	async function guardarPreset(nombre: string) {
+		const filtros = presetDeSeleccion(seleccion, facetas);
+		if (!filtros) return;
+		const { preset, error } = await crearPreset(data.supabase, {
+			nombre,
+			filtros,
+			orden: presets.length,
+			creadoPor: data.perfil?.id ?? null
+		});
+		if (!preset) {
+			toast.error('No se pudo guardar el atajo', { description: error ?? undefined });
+			return;
+		}
+		presets = [...presets, preset];
+		toast.success(`Atajo «${nombre}» guardado`, {
+			description: 'Ya sale en el buscador y en Descubre. Se gestiona en Ajustes.'
+		});
+	}
 	const tipoFamilia = $derived(
 		new Map(data.listas.filter((l) => l.lista === 'tipo').map((l) => [l.valor, l.grupo]))
 	);
+	/** Vocabulario de edades: con todas puestas, tarjeta, tabla y ficha dicen «todas». */
+	const vocabEdades = $derived(vocabularioEdades(data.listas));
 	const opcionesPorFaceta = $derived.by(() => {
 		const map = new Map<string, { valor: string; grupo: string | null }[]>();
 		for (const f of facetas) {
@@ -590,6 +626,19 @@
 	</section>
 
 	<!--
+		Atajos guardados, encima de las facetas: son un camino corto POR ENCIMA de la maquinaria de
+		filtros, no otro filtro más. Si no hay ninguno guardado, la fila no existe.
+	-->
+	<PresetsChips
+		{presets}
+		{facetas}
+		{seleccion}
+		puedeGuardar={esAdmin}
+		onaplicar={(nueva) => (seleccion = nueva)}
+		onguardar={guardarPreset}
+	/>
+
+	<!--
 		Facetas: envueltas en escritorio, carrusel en móvil.
 
 		El carrusel se cortaba a media palabra sin ninguna pista de que hubiera más (F10 de
@@ -699,6 +748,7 @@
 			<RecursoTabla
 				recursos={resultados}
 				{tipoFamilia}
+				{vocabEdades}
 				{esFavorito}
 				onopen={abrirFicha}
 				onfavorito={toggleFavorito}
@@ -711,6 +761,7 @@
 							{recurso}
 							familia={recurso.tipo ? (tipoFamilia.get(recurso.tipo) ?? null) : null}
 							favorito={esFavorito(recurso.id)}
+							{vocabEdades}
 							nombreTransicion={transicion.tarjeta(recurso.id)}
 							conEstadoEditorial={esEquipo}
 						onopen={abrirFicha}
@@ -798,6 +849,7 @@
 <RecursoFicha
 	supabase={data.supabase}
 	session={data.session}
+	{vocabEdades}
 	puedeModerar={data.perfil?.rol === 'editor' || data.perfil?.rol === 'administrador'}
 	conEstadoEditorial={esEquipo}
 	onrequierelogin={() => (loginAbierto = true)}

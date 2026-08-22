@@ -3,21 +3,30 @@ import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ params, locals: { supabase } }) => {
 	// La RLS de 00026 devuelve 0 filas si es borrador y quien mira no es editor → 404 limpio.
-	const { data } = await supabase
-		.from('itinerario')
-		.select(
-			`id, nombre, descripcion, etapas, edades, imagen, estado,
-			 itinerario_bloque (id, nombre, descripcion, orden,
-			   recurso_bloque (orden,
-			     recurso:recurso_id (id, nombre, descripcion, tipo, etapas, nivel, edades, idioma,
-			       soporte, ubicacion, enlace, formato, imagen, anyo_publicacion, curso_usado,
-			       visibilidad, estado, fuera_del_banco, pendiente_clasificar, version_de,
-			       mcm_local:mcm_local_id (nombre),
-			       recurso_archivo (id, enlace, etiqueta, formato, orden),
-			       recurso_tag (tag (nombre)))))`
-		)
-		.eq('id', params.id)
-		.maybeSingle();
+	// El vocabulario de edades va aparte: sirve para decir «todas» en vez de listar catorce cursos.
+	const [{ data }, edadesRes] = await Promise.all([
+		supabase
+			.from('itinerario')
+			.select(
+				`id, nombre, descripcion, etapas, edades, imagen, estado,
+				 itinerario_bloque (id, nombre, descripcion, orden,
+				   recurso_bloque (orden,
+				     recurso:recurso_id (id, nombre, descripcion, tipo, etapas, nivel, edades, idioma,
+				       soporte, ubicacion, enlace, formato, imagen, anyo_publicacion, curso_usado,
+				       visibilidad, estado, fuera_del_banco, pendiente_clasificar, version_de,
+				       mcm_local:mcm_local_id (nombre),
+				       recurso_archivo (id, enlace, etiqueta, formato, orden),
+				       recurso_tag (tag (nombre)))))`
+			)
+			.eq('id', params.id)
+			.maybeSingle(),
+		supabase
+			.from('lista_valor')
+			.select('lista, valor, grupo, orden')
+			.eq('lista', 'edades')
+			.eq('activo', true)
+			.order('orden')
+	]);
 
 	if (!data) error(404, 'Ese itinerario no existe o todavía no está publicado');
 
@@ -54,6 +63,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 		}));
 
 	return {
+		listas: edadesRes.data ?? [],
 		itinerario: {
 			id: it.id,
 			nombre: it.nombre,

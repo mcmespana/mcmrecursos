@@ -3,8 +3,9 @@
 > **Estado:** PARCIALMENTE IMPLEMENTADA — §1 galería, §2 tabla admin (/admin/recursos),
 > §2b tabla pública (toggle `?vista=tabla`, columnas configurables en localStorage,
 > componente `RecursoTabla`), filtros por facetas dirigidos por la tabla `faceta`
-> (editable en /admin/config), chips activos y URL sincronizada. PENDIENTE: §3 itinerario,
-> §4 top/descubrir, presets rápidos y faceta de rango (año).
+> (editable en /admin/config), chips activos y URL sincronizada, y **presets rápidos**
+> («Atajos», migración `00029`, ver SPEC-007 §Mazos guardados). PENDIENTE: §4 top/descubrir y
+> faceta de rango (año). §3 itinerario lo cubre SPEC-015.
 > **Depende de:** SPEC-002
 
 ## Vistas (conmutables, misma búsqueda debajo)
@@ -37,8 +38,11 @@
 - **Chips de filtros activos** encima de los resultados, quitables de un toque + "limpiar todo".
 - **Multiselect dentro de una faceta = OR** (MIC o COM); **entre facetas = AND** (MIC ∧ PDF).
 - **URL sincronizada** con el estado completo de búsqueda → compartible y con historial.
-- **Presets rápidos** (chips sugeridos): "Adviento", "Para monitores", "Lo mejor de este año"…
-  configurables por admin.
+- **Presets rápidos** (chips sugeridos): "Adviento", "Para monitores"… configurables por admin.
+  ✅ hecho — se crean desde el propio buscador («Guardar como atajo») y se gestionan en Ajustes →
+  Atajos; los mismos chips arman el mazo en `/descubre`. El diseño y el porqué de guardar filtros
+  y no recursos, en SPEC-007 §Mazos guardados. «Lo mejor de este año» se queda fuera hasta que
+  haya faceta de rango: hoy no hay ninguna faceta que diga «mejor valorado».
 - Facetas previstas al inicio: tipo, etapas, edades, tags, nivel, mcm_local, idioma, soporte,
   año, valoración mínima, solo favoritos (con login), estado (solo editores).
 

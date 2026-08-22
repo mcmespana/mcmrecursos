@@ -8,7 +8,8 @@
 		iconoDeTipo,
 		limpiarNombre,
 		esEjemplo,
-		miniatura
+		miniatura,
+		resumirEdades
 	} from '$lib/catalogo/tipos';
 	import { FORMATOS, formatoEfectivo, urlFavicon } from '$lib/catalogo/formatos';
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
@@ -20,6 +21,7 @@
 		recurso,
 		familia,
 		favorito,
+		vocabEdades = [],
 		nombreTransicion = null,
 		conEstadoEditorial = false,
 		onopen,
@@ -28,6 +30,8 @@
 		recurso: RecursoCatalogo;
 		familia: string | null;
 		favorito: boolean;
+		/** Vocabulario de edades, para poder decir «todas» en vez de listarlas (`resumirEdades`). */
+		vocabEdades?: string[];
 		/** `view-transition-name` de la miniatura mientras se abre la ficha (SPEC-012 §Movimiento). */
 		nombreTransicion?: string | null;
 		/**
@@ -45,6 +49,8 @@
 	const fondoClase = $derived((familia && FAMILIA_FONDO[familia]) || FONDO_NEUTRO);
 	const Icono = $derived(iconoDeTipo(recurso.tipo, familia));
 	const nombre = $derived(limpiarNombre(recurso.nombre));
+	// la tarjeta enseña tres edades como mucho; con todas puestas dice «todas»
+	const edades = $derived(resumirEdades(recurso.edades, vocabEdades, 3));
 	const formato = $derived(formatoEfectivo(recurso.enlace, recurso.formato));
 	// una web sin miniatura se reconoce mucho mejor por su favicon que por un globo genérico
 	const favicon = $derived(formato === 'web' ? urlFavicon(recurso.enlace, 128) : null);
@@ -172,13 +178,18 @@
 			aspecto de dato. Ahora las edades van con su «para» delante, que es lo que la sigla no
 			dice (F5 de docs/06-reflexion-uiux.md).
 		-->
+		<!--
+			Dos líneas, no una: con cuatro etapas y «para todas las edades» el `line-clamp-1` cortaba
+			justo la parte que informa y dejaba «MIC · COM · LC · Monitores · para…», que es peor que
+			no poner nada. Casi siempre sigue cabiendo en una.
+		-->
 		{#if recurso.etapas.length || recurso.edades.length}
-			<p class="line-clamp-1 text-xs text-muted-foreground">
+			<p class="line-clamp-2 text-xs text-muted-foreground">
 				{#if recurso.etapas.length}<span>{recurso.etapas.join(' · ')}</span>{/if}
 				{#if recurso.edades.length}
 					<span class="text-muted-foreground/70">
 						{recurso.etapas.length ? '· para' : 'Para'}
-						{recurso.edades.slice(0, 3).join(', ')}
+						{edades.todas ? 'todas las edades' : edades.valores.join(', ')}
 					</span>
 				{/if}
 			</p>

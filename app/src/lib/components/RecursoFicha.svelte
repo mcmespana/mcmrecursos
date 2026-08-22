@@ -7,7 +7,8 @@
 		FONDO_NEUTRO,
 		iconoDeTipo,
 		limpiarNombre,
-		esEjemplo
+		esEjemplo,
+		resumirEdades
 	} from '$lib/catalogo/tipos';
 	import {
 		FORMATOS,
@@ -62,6 +63,7 @@
 		versionesAnteriores = [],
 		nombreTransicion = null,
 		conEstadoEditorial = false,
+		vocabEdades = [],
 		onclose,
 		onnavegar,
 		onabrirrelacionado,
@@ -97,6 +99,8 @@
 		nombreTransicion?: string | null;
 		/** Enseñar las marcas de trabajo interno («pendiente de trocear»). Solo rol de panel (F6). */
 		conEstadoEditorial?: boolean;
+		/** Vocabulario de edades, para poder decir «Todas» en vez de listarlas (`resumirEdades`). */
+		vocabEdades?: string[];
 		onclose: () => void;
 		onnavegar: (direccion: 1 | -1) => void;
 		onabrirrelacionado: (r: RecursoCatalogo) => void;
@@ -199,11 +203,13 @@
 	// Separado en dos: «para quién» es lo primero que se busca en un recurso, y «ficha
 	// técnica» es todo lo demás (procedencia, idioma, soporte…). Antes iba todo en una
 	// sola lista plana sin distinguir qué es audiencia y qué es procedencia.
+	// «Todas» en vez de los catorce cursos: la lista larga no excluye a nadie, así que no informa
+	const edades = $derived(resumirEdades(recurso?.edades, vocabEdades));
 	const paraQuien = $derived(
 		recurso
 			? ([
 					['Etapa', recurso.etapas.join(', ')],
-					['Edades', recurso.edades.join(', ')],
+					['Edades', edades.todas ? 'Todas' : edades.valores.join(', ')],
 					['Nivel', recurso.nivel]
 				].filter(([, v]) => v) as [string, string][])
 			: []

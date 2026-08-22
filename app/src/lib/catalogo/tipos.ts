@@ -196,3 +196,37 @@ export interface ListaResumen {
 	publica: boolean;
 	num_recursos: number;
 }
+
+/**
+ * Vocabulario de edades activo, tal y como lo devuelve `lista_valor`.
+ *
+ * Se saca de las listas y no de los recursos: hace falta saber cuántas edades EXISTEN para poder
+ * decir «todas», y contar las que aparecen en el catálogo daría «todas» en cuanto nadie hubiera
+ * usado la última.
+ */
+export const vocabularioEdades = (listas: ListaValor[]): string[] =>
+	listas.filter((l) => l.lista === 'edades').map((l) => l.valor);
+
+/**
+ * Cómo se dicen unas edades en la vista de cliente.
+ *
+ * Con las catorce edades marcadas —el caso normal en un recurso transversal, tipo una carpeta de
+ * Drive— la fila decía «para 3º EP, 4º EP, 5º EP, 6º EP, 1º ESO, 2º ESO…»: catorce cursos que no
+ * informan de nada porque no excluyen a nadie. Cuando están todas se dice **todas**, y ya.
+ *
+ * En el panel NO se usa: allí interesa ver el dato tal cual está guardado, que es lo que se está
+ * editando.
+ *
+ * `max` recorta cuando no están todas (las tarjetas enseñan tres y la ficha las enseña enteras).
+ */
+export function resumirEdades(
+	edades: string[] | null | undefined,
+	vocabulario: string[],
+	max = Infinity
+): { todas: boolean; valores: string[] } {
+	const puestas = edades ?? [];
+	// con un vocabulario de una sola edad, «todas» no diría nada que no diga su nombre
+	const todas =
+		vocabulario.length > 1 && vocabulario.every((v) => puestas.includes(v));
+	return { todas, valores: todas ? [] : puestas.slice(0, max) };
+}
