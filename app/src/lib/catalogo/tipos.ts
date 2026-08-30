@@ -57,6 +57,12 @@ export interface RecursoCatalogo {
 	estado: string;
 	fuera_del_banco: boolean;
 	pendiente_clasificar: boolean;
+	/**
+	 * Recurso de muestra (SPEC-017 §3): se busca, se filtra y se valora como los demás, pero
+	 * lleva insignia «Demo» y su enlace no apunta a material real, así que la interfaz no
+	 * intenta abrirlo ni empotrar su vista previa.
+	 */
+	es_demo: boolean;
 	tags: string[];
 	autores: string[];
 	relacionados: string[];
@@ -164,8 +170,14 @@ export function iconoDeTipo(
 export const BADGE_NEUTRO = 'bg-muted text-muted-foreground';
 export const FONDO_NEUTRO = 'from-primary/15 via-accent to-warm/20';
 
+/**
+ * Recorta el prefijo «[EJEMPLO] » de un título.
+ *
+ * Ya no lo lleva ningún recurso — lo dice `es_demo` desde la migración 00031 — pero esto se
+ * queda como red: el Sheet de sincronización sigue siendo un documento que edita gente, y si
+ * alguien vuelve a escribirlo a mano, se recorta al pintar en vez de salir en la tarjeta.
+ */
 export const limpiarNombre = (nombre: string) => nombre.replace(/^\[EJEMPLO\]\s*/, '');
-export const esEjemplo = (nombre: string) => nombre.startsWith('[EJEMPLO]');
 
 /**
  * Miniatura efectiva: la imagen explícita o, si falta, una derivada del enlace

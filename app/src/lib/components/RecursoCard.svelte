@@ -7,7 +7,6 @@
 		FONDO_NEUTRO,
 		iconoDeTipo,
 		limpiarNombre,
-		esEjemplo,
 		miniatura,
 		resumirEdades
 	} from '$lib/catalogo/tipos';
@@ -15,7 +14,7 @@
 	import IconoFormato from '$lib/components/IconoFormato.svelte';
 	import { Badge } from '$lib/components/ui/badge';
 	import Estrellas from '$lib/components/Estrellas.svelte';
-	import { FolderSymlink, Heart, Lock, PackageOpen } from '@lucide/svelte';
+	import { FlaskConical, FolderSymlink, Heart, Lock, PackageOpen } from '@lucide/svelte';
 
 	let {
 		recurso,
@@ -136,13 +135,19 @@
 				</span>
 			{/if}
 		</div>
-		{#if esEjemplo(recurso.nombre)}
-			<Badge
-				variant="outline"
-				class="absolute right-2 bottom-2 bg-background/80 text-[10px] backdrop-blur"
+		<!--
+			Insignia de muestra. Va en ámbar (`--warm`, la capa «lo vivo» del sistema) y no en
+			gris de contorno: tiene que leerse a la primera pasada por la rejilla, porque de
+			ella depende que nadie se lleve un chasco al pulsar. Abajo a la izquierda, lejos del
+			corazón, que es lo único con lo que compite en esta esquina.
+		-->
+		{#if recurso.es_demo}
+			<span
+				class="absolute bottom-2 left-2 flex items-center gap-1 rounded-full bg-warm/90 px-2 py-0.5 text-[10px] font-semibold text-warm-foreground shadow-sm"
+				title="Recurso de muestra: enseña cómo será el banco, todavía no es material real"
 			>
-				Ejemplo
-			</Badge>
+				<FlaskConical class="size-3" /> Demo
+			</span>
 		{/if}
 
 		<!--

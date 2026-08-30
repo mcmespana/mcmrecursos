@@ -9,7 +9,8 @@
 		RefreshCw,
 		Settings2,
 		Users,
-		ChartBar
+		ChartBar,
+		Megaphone
 	} from '@lucide/svelte';
 	import { buzon } from '$lib/avisos/estado.svelte';
 
@@ -46,6 +47,16 @@
 				icono: Database,
 				activa: true,
 				pastilla: null as number | null
+			},
+			// Lo que llega de fuera (SPEC-017): correos de la lista de espera y sugerencias. Va
+			// junto a Revisión y Recursos porque es del mismo oficio —atender lo que entra— y no
+			// abajo con la configuración, que es donde se muere lo que no se mira.
+			{
+				href: '/admin/comunidad',
+				etiqueta: 'Comunidad',
+				icono: Megaphone,
+				activa: true,
+				pastilla: data.sugerenciasNuevas || null
 			},
 			// itinerarios: contenido editorial, no un ajuste — de ahí que no viva en /admin/config
 			...(data.rolPanel !== 'edicion_local'

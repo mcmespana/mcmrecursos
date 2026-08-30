@@ -73,5 +73,6 @@ entonces: Orama y pgvector dejaron el camino pavimentado.
 | [014](specs/SPEC-014-salud-tareas.md) | Salud del banco y tareas del equipo | ✅ implementada (2026-08-13) |
 | [015](specs/SPEC-015-itinerarios.md) | Itinerarios de recursos | ✅ implementada (2026-08-20) — migración `00026`, editor y parte pública |
 | [016](specs/SPEC-016-avisos-panel.md) | Avisos y tareas: el buzón del equipo | ✅ implementada (2026-08-15) |
+| [017](specs/SPEC-017-espera-sugerencias.md) | Lista de espera, sugerencias y catálogo de demostración | ✅ implementada (2026-08-30) |
 
 Plantilla para specs nuevas: [`specs/_TEMPLATE.md`](specs/_TEMPLATE.md).

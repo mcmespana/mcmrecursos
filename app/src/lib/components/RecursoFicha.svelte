@@ -7,7 +7,6 @@
 		FONDO_NEUTRO,
 		iconoDeTipo,
 		limpiarNombre,
-		esEjemplo,
 		resumirEdades
 	} from '$lib/catalogo/tipos';
 	import {
@@ -29,15 +28,18 @@
 	import Estrellas from '$lib/components/Estrellas.svelte';
 	import ComentariosRecurso from '$lib/components/ComentariosRecurso.svelte';
 	import GuardarEnLista from '$lib/components/GuardarEnLista.svelte';
+	import { comunidad } from '$lib/comunidad/estado.svelte';
 	import { miniatura } from '$lib/catalogo/tipos';
 	import type { SupabaseClient, Session } from '@supabase/supabase-js';
 	import {
+		BellRing,
 		Check,
 		ChevronLeft,
 		ChevronRight,
 		Copy,
 		Download,
 		Eye,
+		FlaskConical,
 		Link2,
 		ScanEye,
 		FolderSymlink,
@@ -155,7 +157,14 @@
 	 * verla la oculta y se recuerda en este dispositivo.
 	 */
 	const CLAVE_PREVIA = 'mcm-vista-previa';
-	const previa = $derived(recurso ? urlVistaPrevia(recurso.enlace, recurso.formato) : null);
+	/**
+	 * Vista previa, descargas y copia editable se apagan en los recursos de muestra: su enlace
+	 * tiene la forma del bueno pero no lleva a ningún archivo, así que empotrar el visor de
+	 * Drive solo conseguiría un iframe con un error de Google dentro de la ficha.
+	 */
+	const previa = $derived(
+		recurso && !recurso.es_demo ? urlVistaPrevia(recurso.enlace, recurso.formato) : null
+	);
 	const claveFormato = $derived(recurso ? formatoEfectivo(recurso.enlace, recurso.formato) : null);
 	let previaVisible = $state(true);
 	$effect(() => {
@@ -168,8 +177,8 @@
 	const previaAbierta = $derived(!!previa && previaVisible);
 
 	// Descargas por URL y copia editable, solo para documentos de Google (SPEC-011).
-	const descargas = $derived(recurso ? descargasDe(recurso.enlace) : []);
-	const copia = $derived(recurso ? urlCopia(recurso.enlace) : null);
+	const descargas = $derived(recurso && !recurso.es_demo ? descargasDe(recurso.enlace) : []);
+	const copia = $derived(recurso && !recurso.es_demo ? urlCopia(recurso.enlace) : null);
 
 	// Si el recurso es una web sin miniatura, su favicon dice más que un globo genérico.
 	const favicon = $derived(
@@ -260,8 +269,10 @@
 					{#if recurso.tipo}
 						<Badge class={`border-transparent ${badgeClase}`}>{recurso.tipo}</Badge>
 					{/if}
-					{#if esEjemplo(recurso.nombre)}
-						<Badge variant="outline">Ejemplo</Badge>
+					{#if recurso.es_demo}
+						<Badge class="border-transparent bg-warm/90 text-warm-foreground">
+							<FlaskConical class="size-3" /> Demo
+						</Badge>
 					{/if}
 					{#if recurso.visibilidad === 'privado'}
 						<Badge variant="secondary">Privado</Badge>
@@ -300,8 +311,10 @@
 					{#if recurso.tipo}
 						<Badge class={`border-transparent shadow-sm ${badgeClase}`}>{recurso.tipo}</Badge>
 					{/if}
-					{#if esEjemplo(recurso.nombre)}
-						<Badge variant="outline" class="bg-background/80 backdrop-blur">Ejemplo</Badge>
+					{#if recurso.es_demo}
+						<Badge class="border-transparent bg-warm/90 text-warm-foreground shadow-sm">
+							<FlaskConical class="size-3" /> Demo
+						</Badge>
 					{/if}
 					{#if recurso.visibilidad === 'privado'}
 						<Badge variant="secondary">Privado</Badge>
@@ -356,9 +369,35 @@
 					</p>
 				{/if}
 
+				<!--
+					Aviso de muestra. Va ANTES de las acciones y no después: lo que hay que evitar es
+					que alguien pulse «Abrir» esperando un PDF. Y como el chasco es el momento en que
+					más claro se tiene qué falta, aquí es donde mejor cae la invitación a la lista.
+				-->
+				{#if recurso.es_demo}
+					<div class="flex flex-col gap-2 rounded-xl border border-warm/40 bg-warm/10 p-4">
+						<p class="flex items-center gap-1.5 text-sm font-semibold">
+							<FlaskConical class="size-4 text-warm-foreground dark:text-warm" />
+							Esto es un recurso de muestra
+						</p>
+						<p class="text-sm leading-relaxed text-muted-foreground">
+							La ficha es de verdad —así se catalogará todo— pero el archivo todavía no
+							existe. Estamos subiendo el material real estas semanas.
+						</p>
+						<Button
+							variant="outline"
+							size="sm"
+							class="self-start border-warm/50 bg-background/60"
+							onclick={() => comunidad.abrirBienvenida('ficha')}
+						>
+							<BellRing class="size-3.5" /> Avísame cuando esté
+						</Button>
+					</div>
+				{/if}
+
 				<!-- acciones -->
 				<div class="flex items-stretch gap-2">
-					{#if archivos.length}
+					{#if archivos.length && !recurso.es_demo}
 						<Button size="lg" class="flex-1" onclick={() => onabrir(recurso!, archivos[0].enlace)}>
 							<IconoFormato
 								enlace={archivos[0].enlace}
@@ -448,7 +487,7 @@
 				{/if}
 
 				<!-- otros formatos del mismo recurso (SPEC-011) -->
-				{#if archivos.length > 1}
+				{#if archivos.length > 1 && !recurso.es_demo}
 					<div class="flex flex-col gap-1.5">
 						<p class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 							También disponible en

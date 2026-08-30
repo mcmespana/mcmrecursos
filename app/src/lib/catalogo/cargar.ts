@@ -23,7 +23,7 @@ export async function cargarDatosCatalogo(
 			.select(
 				`id, nombre, descripcion, tipo, etapas, nivel, edades, idioma, soporte, ubicacion,
 				 enlace, formato, imagen, anyo_publicacion, curso_usado, visibilidad, estado, version_de,
-				 fuera_del_banco, pendiente_clasificar,
+				 fuera_del_banco, pendiente_clasificar, es_demo,
 				 mcm_local:mcm_local_id (nombre),
 				 recurso_archivo (id, enlace, etiqueta, formato, orden),
 				 recurso_tag (tag (nombre)),
@@ -82,6 +82,7 @@ export async function cargarDatosCatalogo(
 			estado: r.estado,
 			fuera_del_banco: r.fuera_del_banco,
 			pendiente_clasificar: r.pendiente_clasificar,
+			es_demo: r.es_demo ?? false,
 			tags: (r.recurso_tag ?? []).map((t: any) => t.tag?.nombre).filter(Boolean),
 			autores: (r.recurso_autor ?? [])
 				.map((a: any) => [a.autor?.nombre, a.autor?.apellidos].filter(Boolean).join(' '))

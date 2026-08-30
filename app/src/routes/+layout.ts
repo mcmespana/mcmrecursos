@@ -52,5 +52,12 @@ export const load: LayoutLoad = async ({ data, depends, fetch }) => {
 		}
 	}
 
-	return { session, supabase, perfil, mcmLocales, busquedaSemantica: data.busquedaSemantica };
+	return {
+		session,
+		supabase,
+		perfil,
+		mcmLocales,
+		enEspera: data.enEspera,
+		busquedaSemantica: data.busquedaSemantica
+	};
 };

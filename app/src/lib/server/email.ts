@@ -68,3 +68,39 @@ export function emailEnvioDevuelto(para: string, tituloRecurso: string, motivo: 
 		)
 	);
 }
+
+/**
+ * Bienvenida a la lista de espera (SPEC-017 §1).
+ *
+ * Se manda una sola vez, al alta nueva. Hace tres cosas y ninguna es de relleno: confirma que
+ * el correo llegó bien —el error más caro de una lista de espera es la dirección con una letra
+ * cambiada, y esto lo detecta en el acto—, recuerda que se pueden enviar recursos ya, sin
+ * esperar a nadie, y le dice a quien marcó «quiero ayudar» que le vamos a escribir, para que
+ * no se quede pensando si aquella casilla sirvió de algo.
+ */
+export function emailBienvenidaEspera(para: string, quiereAyudar: boolean, origen: string) {
+	return enviar(
+		para,
+		'Te avisamos en cuanto haya material 🌱',
+		plantilla(
+			'¡Apuntado!',
+			`<p>Gracias por dejarnos tu correo. El Banco de Recursos del MCM ya está montado
+			  —buscador, filtros, valoraciones, itinerarios— y ahora mismo le falta lo principal:
+			  <strong>el contenido</strong>. Estamos subiéndolo estas semanas.</p>
+			 <p>Te escribiremos en cuanto haya material de verdad. Ni un correo antes.</p>
+			 ${
+					quiereAyudar
+						? `<p style="background: #f4f9fa; border-left: 3px solid #16606b; padding: 10px 14px; border-radius: 6px;">
+			         Además nos dijiste que <strong>quieres echar una mano</strong>. Te escribimos a
+			         este mismo correo para prepararlo juntos: hay sitio para quien quiera aportar
+			         material, catalogar, probar o simplemente correr la voz.</p>`
+						: ''
+				}
+			 <p><strong>¿Y si el material lo tienes tú?</strong> No hace falta esperar: si tienes
+			  sesiones, oraciones, vídeos o carpetas enteras, se pueden enviar hoy mismo. Basta con
+			  el enlace — del resto nos encargamos nosotros.</p>`,
+			'Enviar un recurso',
+			`${origen}/enviar`
+		)
+	);
+}
