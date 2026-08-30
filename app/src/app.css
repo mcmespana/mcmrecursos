@@ -126,6 +126,22 @@
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
 	--radius-xl: calc(var(--radius) + 4px);
+
+	/*
+	   Curvas de movimiento (docs/04-diseno.md §5). Las de serie de CSS son flojas: `ease-out`
+	   apenas frena al final, y una entrada con ella se lee como «se ha movido» en vez de como
+	   «ha llegado». Estas tres tienen el tirón que hace que la animación parezca decidida.
+
+	   Van con nombre propio (`ease-brio`, `ease-vaiven`, `ease-cajon`) en vez de pisar
+	   `--ease-out`: redefinir la de Tailwind cambiaría de golpe todas las transiciones ya
+	   escritas de la app, que están medidas con la curva floja. Aquí se añade, no se sustituye.
+
+	   Regla de uso: entrar o salir → `ease-brio`. Moverse por la pantalla → `ease-vaiven`.
+	   Paneles que se deslizan desde un borde → `ease-cajon`. Nunca `ease-in` en interfaz.
+	*/
+	--ease-brio: cubic-bezier(0.23, 1, 0.32, 1);
+	--ease-vaiven: cubic-bezier(0.77, 0, 0.175, 1);
+	--ease-cajon: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 @layer base {

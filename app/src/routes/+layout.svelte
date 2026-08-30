@@ -21,10 +21,15 @@
 		Sun
 	} from '@lucide/svelte';
 	import OnboardingMcm from '$lib/components/OnboardingMcm.svelte';
+	import ModalBienvenida from '$lib/components/comunidad/ModalBienvenida.svelte';
+	import PanelSugerencias from '$lib/components/comunidad/PanelSugerencias.svelte';
+	import BotonSugerencias from '$lib/components/comunidad/BotonSugerencias.svelte';
+	import { comunidad } from '$lib/comunidad/estado.svelte';
 	import CampanaAvisos from '$lib/components/avisos/CampanaAvisos.svelte';
 	import BarraProgreso from '$lib/components/BarraProgreso.svelte';
 	import PaletaComandos from '$lib/components/PaletaComandos.svelte';
 	import { browser } from '$app/environment';
+	import { page } from '$app/state';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { socialLocal } from '$lib/social/local.svelte';
 
@@ -41,6 +46,32 @@
 	});
 
 	const usuario = $derived(data.session?.user);
+
+	/**
+	 * El panel tiene su propio buzón de avisos y tareas (SPEC-016): un flotante de sugerencias
+	 * ahí sería una segunda bandeja para la misma gente, y la sugerencia de un editor sobre su
+	 * propia herramienta es una tarea, no un aviso de fuera.
+	 */
+	const enPanel = $derived(page.url.pathname.startsWith('/admin'));
+
+	/**
+	 * El modal de «has llegado muy pronto» sale solo en la primera visita del día, y nunca más
+	 * en cuanto alguien deja su correo (`comunidad.iniciar()` lo decide leyendo el navegador).
+	 *
+	 * Los 900 ms de espera no son decoración: si el modal aparece a la vez que la página, tapa
+	 * el banco antes de que se haya visto, y entonces «te avisamos cuando haya contenido» no
+	 * significa nada porque no se ha visto de qué contenido se habla. Primero se ve la
+	 * herramienta funcionando, después se explica qué le falta.
+	 *
+	 * No sale en el panel ni en `/enviar`: quien está catalogando ya está dentro, y a quien
+	 * viene a aportar material no se le corta con una lista de espera.
+	 */
+	$effect(() => {
+		if (!browser || enPanel || page.url.pathname === '/enviar') return;
+		if (!comunidad.iniciar()) return;
+		const t = setTimeout(() => comunidad.abrirBienvenida('auto'), 900);
+		return () => clearTimeout(t);
+	});
 	/** El buzón es del equipo editor: quien no administra nada no tiene qué mirar ahí. */
 	const puedeAdministrar = $derived(
 		!!data.perfil && ['edicion_local', 'editor', 'administrador'].includes(data.perfil.rol)
@@ -156,6 +187,12 @@
 	/>
 {/if}
 
+<ModalBienvenida total={data.enEspera ?? 0} />
+<PanelSugerencias />
+{#if browser && !enPanel}
+	<BotonSugerencias />
+{/if}
+
 <div class="flex min-h-svh flex-col">
 	<!--
 		Saltar al contenido: la cabecera trae paleta, Descubre, enviar, tema y cuenta, y sin este
@@ -268,13 +305,36 @@
 	</div>
 
 	<footer class="border-t py-6">
-		<p class="text-center text-xs text-muted-foreground">
-			Banco de Recursos <a
-				href="/entrar"
-				title="Acceso"
-				aria-label="Acceso al panel"
-				class="px-0.5 text-muted-foreground no-underline transition-colors hover:text-primary">·</a
-			> Movimiento Consolación para el Mundo
-		</p>
+		<div class="mx-auto flex max-w-[1600px] flex-col items-center gap-2 px-4">
+			<div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs">
+				<a href="/sugerencias" class="text-muted-foreground transition-colors hover:text-primary">
+					Sugerencias
+				</a>
+				<a href="/enviar" class="text-muted-foreground transition-colors hover:text-primary">
+					Enviar un recurso
+				</a>
+				<!--
+					El aviso de la lista de espera desaparece en cuanto alguien deja su correo: seguir
+					ofreciéndoselo a quien ya está apuntado es decirle que no nos acordamos.
+				-->
+				{#if browser && !comunidad.apuntado}
+					<button
+						type="button"
+						class="text-muted-foreground transition-colors hover:text-primary"
+						onclick={() => comunidad.abrirBienvenida('boton')}
+					>
+						Avisadme cuando haya material
+					</button>
+				{/if}
+			</div>
+			<p class="text-center text-xs text-muted-foreground">
+				Banco de Recursos <a
+					href="/entrar"
+					title="Acceso"
+					aria-label="Acceso al panel"
+					class="px-0.5 text-muted-foreground no-underline transition-colors hover:text-primary">·</a
+				> Movimiento Consolación para el Mundo
+			</p>
+		</div>
 	</footer>
 </div>

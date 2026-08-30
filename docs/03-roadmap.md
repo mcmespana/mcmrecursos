@@ -8,8 +8,14 @@ por hacer**, para que abrirlo no dé pereza.
 Estado de las specs: la tabla de `docs/00-vision.md` dice de un vistazo cuál está implementada,
 cuál en curso y cuál es solo un borrador.
 
-## 👉 Orden acordado (actualizado 2026-08-15)
+## 👉 Orden acordado (actualizado 2026-08-30)
 
+0. ~~Lista de espera, sugerencias y catálogo de demostración~~ ✅ hecho (2026-08-30, SPEC-017,
+   migraciones `00030` y `00031`) — el banco tenía 7 recursos con enlaces `EJEMPLO-*` que daban
+   404: ahora son 19, marcados con `es_demo` (ya no en el título), con capa social, relaciones
+   e itinerario de dos tramos. Modal de bienvenida en la portada («¡Has llegado muy pronto!»)
+   que recoge correo y ganas de ayudar, botón flotante + página de sugerencias, y
+   `/admin/comunidad` para gestionar las dos bandejas.
 1. ~~Detección de duplicados~~ ✅ hecha (2026-08-04/06, migración `00019`, SPEC-008 §2).
 2. ~~Panel de salud del banco y tareas del equipo~~ ✅ hecho (2026-08-13, SPEC-014, migraciones
    `00021`–`00023`) — detalle en `docs/archivo/roadmap-historico.md`.

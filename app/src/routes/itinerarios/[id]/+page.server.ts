@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 				   recurso_bloque (orden,
 				     recurso:recurso_id (id, nombre, descripcion, tipo, etapas, nivel, edades, idioma,
 				       soporte, ubicacion, enlace, formato, imagen, anyo_publicacion, curso_usado,
-				       visibilidad, estado, fuera_del_banco, pendiente_clasificar, version_de,
+				       visibilidad, estado, fuera_del_banco, pendiente_clasificar, es_demo, version_de,
 				       mcm_local:mcm_local_id (nombre),
 				       recurso_archivo (id, enlace, etiqueta, formato, orden),
 				       recurso_tag (tag (nombre)))))`
@@ -43,6 +43,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 				.filter(Boolean)
 				.map((r: any) => ({
 					...r,
+					es_demo: r.es_demo ?? false,
 					mcm_local: r.mcm_local?.nombre ?? null,
 					archivos: [...((r.recurso_archivo ?? []) as any[])].sort(
 						(a, b2) => (a.orden ?? 0) - (b2.orden ?? 0)

@@ -24,6 +24,7 @@ function unRecurso(parcial: Partial<RecursoCatalogo> & { id: string }): RecursoC
 		visibilidad: 'publico',
 		estado: 'publicado',
 		fuera_del_banco: false,
+	es_demo: false,
 		pendiente_clasificar: false,
 		tags: [],
 		autores: [],

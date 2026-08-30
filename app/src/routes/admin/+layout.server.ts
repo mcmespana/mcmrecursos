@@ -18,5 +18,15 @@ export const load: LayoutServerLoad = async ({ locals: { supabase, user } }) => 
 		.select('id', { count: 'exact', head: true })
 		.eq('estado', 'abierta');
 
-	return { rolPanel: perfil.rol as string, tareasAbiertas: tareasAbiertas ?? 0 };
+	// Pastilla de «Comunidad»: sugerencias sin abrir todavía (SPEC-017 §4).
+	const { count: sugerenciasNuevas } = await supabase
+		.from('sugerencia')
+		.select('id', { count: 'exact', head: true })
+		.eq('estado', 'nueva');
+
+	return {
+		rolPanel: perfil.rol as string,
+		tareasAbiertas: tareasAbiertas ?? 0,
+		sugerenciasNuevas: sugerenciasNuevas ?? 0
+	};
 };

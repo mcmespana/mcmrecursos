@@ -47,6 +47,7 @@ export async function camposDelFormulario(f: FormData) {
 		creado_con_ia: bool('creado_con_ia'),
 		fuera_del_banco: bool('fuera_del_banco'),
 		pendiente_clasificar: bool('pendiente_clasificar'),
+		es_demo: bool('es_demo'),
 		notas_internas: texto('notas_internas')
 	};
 }
