@@ -28,6 +28,18 @@ npm run check    # svelte-check + typecheck (debe quedar a 0 errores)
 npm run build    # build de producción
 ```
 
+## Diseño
+
+**Antes de tocar cualquier cosa visual, lee `design.md` (raíz del repo).** Es el sistema de
+diseño compartido por las cuatro apps MCM (`mcmbank`, `mcmrecursos`, `mcmshop`,
+`mcmvotaciones`): color, tipografía, espacio, movimiento, estados de acción, patrón de
+deshacer, accesibilidad, microcopia y la lista de anti-defaults. Su §7 describe esta app y su
+§8 apunta a `design-plans/`, con la deuda de diseño en planes ejecutables.
+
+`docs/04-diseno.md` sigue siendo la fuente canónica **del detalle** de esta app (tesis
+visual, layout, dataviz). `design.md` es el marco común. Si se contradicen, gana `design.md`
+y hay que corregir el 04 en el mismo commit.
+
 ## Convenciones
 
 - **Svelte 5 con runes** (`$state`, `$derived`, `$props`) — modo runes forzado en `vite.config.ts`.
