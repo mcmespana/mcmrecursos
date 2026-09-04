@@ -34,11 +34,27 @@ los neutros llevan un sesgo de matiz hacia el teal** (elegidos, no heredados).
   luminosidad para mantener contraste AA, las miniaturas ganan un borde sutil para no
   "flotar", sombras → bordes. Se conmuta con `mode-watcher` (clase `.dark`), respetando
   la preferencia del sistema por defecto.
-- **Color por familia de tipo** (5 familias de `tipo`): cada familia tiene un tinte fijo
-  de badge (Sesiones=teal, Actividades=verde, Celebración=violeta, Audiovisual=ámbar,
-  Documentos=gris-azul). El color sigue a la entidad, nunca a la posición; la paleta
-  categórica se validará con `validate_palette.js` (CVD ΔE ≥ 8) en claro y oscuro antes
-  de fijarla en código.
+- **Color por familia de tipo** (5 familias de `tipo`): Sesiones=teal, Actividades=verde,
+  Celebración=violeta, Audiovisual=ámbar, Documentos=gris-azul. El color sigue a la entidad,
+  nunca a la posición, y el mapa vive en un solo sitio (`FAMILIA_BADGE` en
+  `lib/catalogo/tipos.ts`), no repartido por componentes.
+
+  **Fijada en tokens OKLCH y validada** (2026-09-03, `--familia-*` en `app.css`). Antes eran
+  colores de Tailwind por nombre (`emerald-700`, `violet-500`…), que design.md §3.1 prohíbe.
+  Lo medido:
+
+  - **Contraste**: las diez combinaciones (5 familias × 2 temas) pasan AA, tanto del texto
+    sobre su propio tinte (4,5–10,8) como sobre el lienzo (5,1–14,2).
+  - **Daltonismo**: aquí está lo interesante. Con **luminosidad constante** —que es lo que
+    design.md §3.9 pide para una serie de gráfica— la deuteranopia colapsaba Sesiones y
+    Documentos en el mismo color: **ΔE 0,9**. Repartiendo también la luminosidad entre las
+    cinco, el peor par sube a **ΔE 4,6**.
+  - **No se llega a los ΔE 8** que pedía este documento, y no se va a llegar: cinco tonos
+    categóricos con contraste de texto usable no caben en ese margen bajo las tres
+    simulaciones. Lo que hace que esto sea aceptable es que **el color nunca va solo**: el
+    badge lleva el nombre de la familia escrito y hay un icono por familia (`FAMILIA_ICON`),
+    que es lo que design.md §3.1 exige de todas formas. Si algún día se quita el texto del
+    badge, esta decisión hay que rehacerla.
 
 ## 3. Tipografía
 
@@ -55,10 +71,10 @@ tracking solo en eyebrows de sección y cabeceras de faceta.
 
 ## 4. Layout y vistas
 
-> ⚠️ **Ojo con esta sección** (revisado 2026-08-20, ver `docs/06-reflexion-uiux.md`): describe la
-> dirección completa, y **dos piezas no están construidas**. Van marcadas abajo como
-> «🔜 no construido» para que nadie implemente creyendo que ya existen:
-> las **estanterías editoriales de la portada** y el **drawer de facetas en móvil**.
+> **Estado de esta sección** (revisado 2026-09-03): describe lo que hay, salvo las
+> **estanterías editoriales de la portada**, que están marcadas abajo como dirección futura
+> aparcada a propósito. El drawer de facetas en móvil se resolvió de otra forma —un degradado
+> que insinúa el desbordamiento— y también está explicado abajo.
 
 Estructura general: **header fino y pegajoso** (logo, búsqueda global, avatar) →
 **barra de facetas** → **resultados**. Densidad: cómoda en galería, compacta en tabla.
@@ -74,10 +90,12 @@ Grid de 4 px; radios 10 px (ya en `--radius`); sombras solo 2 niveles (reposo/el
   como pill semántica, edición rápida inline donde sea trivial.
 - **Itinerario**: columna izquierda con etapas/itinerarios, centro con bloques ordenados
   como secciones y recursos colgando en mini-tarjetas horizontales.
-- **Top / Descubrir** 🔜 **no construido** (portada sin búsqueda activa): stats-héroe (recursos, autores,
-  valoraciones — número grande display + sparkline sutil) y estanterías horizontales
-  con scroll-snap: "Mejor valorados", "Más usados", "Novedades", tag destacado de
-  temporada (Adviento en noviembre…). Aquí vive la personalidad editorial.
+- **Top / Descubrir** — **dirección futura, deliberadamente aparcada** (2026-09-03): estanterías
+  horizontales con scroll-snap ("Mejor valorados", "Más usados", "Novedades", tag de temporada)
+  y stats-héroe. La razón de aparcarlo está en `docs/06-reflexion-uiux.md`: **el banco tiene
+  siete recursos públicos**, y cuatro estanterías enseñando los mismos siete cuatro veces se ve
+  peor que no tenerlas. Se retoma cuando haya material; hasta entonces esto no es deuda, es una
+  decisión.
 - **Ficha**: sheet lateral (escritorio) / bottom sheet a pantalla casi completa (móvil)
   sobre la búsqueda sin destruir su estado. Héroe con miniatura grande, CTA primario
   "Abrir recurso" (cuenta el acceso), metadatos en definición-lista de dos columnas,
@@ -85,9 +103,14 @@ Grid de 4 px; radios 10 px (ya en `--radius`); sombras solo 2 niveles (reposo/el
 
 **Filtros**: chips activos siempre visibles bajo la búsqueda (quitables, "limpiar todo");
 facetas en popover-combobox con contadores en vivo y buscador interno cuando > 8 opciones;
-la faceta activa tiñe su trigger de primary. En **móvil**, 🔜 **no construido**: hoy es un carrusel
-horizontal de chips que se corta sin pista, no el drawer inferior con botón "Ver N recursos" que
-especificaba esta sección.
+la faceta activa tiñe su trigger de primary. En **móvil** son un carrusel horizontal con un
+degradado en el borde derecho (`mask-image`) que dice «esto sigue» sin ocupar sitio ni añadir
+un control — el chip de debajo se sigue pudiendo pulsar, que es lo que un pseudo-elemento
+encima habría estropeado.
+
+El drawer inferior con botón «Ver N recursos» que describía antes esta sección **no se va a
+construir de momento**: el problema real era que el carrusel se cortaba sin pista, y eso ya
+está resuelto. Un drawer añade un gesto más para el mismo trabajo.
 
 ## 5. Movimiento
 
@@ -191,6 +214,18 @@ técnico concreto (no solo "dicen que es mejor").
   cada filtro y la consulta por separado y ofrece los que devuelven algo, el que más primero, con el
   número que desbloquea cada uno. Si quitar uno solo no basta, lo dice en vez de sugerir en falso.
 - Imágenes de recurso siempre con `alt` (nombre + tipo).
+
+**Escala de altura de control** (design.md §3.3, y esta app es de donde sale). Los valores en
+escritorio:
+
+| Tamaño | Alto | Dónde |
+|---|---|---|
+| `xs` | 24 px | Contadores, chips diminutos dentro de una fila |
+| `sm` | 28 px | Acciones secundarias en filas densas |
+| `default` | **32 px** | Todo lo demás: botones, `Input`, trigger de `Select` |
+| `lg` | 36 px | La acción principal de una pantalla |
+
+`Textarea` no entra en la escala: crece con su contenido y arranca en 64 px.
 
 **Cómo se cumplen los 44 px** — clases `.toque` (botones en el flujo) y `.toque-encima` (los que
 ya son `absolute`, como el corazón de la tarjeta) en `app.css`: un pseudo-elemento invisible y

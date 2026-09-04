@@ -474,10 +474,13 @@ Los planes ejecutables viven en **`design-plans/`**, numerados y autocontenidos,
 de estado en `design-plans/README.md`. Un agente que venga a "arreglar diseño" empieza ahí.
 Los pendientes de producto siguen en `docs/03-roadmap.md`; los de diseño puro van aquí.
 
-| Plan | Qué |
-|---|---|
-| `001` | **Adoptar la escala de altura de control compartida** (§3.3) — esta app ya está muy cerca: `default` h-8. Revisar `lg`/`icon-lg` y documentarlo |
-| `002` | **Las estanterías de la portada y el drawer de facetas móvil**: o se construyen, o se quitan de `docs/04-diseno.md` §4. Llevan meses descritas como si existieran |
-| `003` | **El héroe no se aparta nunca** (hallazgo F1): que se encoja a una fila en cuanto hay consulta o filtro. En móvil el primer título de recurso aparece a 585 px de scroll |
-| `004` | **Dos recuentos que se contradicen a 140 px** (F2): «7 recursos» del total y «2 recursos» del resultado, sin distinguirse |
-| `005` | **Publicar la paleta categórica de familias validada** (CVD ΔE ≥ 8, claro y oscuro) como tokens, en vez de tenerla descrita en prosa |
+**Los cinco planes de la primera tanda están cerrados** (2026-09-04). Se dejan listados
+porque explican por qué esta app está como está:
+
+| Plan | Qué | Cómo acabó |
+|---|---|---|
+| `001` | Adoptar la escala de altura de control compartida (§3.3) | Ya se cumplía; faltaba la tabla, que está en `docs/04-diseno.md` §7 |
+| `002` | Las estanterías de la portada y el drawer de facetas móvil: construirlas o quitarlas del doc | Fuera del doc. Las estanterías son dirección futura aparcada (con 7 recursos públicos no hay qué estanterizar); el drawer se resolvió de otra forma, con la pista en degradado |
+| `003` | El héroe no se aparta nunca (F1) | Ya estaba resuelto en el código antes de escribirse el plan: `buscando` esconde héroe y recuento |
+| `004` | Dos recuentos que se contradicen a 140 px (F2) | Ídem, por el mismo cambio |
+| `005` | Publicar la paleta categórica de familias como tokens | Hecho: `--familia-*-fg` / `--familia-*-bg` en claro y oscuro, las 10 combinaciones pasan AA. El objetivo ΔE ≥ 8 bajo daltonismo **no es alcanzable** con cinco familias legibles (peor caso 4,6); se acepta porque la insignia lleva siempre nombre e icono |
