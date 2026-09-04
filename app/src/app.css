@@ -85,9 +85,55 @@
 	--sidebar-ring: oklch(0.7 0.1 195);
 }
 
+/*
+	Paleta por familia de tipo (docs/04-diseno.md §2). El color sigue a la
+	entidad, nunca a la posición.
+
+	La luminosidad se reparte entre las cinco a propósito, no es un descuido:
+	con luminosidad constante —que es lo que pide §3.9 para una serie de
+	gráfica— la deuteranopia colapsaba dos familias en una (ΔE 0,9 medido). Al
+	repartirla, el peor par sube a ΔE 4,6. Ver el comentario del §2 del doc para
+	los números y para por qué no se llega a 8.
+*/
+:root {
+	--familia-sesiones-fg: oklch(0.5 0.12 195);
+	--familia-sesiones-bg: oklch(0.955 0.034 195);
+	--familia-actividades-fg: oklch(0.42 0.13 150);
+	--familia-actividades-bg: oklch(0.955 0.036 150);
+	--familia-celebracion-fg: oklch(0.46 0.15 305);
+	--familia-celebracion-bg: oklch(0.955 0.042 305);
+	--familia-audiovisual-fg: oklch(0.54 0.13 75);
+	--familia-audiovisual-bg: oklch(0.955 0.036 75);
+	--familia-documentos-fg: oklch(0.38 0.03 250);
+	--familia-documentos-bg: oklch(0.955 0.008 250);
+}
+
+.dark {
+	--familia-sesiones-fg: oklch(0.88 0.12 195);
+	--familia-sesiones-bg: oklch(0.28 0.054 195);
+	--familia-actividades-fg: oklch(0.79 0.13 150);
+	--familia-actividades-bg: oklch(0.28 0.059 150);
+	--familia-celebracion-fg: oklch(0.83 0.15 305);
+	--familia-celebracion-bg: oklch(0.28 0.068 305);
+	--familia-audiovisual-fg: oklch(0.92 0.13 75);
+	--familia-audiovisual-bg: oklch(0.28 0.059 75);
+	--familia-documentos-fg: oklch(0.74 0.03 250);
+	--familia-documentos-bg: oklch(0.28 0.014 250);
+}
+
 @theme inline {
 	--font-sans: 'Figtree Variable', ui-sans-serif, system-ui, sans-serif;
 	--font-display: 'Bricolage Grotesque Variable', var(--font-sans);
+	--color-familia-sesiones: var(--familia-sesiones-fg);
+	--color-familia-sesiones-bg: var(--familia-sesiones-bg);
+	--color-familia-actividades: var(--familia-actividades-fg);
+	--color-familia-actividades-bg: var(--familia-actividades-bg);
+	--color-familia-celebracion: var(--familia-celebracion-fg);
+	--color-familia-celebracion-bg: var(--familia-celebracion-bg);
+	--color-familia-audiovisual: var(--familia-audiovisual-fg);
+	--color-familia-audiovisual-bg: var(--familia-audiovisual-bg);
+	--color-familia-documentos: var(--familia-documentos-fg);
+	--color-familia-documentos-bg: var(--familia-documentos-bg);
 	--color-warm: var(--warm);
 	--color-warm-foreground: var(--warm-foreground);
 	--color-background: var(--background);

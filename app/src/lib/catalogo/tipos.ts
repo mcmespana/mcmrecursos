@@ -102,22 +102,31 @@ export const socialVacio = (): SocialPropio => ({
 	valoraciones: new Map()
 });
 
-/** Familias de `tipo` → clases de badge (paleta por familia, ver docs/04-diseno.md). */
+/**
+ * Familias de `tipo` → clases de badge.
+ *
+ * Los tokens viven en `app.css` y están validados en claro y oscuro: cada texto
+ * pasa AA sobre su propio tinte y sobre el lienzo, y las cinco se separan lo
+ * más posible bajo daltonismo (docs/04-diseno.md §2). Antes esto usaba colores
+ * de Tailwind por nombre —`emerald-700`, `violet-500`, `slate-400`—, que
+ * design.md §3.1 prohíbe porque no tienen variante de tema pensada.
+ */
 export const FAMILIA_BADGE: Record<string, string> = {
-	'Sesiones y formación': 'bg-primary/12 text-primary dark:bg-primary/20',
-	Actividades: 'bg-emerald-500/12 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300',
-	'Celebración y oración': 'bg-violet-500/12 text-violet-700 dark:bg-violet-400/15 dark:text-violet-300',
-	'Audiovisual y gráfico': 'bg-warm/20 text-warm-foreground dark:bg-warm/15 dark:text-warm',
-	Documentos: 'bg-slate-500/12 text-slate-700 dark:bg-slate-400/15 dark:text-slate-300'
+	'Sesiones y formación': 'bg-familia-sesiones-bg text-familia-sesiones',
+	Actividades: 'bg-familia-actividades-bg text-familia-actividades',
+	'Celebración y oración': 'bg-familia-celebracion-bg text-familia-celebracion',
+	'Audiovisual y gráfico': 'bg-familia-audiovisual-bg text-familia-audiovisual',
+	Documentos: 'bg-familia-documentos-bg text-familia-documentos'
 };
 
 /** Tinte del fondo de miniatura de respaldo por familia. */
 export const FAMILIA_FONDO: Record<string, string> = {
-	'Sesiones y formación': 'from-primary/20 via-primary/5 to-primary/15',
-	Actividades: 'from-emerald-500/20 via-emerald-500/5 to-emerald-500/15',
-	'Celebración y oración': 'from-violet-500/20 via-violet-500/5 to-violet-500/15',
-	'Audiovisual y gráfico': 'from-warm/30 via-warm/10 to-warm/20',
-	Documentos: 'from-slate-500/20 via-slate-500/5 to-slate-500/15'
+	'Sesiones y formación': 'from-familia-sesiones/20 via-familia-sesiones/5 to-familia-sesiones/15',
+	Actividades: 'from-familia-actividades/20 via-familia-actividades/5 to-familia-actividades/15',
+	'Celebración y oración':
+		'from-familia-celebracion/20 via-familia-celebracion/5 to-familia-celebracion/15',
+	'Audiovisual y gráfico': 'from-familia-audiovisual/20 via-familia-audiovisual/5 to-familia-audiovisual/15',
+	Documentos: 'from-familia-documentos/20 via-familia-documentos/5 to-familia-documentos/15'
 };
 
 export const FAMILIA_ICON: Record<string, typeof IconType> = {
