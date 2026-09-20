@@ -15,7 +15,10 @@ cuál en curso y cuál es solo un borrador.
    404: ahora son 19, marcados con `es_demo` (ya no en el título), con capa social, relaciones
    e itinerario de dos tramos. Modal de bienvenida en la portada («¡Has llegado muy pronto!»)
    que recoge correo y ganas de ayudar, botón flotante + página de sugerencias, y
-   `/admin/comunidad` para gestionar las dos bandejas.
+   `/admin/comunidad` para gestionar las dos bandejas. Interruptor añadido después
+   (2026-09-20, migración `00032`): «Recursos de muestra» en `/admin/config` → Funciones,
+   apagado por defecto, los quita del todo (portada, Descubre, itinerarios y el panel de
+   gestión de recursos; público y privado) sin borrar nada.
 1. ~~Detección de duplicados~~ ✅ hecha (2026-08-04/06, migración `00019`, SPEC-008 §2).
 2. ~~Panel de salud del banco y tareas del equipo~~ ✅ hecho (2026-08-13, SPEC-014, migraciones
    `00021`–`00023`) — detalle en `docs/archivo/roadmap-historico.md`.

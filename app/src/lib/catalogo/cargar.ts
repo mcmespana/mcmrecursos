@@ -15,7 +15,8 @@ export interface DatosCatalogo {
 /** Carga completa del catálogo público (recursos + listas + facetas + lo mío). */
 export async function cargarDatosCatalogo(
 	supabase: SupabaseClient<any, 'recursos'>,
-	session: Session | null
+	session: Session | null,
+	mostrarDemo = true
 ): Promise<DatosCatalogo> {
 	const [recursosRes, listasRes, statsRes, facetasRes, presetsRes] = await Promise.all([
 		supabase
@@ -51,7 +52,11 @@ export async function cargarDatosCatalogo(
 
 	const stats = new Map((statsRes.data ?? []).map((s: any) => [s.recurso_id, s]));
 
-	const recursos: RecursoCatalogo[] = (recursosRes.data ?? []).map((r: any) => {
+	// El interruptor «Recursos de muestra» (/admin/config → Funciones) apagado los quita de
+	// aquí: ni portada, ni Descubre, ni facetas ni relacionados los vuelven a mencionar.
+	const filas = mostrarDemo ? (recursosRes.data ?? []) : (recursosRes.data ?? []).filter((r: any) => !r.es_demo);
+
+	const recursos: RecursoCatalogo[] = filas.map((r: any) => {
 		const s = stats.get(r.id);
 		return {
 			id: r.id,

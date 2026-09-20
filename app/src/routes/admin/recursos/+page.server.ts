@@ -7,6 +7,7 @@ import { camposDelFormulario, guardarRelacionados } from '$lib/server/recursos';
 import { slugTag } from '$lib/catalogo/tags';
 import { embeddingsDisponibles, embeddingsDocumentos } from '$lib/server/embeddings';
 import { exigirRol } from '$lib/server/permisos';
+import { funcionActiva } from '$lib/server/ajustes';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const ESTADOS_PENDIENTES = ['borrador', 'subido_usuario', 'pendiente_revision', 'revisar_ia'];
@@ -122,13 +123,13 @@ async function idDeTag(
 
 export const load: PageServerLoad = async ({ locals: { supabase }, url }) => {
 	const pendiente = url.searchParams.get('pendiente');
-	const [recursosRes, listasRes, mcmRes, tagsRes, idsPendienteRes] = await Promise.all([
+	const [recursosRes, listasRes, mcmRes, tagsRes, idsPendienteRes, mostrarDemo] = await Promise.all([
 		supabase
 			.from('recurso')
 			.select(
 				`id, nombre, descripcion, tipo, etapas, nivel, edades, idioma, soporte, ubicacion,
 				 enlace, formato, imagen, enlace_imagenes, anyo_publicacion, curso_usado, visibilidad, estado,
-				 datos_personales, creado_con_ia, fuera_del_banco, pendiente_clasificar,
+				 datos_personales, creado_con_ia, fuera_del_banco, pendiente_clasificar, es_demo,
 				 notas_internas, editado_web_at, updated_at, mcm_local_id, version_de,
 				 mcm_local:mcm_local_id (nombre),
 				 recurso_archivo (id, enlace, etiqueta, formato, orden),
@@ -142,7 +143,10 @@ export const load: PageServerLoad = async ({ locals: { supabase }, url }) => {
 		// duplicar la lógica de cada señal en el cliente.
 		pendiente
 			? supabase.rpc('ids_senal', { p_senal: pendiente })
-			: Promise.resolve({ data: null })
+			: Promise.resolve({ data: null }),
+		// mismo interruptor que el catálogo público (SPEC-017 + /admin/config → Funciones): con
+		// los de muestra apagados, tampoco distraen aquí mientras se cataloga material real.
+		funcionActiva(supabase, 'mostrar_demo', { variableEntorno: 'MOSTRAR_DEMO', porDefecto: false })
 	]);
 
 	// última propuesta de IA por recurso (para badge + prellenado del formulario)
@@ -164,14 +168,16 @@ export const load: PageServerLoad = async ({ locals: { supabase }, url }) => {
 		.map((t) => t.nombre);
 
 	return {
-		recursos: (recursosRes.data ?? []).map((r: any) => ({
-			...r,
-			mcm_local: r.mcm_local?.nombre ?? null,
-			archivos: [...((r.recurso_archivo ?? []) as any[])].sort(
-				(a, b) => (a.orden ?? 0) - (b.orden ?? 0)
-			),
-			tags: (r.recurso_tag ?? []).map((t: any) => t.tag?.nombre).filter(Boolean)
-		})),
+		recursos: (recursosRes.data ?? [])
+			.filter((r: any) => mostrarDemo || !r.es_demo)
+			.map((r: any) => ({
+				...r,
+				mcm_local: r.mcm_local?.nombre ?? null,
+				archivos: [...((r.recurso_archivo ?? []) as any[])].sort(
+					(a, b) => (a.orden ?? 0) - (b.orden ?? 0)
+				),
+				tags: (r.recurso_tag ?? []).map((t: any) => t.tag?.nombre).filter(Boolean)
+			})),
 		listas: listasRes.data ?? [],
 		mcmLocales: mcmRes.data ?? [],
 		tags,

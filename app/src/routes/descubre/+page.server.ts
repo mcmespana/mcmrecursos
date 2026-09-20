@@ -14,9 +14,10 @@ import { cargarDatosCatalogo } from '$lib/catalogo/cargar';
  */
 export const load: PageServerLoad = async ({ locals: { supabase, session }, depends }) => {
 	depends('supabase:auth');
-	const [datos, activa] = await Promise.all([
-		cargarDatosCatalogo(supabase, session),
+	const [mostrarDemo, activa] = await Promise.all([
+		funcionActiva(supabase, 'mostrar_demo', { variableEntorno: 'MOSTRAR_DEMO', porDefecto: false }),
 		funcionActiva(supabase, 'descubre_ia', { variableEntorno: 'DESCUBRE_IA' })
 	]);
+	const datos = await cargarDatosCatalogo(supabase, session, mostrarDemo);
 	return { ...datos, iaDescubre: iaDisponible() && activa };
 };

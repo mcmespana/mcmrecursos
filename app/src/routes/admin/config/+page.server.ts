@@ -10,7 +10,7 @@ const ORIGENES_FACETA = ['columna', 'extra', 'tag', 'autor', 'mcm_local'];
 const TIPOS_FACETA = ['multiselect', 'select', 'boolean', 'rango'];
 
 /** Funciones que se pueden apagar desde aquí (tabla `ajuste`). */
-const AJUSTES = ['descubre_ia'];
+const AJUSTES = ['descubre_ia', 'mostrar_demo'];
 
 const slugify = (s: string) =>
 	s
@@ -62,7 +62,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 			}),
 			descubreIaForzado: forzadoPorEntorno('DESCUBRE_IA'),
 			gemini: iaDisponible(),
-			voyage: embeddingsDisponibles()
+			voyage: embeddingsDisponibles(),
+			// Apagado por defecto (SPEC-017): el catálogo de demostración no molesta hasta que
+			// alguien lo enciende aquí a propósito.
+			mostrarDemo: await funcionActiva(locals.supabase, 'mostrar_demo', {
+				variableEntorno: 'MOSTRAR_DEMO',
+				porDefecto: false
+			}),
+			mostrarDemoForzado: forzadoPorEntorno('MOSTRAR_DEMO')
 		}
 	};
 };
