@@ -11,6 +11,7 @@
 		ExternalLink,
 		Eye,
 		EyeOff,
+		FlaskConical,
 		Lock,
 		LockOpen,
 		Plus,
@@ -624,6 +625,61 @@
 				{:else if !data.funciones.gemini}
 					<p class="rounded-lg bg-muted px-3 py-2 text-xs text-pretty">
 						Sin <code>GEMINI_API_KEY</code> la función no aparece en Descubre aunque esté encendida.
+					</p>
+				{/if}
+			</div>
+
+			<div class="flex flex-col gap-2 rounded-xl border p-4">
+				<div class="flex flex-wrap items-center gap-2">
+					<FlaskConical class="size-4 text-warm-foreground dark:text-warm" />
+					<span class="font-medium">Recursos de muestra (demo)</span>
+					<span
+						class={`rounded-full px-2 py-0.5 text-xs font-medium ${
+							data.funciones.mostrarDemo
+								? 'bg-emerald-500/12 text-emerald-700 dark:text-emerald-300'
+								: 'bg-muted text-muted-foreground'
+						}`}
+					>
+						{data.funciones.mostrarDemo ? 'Encendida' : 'Apagada'}
+					</span>
+					<form
+						method="POST"
+						action="?/ajusteFlag"
+						class="ml-auto"
+						use:enhance={alGuardar(
+							data.funciones.mostrarDemo
+								? 'Recursos de muestra ocultos'
+								: 'Recursos de muestra visibles',
+							'mostrar_demo'
+						)}
+					>
+						<input type="hidden" name="clave" value="mostrar_demo" />
+						<input type="hidden" name="valor" value={String(!data.funciones.mostrarDemo)} />
+						<Button
+							type="submit"
+							size="sm"
+							variant={data.funciones.mostrarDemo ? 'outline' : 'default'}
+							class="h-8 gap-1.5"
+							disabled={ocupado.activo || data.funciones.mostrarDemoForzado}
+							hecho={ocupado.hecho('mostrar_demo')}
+						>
+							<Power class="size-3.5" />
+							{data.funciones.mostrarDemo ? 'Apagar' : 'Encender'}
+						</Button>
+					</form>
+				</div>
+
+				<p class="text-sm text-pretty text-muted-foreground">
+					Los recursos «[EJEMPLO]» del catálogo de demostración (SPEC-017): enseñan cómo se ve el
+					banco lleno, con su tarjeta marcada «Demo» y enlaces que no abren nada real. Apagado aquí
+					desaparecen del todo — portada, Descubre e itinerarios, en público y en privado — sin
+					borrar ni un dato: se quedan en la base esperando a que los vuelvas a encender.
+				</p>
+
+				{#if data.funciones.mostrarDemoForzado}
+					<p class="rounded-lg bg-warm/15 px-3 py-2 text-xs text-pretty">
+						La variable <code>MOSTRAR_DEMO</code> del entorno manda sobre este botón. Quítala en
+						Vercel para volver a decidirlo desde aquí.
 					</p>
 				{/if}
 			</div>

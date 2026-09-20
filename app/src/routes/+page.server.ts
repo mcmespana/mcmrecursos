@@ -1,5 +1,6 @@
 import type { PageServerLoad } from './$types';
 import { cargarDatosCatalogo } from '$lib/catalogo/cargar';
+import { funcionActiva } from '$lib/server/ajustes';
 
 /**
  * El catálogo se carga en el SERVIDOR, no en el navegador.
@@ -15,5 +16,9 @@ import { cargarDatosCatalogo } from '$lib/catalogo/cargar';
  */
 export const load: PageServerLoad = async ({ locals: { supabase, session }, depends }) => {
 	depends('supabase:auth');
-	return cargarDatosCatalogo(supabase, session);
+	const mostrarDemo = await funcionActiva(supabase, 'mostrar_demo', {
+		variableEntorno: 'MOSTRAR_DEMO',
+		porDefecto: false
+	});
+	return cargarDatosCatalogo(supabase, session, mostrarDemo);
 };

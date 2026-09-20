@@ -1,10 +1,11 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
+import { funcionActiva } from '$lib/server/ajustes';
 
 export const load: PageServerLoad = async ({ params, locals: { supabase } }) => {
 	// La RLS de 00026 devuelve 0 filas si es borrador y quien mira no es editor → 404 limpio.
 	// El vocabulario de edades va aparte: sirve para decir «todas» en vez de listar catorce cursos.
-	const [{ data }, edadesRes] = await Promise.all([
+	const [{ data }, edadesRes, mostrarDemo] = await Promise.all([
 		supabase
 			.from('itinerario')
 			.select(
@@ -25,7 +26,8 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 			.select('lista, valor, grupo, orden')
 			.eq('lista', 'edades')
 			.eq('activo', true)
-			.order('orden')
+			.order('orden'),
+		funcionActiva(supabase, 'mostrar_demo', { variableEntorno: 'MOSTRAR_DEMO', porDefecto: false })
 	]);
 
 	if (!data) error(404, 'Ese itinerario no existe o todavía no está publicado');
@@ -41,6 +43,7 @@ export const load: PageServerLoad = async ({ params, locals: { supabase } }) => 
 				.sort((x: any, y: any) => x.orden - y.orden)
 				.map((rb: any) => rb.recurso)
 				.filter(Boolean)
+				.filter((r: any) => mostrarDemo || !r.es_demo)
 				.map((r: any) => ({
 					...r,
 					es_demo: r.es_demo ?? false,
