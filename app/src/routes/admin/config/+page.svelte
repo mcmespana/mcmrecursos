@@ -672,8 +672,9 @@
 				<p class="text-sm text-pretty text-muted-foreground">
 					Los recursos «[EJEMPLO]» del catálogo de demostración (SPEC-017): enseñan cómo se ve el
 					banco lleno, con su tarjeta marcada «Demo» y enlaces que no abren nada real. Apagado aquí
-					desaparecen del todo — portada, Descubre e itinerarios, en público y en privado — sin
-					borrar ni un dato: se quedan en la base esperando a que los vuelvas a encender.
+					desaparecen del todo — portada, Descubre, itinerarios y el panel de gestión de
+					recursos, en público y en privado — sin borrar ni un dato: se quedan en la base
+					esperando a que los vuelvas a encender.
 				</p>
 
 				{#if data.funciones.mostrarDemoForzado}
